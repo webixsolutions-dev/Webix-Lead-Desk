@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 — Partners and results
+
+- Added owner-reviewed Canada/US partner targeting and a shared five-new-business daily draft cap.
+- Added versioned targeting edits and actual campaign/sector results.
+- Added exact-copy manual contact-form review and globally exclusive first-contact channels.
+
+
 ## 0.7.0 — Pipeline and concepts
 
 - Added human-reviewed opportunity stages, team call handoffs, meetings and CAD outcomes.

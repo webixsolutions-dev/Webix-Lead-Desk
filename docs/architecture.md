@@ -131,3 +131,11 @@ Vercel rejects a dedicated worker process and remains web-only.
 `demo_versions` bind immutable owner briefs to evidence and separately approved share links.
 Exact draft snapshots include the approved concept digest and URL. Sender dispatch rechecks
 that binding immediately before DATA; acceptance alone advances the Demo sent stage.
+
+## Phase 8 partners and reports
+
+`partner_reviews` records attributable country reviews; `partner_days` and `partner_slots`
+serialize five-new-business capacity across campaigns before optional AI costs. Campaign
+versions preserve historical import snapshots. `form_drafts` keeps immutable manual copy
+and recorded outcomes; channel reservations are shared with SMTP. Reports aggregate
+accepted events independently to prevent join multiplication. No external form submission runs.

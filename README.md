@@ -2,7 +2,7 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 7 adds reviewed sales stages, call handoffs and immutable concept previews.** The app includes sign-in,
+**Phase 8 adds separate partner controls, editable targeting and observed campaign results.** The app includes sign-in,
 owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
 AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
 use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
@@ -234,3 +234,5 @@ No live pilot has been launched by this repository release: credentials, actual 
 recipient/message approvals and provider acceptance remain pending in the installed workspace.
 
 See [pipeline and concepts](docs/pipeline.md) for publication, same-thread delivery and revocation.
+
+See [partner controls and manual forms](docs/partners.md).

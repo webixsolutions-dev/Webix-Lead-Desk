@@ -71,6 +71,8 @@ def run_once(
 
 def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     """Poll until interrupted, or process one job for a supervised smoke test."""
+    if settings.app_mode == "VERCEL":
+        raise RuntimeError("Run the dedicated worker with a PC or VPS profile")
     owner = new_id()
     if not acquire_worker(db, settings, owner, utc_now()):
         raise RuntimeError("Another worker is active. Stop it or wait for its lease to expire.")

@@ -21,6 +21,7 @@ from app.pipeline.handoff import call_due
 from app.pipeline.service import update_opportunity
 from app.sending.schedule import schedule
 from app.sending.service import dispatch
+from app.sending.window import CALGARY
 from tests.conftest import Account, csrf_from, sign_in
 from tests.delivery_helpers import NOW, FakeTransport, approved_intent, claim_send, reply_bytes
 from tests.delivery_helpers import delivery_setup as delivery_setup
@@ -102,8 +103,10 @@ def ready_concept(db: Database, config: Settings, setup: dict[str, str]) -> Demo
 
 def test_call_handoff_weekend_dst_and_money() -> None:
     """One business hour crosses weekends and DST without losing the Calgary wall clock."""
-    due = call_due(datetime(2026, 10, 30, 22, 30, tzinfo=UTC))
-    assert due.astimezone(UTC) == datetime(2026, 11, 2, 16, 30, tzinfo=UTC)
+    due = call_due(datetime(2026, 10, 30, 16, 30, tzinfo=CALGARY))
+    assert due == datetime(2026, 11, 2, 9, 30, tzinfo=CALGARY)
+    historical = call_due(datetime(2025, 10, 31, 22, 30, tzinfo=UTC))
+    assert historical.astimezone(UTC) == datetime(2025, 11, 3, 16, 30, tzinfo=UTC)
     assert cents("125.50") == 12550
     for invalid in ["NaN", "Infinity", "-1", "0.001", "1000001"]:
         with pytest.raises(ValueError):

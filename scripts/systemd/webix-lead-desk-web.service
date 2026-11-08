@@ -1,0 +1,27 @@
+[Unit]
+Description=Webix Lead Desk private web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lead-desk
+Group=lead-desk
+WorkingDirectory=/opt/webix-lead-desk
+EnvironmentFile=/etc/webix-lead-desk.env
+Environment=APP_MODE=VPS
+ExecStart=/opt/webix-lead-desk/.venv/bin/uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=90
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/webix-lead-desk/var
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

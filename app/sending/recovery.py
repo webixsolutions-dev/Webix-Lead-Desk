@@ -15,6 +15,11 @@ def hold_expired_send(session: Session, job: Job, now: datetime) -> None:
     item = session.get(SendIntent, str(job.payload.get("intent_id", "")))
     if not item or item.state != "transmitting":
         return
+    hold_intent(session, item, now)
+
+
+def hold_intent(session: Session, item: SendIntent, now: datetime) -> None:
+    """Preserve an interrupted transmission as uncertain without creating a retry."""
     item.state, item.hold_reason = "uncertain", "worker_lost_during_send"
     draft = session.get(Draft, item.draft_id)
     conversation = session.get(Conversation, item.conversation_id)

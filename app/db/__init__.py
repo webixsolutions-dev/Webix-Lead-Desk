@@ -4,6 +4,7 @@ from app.db import delivery_models as delivery_models
 from app.db import form_models as form_models
 from app.db import lead_models as lead_models
 from app.db import learning_models as learning_models
+from app.db import operations_models as operations_models
 from app.db import outreach_models as outreach_models
 from app.db import partner_models as partner_models
 from app.db import pilot_models as pilot_models

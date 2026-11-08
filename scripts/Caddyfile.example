@@ -1,0 +1,5 @@
+# Replace this example domain with your actual DNS name before use.
+desk.example.com {
+    reverse_proxy 127.0.0.1:8000
+    # Access logging intentionally omitted: concept URLs are bearer links.
+}

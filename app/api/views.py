@@ -47,7 +47,9 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         "user": principal.user,
         "csrf": principal.csrf_token,
         "page": page,
-        "navigation": NAVIGATION,
+        "navigation": [
+            item for item in NAVIGATION if item[0] != "operations" or principal.user.role == "owner"
+        ],
         "preferences": prefs,
         "settings_version": version,
         "mode": app.settings.app_mode,

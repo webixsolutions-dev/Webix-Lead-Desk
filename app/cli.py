@@ -3,6 +3,7 @@
 import argparse
 import getpass
 import logging
+from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -15,6 +16,8 @@ from app.db.migrate import migrate
 from app.db.session import create_database
 from app.jobs.queue import enqueue_health
 from app.jobs.runner import run_worker
+from app.operations.backups import export_backup, read_backup, restore_backup
+from app.operations.control import set_maintenance
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,7 @@ def confirmed_password() -> str:
 
 
 def parser() -> argparse.ArgumentParser:
-    """Define the small, explicit set of Phase 1 administrative commands."""
+    """Define explicit local administration, recovery and worker commands."""
     root = argparse.ArgumentParser(description="Webix Lead Desk local administration")
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("migrate", help="Apply Alembic migrations")
@@ -39,10 +42,20 @@ def parser() -> argparse.ArgumentParser:
     account.add_argument("--role", choices=["owner", "reviewer"], default="owner")
     reset = commands.add_parser("reset-password", help="Reset a password and revoke sessions")
     reset.add_argument("--email", required=True)
-    worker = commands.add_parser("worker", help="Run the separate health-job worker")
+    worker = commands.add_parser("worker", help="Run the separate background worker")
     worker.add_argument("--once", action="store_true")
     commands.add_parser("enqueue-health", help="Queue one harmless worker check")
     commands.add_parser("check", help="Check the database connection")
+    maintenance = commands.add_parser(
+        "maintenance", help="Stop or resume application writes and worker claims"
+    )
+    maintenance.add_argument("state", choices=["on", "off"])
+    maintenance.add_argument("--note", required=True)
+    for name in ["backup", "restore", "verify-backup"]:
+        operation = commands.add_parser(name, help="Private encrypted database " + name)
+        operation.add_argument("--file", required=True, type=Path)
+        if name != "verify-backup":
+            operation.add_argument("--offline-confirmed", action="store_true")
     return root
 
 
@@ -68,6 +81,34 @@ def main() -> int:
     db = create_database(settings)
     try:
         match args.command:
+            case "maintenance":
+                set_maintenance(db, args.state == "on", args.note)
+                logger.info(
+                    "Maintenance %s; existing processes must be stopped for transfer", args.state
+                )
+            case "backup":
+                result = export_backup(
+                    db, settings, args.file, offline_confirmed=args.offline_confirmed
+                )
+                logger.info(
+                    "Encrypted backup saved: %s rows; file SHA-256 %s",
+                    result["rows"],
+                    result["file_sha256"],
+                )
+            case "verify-backup":
+                tables = read_backup(settings, args.file)
+                logger.info(
+                    "Backup authenticated: %s rows; no data restored",
+                    sum(len(rows) for rows in tables.values()),
+                )
+            case "restore":
+                counts = restore_backup(
+                    db, settings, args.file, offline_confirmed=args.offline_confirmed
+                )
+                logger.info(
+                    "Restored and verified %s rows; maintenance remains enabled",
+                    sum(counts.values()),
+                )
             case "create-user":
                 create_user(db, args.email, args.name, confirmed_password(), args.role)
                 logger.info("Account created")
@@ -89,6 +130,9 @@ def main() -> int:
         return 2
     except SQLAlchemyError:
         logger.error("Database operation failed. Check connectivity and run migrations.")
+        return 2
+    except OSError:
+        logger.error("Local backup I/O failed. Check private file paths and permissions.")
         return 2
     except (ValueError, RuntimeError) as error:
         # These exceptions are raised locally with fixed messages, never provider payloads.

@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import Settings
 from app.db.models import Job, JobAttempt, WorkerInstance, new_id
 from app.db.session import Database
+from app.operations.control import maintenance_enabled
 
 
 def enqueue_health(db: Database, unique_key: str, now: datetime) -> Job:
@@ -43,6 +44,8 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
     runtime = {"app_mode": settings.app_mode, "live_send_enabled": settings.live_send_enabled}
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:
+        if maintenance_enabled(session):
+            return False
         if session.get(WorkerInstance, "primary") is None:
             try:
                 with session.begin_nested():
@@ -84,6 +87,8 @@ def release_worker(db: Database, owner: str, now: datetime) -> None:
 def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> Job | None:
     """Recover expired health work and atomically claim one due job."""
     with db.sessions.begin() as session:
+        if maintenance_enabled(session):
+            return None
         lease = session.get(WorkerInstance, "primary")
         if lease is None or lease.owner_id != owner or lease.lease_expires_at <= now:
             return None

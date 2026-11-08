@@ -19,6 +19,7 @@ from app.api import (
     drafts,
     forms,
     learning,
+    operations,
     partners,
     pilot,
     pipeline,
@@ -31,6 +32,7 @@ from app.core.context import Services
 from app.core.logging import configure_logging
 from app.db.migrate import migration_head
 from app.db.session import create_database
+from app.operations.control import maintenance_enabled
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -68,7 +70,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         """Prevent caching of private pages and set restrictive browser policies."""
-        response = await call_next(request)
+        blocked = False
+        if request.method not in {"GET", "HEAD", "OPTIONS"} and request.url.path not in {
+            "/login",
+            "/logout",
+        }:
+            with db.sessions() as session:
+                blocked = maintenance_enabled(session)
+        response = (
+            JSONResponse(
+                {"detail": "Maintenance is enabled; reviews are temporarily read-only."},
+                status_code=503,
+            )
+            if blocked
+            else await call_next(request)
+        )
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -86,7 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/health/live")
     def liveness() -> dict[str, str]:
         """Expose only process liveness without account or connection details."""
-        return {"status": "ok", "phase": "1"}
+        return {"status": "ok", "phase": "10"}
 
     @app.get("/health/ready")
     def readiness() -> JSONResponse:
@@ -111,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(partners.router)
     app.include_router(forms.router)
     app.include_router(learning.router)
+    app.include_router(operations.router)
     app.mount(
         "/static", StaticFiles(directory=Path(__file__).parent / "ui" / "static"), name="static"
     )

@@ -1,4 +1,4 @@
-"""Validated deployment configuration; Phase 1 has no live integrations."""
+"""Validated private configuration with explicit provider and deployment gates."""
 
 from pathlib import Path
 from typing import Literal, Self
@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     public_base_url: str = Field(default="", max_length=2000)
     live_send_enabled: bool = False
     encryption_key: SecretStr | None = None
+    backup_key: SecretStr | None = None
+    backup_max_bytes: int = Field(default=100_000_000, ge=100_000, le=1_000_000_000)
     titan_smtp_host: Literal["smtp.titan.email"] = "smtp.titan.email"
     titan_imap_host: Literal["imap.titan.email"] = "imap.titan.email"
     mail_timeout_seconds: int = Field(default=30, ge=5, le=60)
@@ -71,7 +73,7 @@ class Settings(BaseSettings):
             raise ValueError("PUBLIC_BASE_URL must be the deployed HTTPS origin without a path")
         return normalized.rstrip("/")
 
-    @field_validator("encryption_key")
+    @field_validator("encryption_key", "backup_key")
     @classmethod
     def valid_encryption_key(cls, value: SecretStr | None) -> SecretStr | None:
         """Validate the dedicated credential encryption key without exposing its value."""
@@ -81,7 +83,9 @@ class Settings(BaseSettings):
             try:
                 Fernet(value.get_secret_value().encode())
             except ValueError as error:
-                raise ValueError("ENCRYPTION_KEY must be a valid Fernet key") from error
+                raise ValueError(
+                    "ENCRYPTION_KEY and BACKUP_KEY must each be valid Fernet keys"
+                ) from error
         return value
 
     @field_validator("session_secret")

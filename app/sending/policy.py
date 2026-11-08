@@ -10,6 +10,7 @@ from app.db.models import Job, User, WorkerInstance
 from app.db.outreach_models import Conversation, Draft, DraftApproval, Mailbox
 from app.db.session import Database
 from app.drafting.service import approval_blocks
+from app.operations.control import maintenance_enabled
 from app.pilot.service import gate
 from app.sending.window import within_window
 
@@ -21,7 +22,8 @@ def claim_valid(session: Session, job: Job, now: datetime) -> bool:
     current = session.get(Job, job.id)
     worker = session.get(WorkerInstance, "primary")
     return bool(
-        current
+        not maintenance_enabled(session)
+        and current
         and worker
         and current.state == "running"
         and job.claim_token

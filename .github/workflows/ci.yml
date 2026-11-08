@@ -97,3 +97,25 @@ jobs:
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: gitleaks git --redact --log-opts="--all"
 
+  phase-one-tag:
+    name: Tag approved Phase 1
+    needs: [quality, postgres, windows, secrets]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Create the approved phase tag once
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git show-ref --verify --quiet refs/tags/v0.1.0; then
+            exit 0
+          fi
+          git tag v0.1.0 "$GITHUB_SHA"
+          git push origin refs/tags/v0.1.0
+

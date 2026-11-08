@@ -122,5 +122,7 @@ See [architecture](docs/architecture.md), [decisions](docs/decisions/0001-founda
 
 One coding agent and one approved phase at a time. Changes belong on phase/feature branches. Every phase ends in a PR with a self-review. Owner approval and passing required checks are necessary before merge and a version tag. Do not start Phase 2 until Phase 1 is reviewed and approved.
 
+The owner approved the initial Phase 1 publication to main after the Webix logo/red branding update. Its CI tag job creates `v0.1.0` once, only after every quality job passes on main. Only that job has repository write permission; it never moves an existing tag or approves later phases.
+
 Vendored HTMX 2.0.8 is included with its license and is used only for authenticated worker-status polling. Assets are served locally without a CDN. No analytics or tracking scripts are included.
 

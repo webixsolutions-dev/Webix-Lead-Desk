@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Phase 1 / 0.1.0
+## 0.1.0 — 2026-11-08
 
 - Add local owner/reviewer sign-in, revocable sessions, CSRF protection and login throttles.
 - Add portable Alembic migrations for identity, preferences, audit events and jobs.
@@ -11,5 +11,5 @@
 - Add Windows/Linux setup scripts, offline tests, strict typing, lint and secret scanning.
 - Keep all API and mailbox integrations disabled. No real lead data or live sending.
 
-No release tag is created until the owner approves the phase and the PR is merged.
+The owner approved publishing Phase 1 after the branding update. CI creates the initial `v0.1.0` tag only after the merged main commit passes all checks. Existing tags are never moved; later phases still require separate approval.
 

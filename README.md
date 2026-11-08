@@ -89,13 +89,17 @@ Local administrator commands assume access to the operating-system account that 
 `scripts/setup_local.py` creates `.env` once with a random signing key. It preserves an existing file. `.env.example` documents the environment variables. Database files live in `var/` by default and are ignored by Git.
 
 - Preferences in the dashboard override environment defaults for workspace name, timezones and preview visibility.
-- `APP_MODE=PC` is the pilot default. The VPS profile requires PostgreSQL and secure cookies, but does not deploy or migrate anything automatically.
+- `APP_MODE=PC` is the pilot default. VPS and Vercel profiles require PostgreSQL and secure cookies, but do not deploy or migrate anything automatically.
 - `LIVE_SEND_ENABLED` and `EXTERNAL_INTEGRATIONS_ENABLED` must remain false. Phase 1 refuses to start otherwise.
 - `SESSION_SECRET` is required. The database stores password hashes and hashed bearer tokens, never plaintext passwords or bearer tokens.
 - All timestamps are stored in UTC. IANA timezones handle Calgary daylight saving and local display time.
 - No automatic provider payments, account creation or purchases occur.
 
 Take a backup only with both processes stopped. Copy `var/` and `.env` to private storage outside the repository and protect it with your operating system's access controls/encryption. SQLite WAL/journal files must remain with the database if present. Backups contain sensitive data and are never Git commits. Restore is a supervised local operation; VPS transfer is a later approved phase.
+
+## Vercel web hosting
+
+Select the **FastAPI** preset with root directory `./`. The explicit `app.vercel:app` entry point supplies the top-level instance that Vercel needs. Configure a dedicated PostgreSQL database, a session key, secure cookies and exact allowed domains before deployment; see [Vercel setup](docs/deploy-to-vercel.md). The web function does not start the worker or migrate a database. A PC worker can process hosted health jobs only when configured against that same PostgreSQL database.
 
 ## Development checks
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 — Pipeline and concepts
+
+- Added human-reviewed opportunity stages, team call handoffs, meetings and CAD outcomes.
+- Added immutable homepage, service-page, call-flow and portal concepts with explicit public-link approval and revocation.
+- Kept concept email approval separate, with original sender/thread and final reply/revocation guards.
+
+
 ## [0.6.0] — 2026-11-09
 - Add a reviewed 10-business pilot cohort and atomic five-first-contact cap.
 - Add owner launch/pause/acceptance decisions without granting message approvals.

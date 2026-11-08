@@ -9,6 +9,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from app.api.dependencies import CurrentUser, Owner, Principal, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
+from app.db.delivery_models import SendIntent
 from app.db.lead_models import Campaign, CampaignLead, Company, Contact
 from app.db.models import AuditEvent
 from app.db.outreach_models import Conversation, Draft, Mailbox
@@ -30,6 +31,9 @@ def outbox_context(request: Request, principal: Principal) -> dict[str, Any]:
                 .order_by(Draft.created_at.desc())
                 .limit(100)
             )
+        )
+        context["intents"] = list(
+            session.scalars(select(SendIntent).order_by(SendIntent.due_at).limit(100))
         )
     return context
 

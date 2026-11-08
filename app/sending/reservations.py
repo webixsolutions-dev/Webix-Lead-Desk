@@ -14,6 +14,7 @@ from app.db.lead_models import Campaign
 from app.db.models import Job
 from app.db.outreach_models import Conversation, Draft
 from app.db.session import Database
+from app.pilot.service import reserve_pilot
 from app.policy.contacts import reserve_channel
 from app.sending.policy import claim_valid, delivery_blocks
 from app.sending.window import CALGARY, end_of_day, next_window, ramp_limit
@@ -169,6 +170,10 @@ def reserve(
             return None
         draft = session.get(Draft, current.draft_id)
         assert draft
+        if not reserve_pilot(session, current, company_id):
+            current.state, current.hold_reason = "held", "pilot_capacity_or_state_changed"
+            draft.state = "approved"
+            return None
         day.reserved += 1
         conversation.locked_at = conversation.locked_at or now
         current.state, current.attempted_at = "transmitting", now

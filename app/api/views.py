@@ -12,6 +12,7 @@ from starlette.responses import HTMLResponse
 from app.api.dependencies import Principal, services
 from app.core.clock import utc_now
 from app.core.preferences import get_preferences
+from app.db.lead_models import Company
 from app.db.models import Job, WorkerInstance
 from app.ui.preview import LEADS, NAVIGATION
 
@@ -31,6 +32,7 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
     prefs, version = get_preferences(app.db, app.settings)
     now = utc_now()
     with app.db.sessions() as session:
+        lead_count = session.scalar(select(func.count()).select_from(Company)) or 0
         worker = session.get(WorkerInstance, "primary")
         worker_online = worker is not None and worker.lease_expires_at > now
         queued = (
@@ -58,6 +60,7 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         "calgary_time": now.astimezone(ZoneInfo("America/Edmonton")).strftime("%I:%M %p"),
         "today_date": now.astimezone(ZoneInfo(prefs.display_timezone)).strftime("%A, %d %B"),
         "leads": LEADS if prefs.preview_enabled else [],
+        "lead_count": lead_count,
         "sample_count": len(LEADS) if prefs.preview_enabled else 0,
         "saved": False,
         "error": None,

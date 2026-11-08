@@ -22,7 +22,11 @@ def worker_status(request: Request, principal: CurrentUser) -> HTMLResponse:
 @router.get("/", response_class=HTMLResponse)
 def today(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show the daily workspace overview with explicit preview labeling."""
-    return render(request, "today.html", dashboard_context(request, principal, "today"))
+    from app.pilot.readiness import metrics
+
+    context = dashboard_context(request, principal, "today")
+    context.update(metrics(services(request).db))
+    return render(request, "today.html", context)
 
 
 @router.get("/leads", response_class=HTMLResponse)

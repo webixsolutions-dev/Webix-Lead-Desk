@@ -40,6 +40,7 @@ def enqueue(
 
 def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) -> bool:
     """Acquire or refresh the singleton lease without displacing a live worker."""
+    runtime = {"app_mode": settings.app_mode, "live_send_enabled": settings.live_send_enabled}
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:
         if session.get(WorkerInstance, "primary") is None:
@@ -59,7 +60,9 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
                 WorkerInstance.key == "primary",
                 or_(WorkerInstance.owner_id == owner, WorkerInstance.lease_expires_at <= now),
             )
-            .values(owner_id=owner, heartbeat_at=now, lease_expires_at=expiry)
+            .values(
+                owner_id=owner, heartbeat_at=now, lease_expires_at=expiry, runtime_config=runtime
+            )
             .returning(WorkerInstance.key)
         )
         return result is not None

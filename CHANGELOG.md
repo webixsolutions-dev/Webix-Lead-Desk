@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] — 2026-11-09
+- Add a reviewed 10-business pilot cohort and atomic five-first-contact cap.
+- Add owner launch/pause/acceptance decisions without granting message approvals.
+- Replace preview dashboard metrics with real records and report worker/sender readiness separately.
+- Preserve explicit pending status for live provider and prospect acceptance.
+
 ## [0.5.0] — 2026-11-09
 - Add encrypted, write-only mailbox and optional research connections.
 - Add exact-revision scheduling, sender locks, immutable Message-IDs and one approved follow-up.

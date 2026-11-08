@@ -10,6 +10,7 @@ from app.db.models import Job, User, WorkerInstance
 from app.db.outreach_models import Conversation, Draft, DraftApproval, Mailbox
 from app.db.session import Database
 from app.drafting.service import approval_blocks
+from app.pilot.service import gate
 from app.sending.window import within_window
 
 READINESS = ("spf", "dkim", "dmarc", "privacy", "provider_limits", "test_accepted")
@@ -96,4 +97,6 @@ def delivery_blocks(
             )
         ):
             reasons.append("thread_context_changed")
+        if conversation and (pilot_block := gate(session, conversation.company_id, item.step)):
+            reasons.append(pilot_block)
     return reasons

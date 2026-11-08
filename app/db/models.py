@@ -103,6 +103,7 @@ class WorkerInstance(Base):
     """Singleton worker lease with a replaceable process owner."""
 
     __tablename__ = "worker_instances"
+    runtime_config: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     owner_id: Mapped[str] = mapped_column(String(36))
     heartbeat_at: Mapped[datetime] = mapped_column(UTCDateTime())

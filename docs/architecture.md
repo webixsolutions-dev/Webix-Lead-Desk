@@ -113,3 +113,14 @@ leases. SMTP cannot atomically commit with our database: a tiny interval remains
 and the remote server accepting DATA. Uncertain results are therefore held, never replayed.
 Accepted late responses can record known delivery without reviving a stopped conversation.
 Raw inbox content is untrusted data and cannot call tools or approve/resume outreach.
+
+
+## Phase 6 pilot gate
+
+`app/pilot/` owns source-review membership, launch/pause/acceptance state and real-data readiness.
+A singleton `Pilot` serializes the five-place first-touch cap; `PilotMember` freezes the reviewed
+4/4/2 cohort and `PilotReservation` prevents retries from spending another place. Dispatch checks
+the gate both before reservation and immediately before DATA. After accepted pilot completion,
+normal exact-message approvals and all Phase 5 delivery limits still apply.
+The worker lease records its mode and live-send flag for honest reporting; it never records keys.
+Vercel rejects a dedicated worker process and remains web-only.

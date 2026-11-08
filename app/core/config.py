@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from cryptography.fernet import Fernet
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +26,10 @@ class Settings(BaseSettings):
     sending_timezone: str = "America/Edmonton"
     preview_enabled: bool = True
     live_send_enabled: bool = False
+    encryption_key: SecretStr | None = None
+    titan_smtp_host: Literal["smtp.titan.email"] = "smtp.titan.email"
+    titan_imap_host: Literal["imap.titan.email"] = "imap.titan.email"
+    mail_timeout_seconds: int = Field(default=30, ge=5, le=60)
     external_integrations_enabled: bool = False
     openai_enabled: bool = False
     openai_api_key: SecretStr | None = None
@@ -43,6 +48,19 @@ class Settings(BaseSettings):
     ip_login_attempt_limit: int = Field(default=30, ge=1, le=100)
     login_csrf_seconds: int = Field(default=1800, ge=60, le=3600)
     max_form_bytes: int = Field(default=16384, ge=1024, le=65536)
+
+    @field_validator("encryption_key")
+    @classmethod
+    def valid_encryption_key(cls, value: SecretStr | None) -> SecretStr | None:
+        """Validate the dedicated credential encryption key without exposing its value."""
+        if value and not value.get_secret_value():
+            return None
+        if value:
+            try:
+                Fernet(value.get_secret_value().encode())
+            except ValueError as error:
+                raise ValueError("ENCRYPTION_KEY must be a valid Fernet key") from error
+        return value
 
     @field_validator("session_secret")
     @classmethod
@@ -63,10 +81,14 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def phase_one_guards(self) -> Self:
+    def deployment_guards(self) -> Self:
         """Fail closed on unsupported live actions and insecure hosted profiles."""
-        if self.live_send_enabled or self.external_integrations_enabled:
-            raise ValueError("Live integrations are unavailable in Phase 1")
+        if self.external_integrations_enabled:
+            raise ValueError(
+                "Use provider-specific settings; the legacy integration switch is unavailable"
+            )
+        if self.live_send_enabled and not self.encryption_key:
+            raise ValueError("Live sending requires a dedicated ENCRYPTION_KEY")
         if not self.allowed_hosts or "*" in self.allowed_hosts:
             raise ValueError("ALLOWED_HOSTS must contain explicit hosts")
         if self.app_mode in {"VPS", "VERCEL"} and (

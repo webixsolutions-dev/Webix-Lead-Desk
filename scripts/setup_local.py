@@ -5,6 +5,8 @@ import os
 import secrets
 from pathlib import Path
 
+from cryptography.fernet import Fernet
+
 
 def main() -> None:
     """Write a restricted .env only when no existing configuration is present."""
@@ -14,6 +16,9 @@ def main() -> None:
     contents = (root / ".env.example").read_text(encoding="utf-8")
     contents = contents.replace(
         "SESSION_SECRET=\n", f"SESSION_SECRET={secrets.token_urlsafe(48)}\n"
+    )
+    contents = contents.replace(
+        "ENCRYPTION_KEY=\n", f"ENCRYPTION_KEY={Fernet.generate_key().decode()}\n"
     )
     try:
         descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)

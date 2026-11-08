@@ -126,6 +126,7 @@ class Job(Base):
     finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     claim_token: Mapped[str | None] = mapped_column(String(36))
+    claim_owner: Mapped[str | None] = mapped_column(String(36))
     lease_expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     error_code: Mapped[str | None] = mapped_column(String(64))
     result: Mapped[str | None] = mapped_column(Text)

@@ -16,6 +16,7 @@ from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.session import Database
 from app.inbox.parse import classify, parse_reply
 from app.integrations.imap import IMAPUnavailable, InboxBatch, read_inbox
+from app.pipeline.service import capture_reply
 from app.sending.window import CALGARY, end_of_day
 
 InboxReader = Callable[[Settings, str, str, str, int], InboxBatch]
@@ -77,6 +78,7 @@ def record_reply(
             # Classification cannot authorize sending; cancellation happens first.
             session.flush()
             label = classify(reply)
+            capture_reply(session, conversation, label, now)
             if label in {"automatic", "needs_review", "bounce"}:
                 conversation.state = "held"
             contact = session.get(Contact, conversation.contact_id)

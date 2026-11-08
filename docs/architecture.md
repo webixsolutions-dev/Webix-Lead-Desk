@@ -124,3 +124,10 @@ the gate both before reservation and immediately before DATA. After accepted pil
 normal exact-message approvals and all Phase 5 delivery limits still apply.
 The worker lease records its mode and live-send flag for honest reporting; it never records keys.
 Vercel rejects a dedicated worker process and remains web-only.
+
+## Phase 7 pipeline
+
+`opportunities` and `pipeline_events` record human decisions separately from reply labels.
+`demo_versions` bind immutable owner briefs to evidence and separately approved share links.
+Exact draft snapshots include the approved concept digest and URL. Sender dispatch rechecks
+that binding immediately before DATA; acceptance alone advances the Demo sent stage.

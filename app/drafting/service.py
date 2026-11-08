@@ -12,6 +12,7 @@ from app.db.models import AuditEvent, User
 from app.db.outreach_models import Conversation, Draft, DraftApproval, Mailbox
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.demos.service import concept_attachment
 from app.drafting.content import check_copy, fingerprint, footer
 from app.playbook.service import current_guidance
 from app.policy.contacts import is_suppressed
@@ -31,11 +32,12 @@ def save_draft(
     *,
     previous_id: str | None = None,
     step: int = 0,
+    concept_id: str | None = None,
 ) -> Draft:
     """Create a revision; supersede the expected predecessor atomically without reusing approval."""
     check_copy(subject, body, first_touch=step == 0)
-    if step not in {0, 1} or not 1 <= len(evidence_ids) <= 10:
-        raise ValueError("Use an initial message or one follow-up, with 1–10 evidence references")
+    if not 0 <= step <= 20 or not 1 <= len(evidence_ids) <= 10:
+        raise ValueError("Use a supported message step with 1–10 evidence references")
     guidance = current_guidance(db, campaign_id)
     try:
         with db.sessions.begin() as session:
@@ -90,7 +92,9 @@ def save_draft(
                     contact_id,
                     mailbox_id,
                 )
-            if conversation.state in {"replied", "held", "stopped"}:
+            if conversation.state in {"held", "stopped"} or (
+                conversation.state == "replied" and step < 2
+            ):
                 raise ValueError("This conversation is stopped or requires a human response")
             if step and not conversation.first_message_id:
                 raise ValueError("A follow-up requires an accepted first message")
@@ -127,6 +131,20 @@ def save_draft(
                     raise ValueError("Another editor changed this draft")
             elif previous_id:
                 raise ValueError("Previous draft not found")
+            attachments: list[dict[str, str]] = []
+            if step >= 2:
+                actor = session.get(User, actor_id)
+                if not actor or not actor.active or actor.role != "owner":
+                    raise ValueError("Only the owner can prepare a concept response")
+                if not concept_id and previous:
+                    old = previous.snapshot.get("attachments", [])
+                    concept_id = old[0].get("id") if old else None
+                if not concept_id:
+                    raise ValueError("Choose a reviewed concept before creating this response")
+                attachment = concept_attachment(session, concept_id, conversation)
+                if attachment["url"] not in body:
+                    raise ValueError("Keep the exact approved concept link in the message")
+                attachments = [attachment]
             snapshot: dict[str, Any] = {
                 "company_id": company_id,
                 "campaign_id": campaign_id,
@@ -140,7 +158,7 @@ def save_draft(
                 "footer": footer(mailbox),
                 "evidence_ids": sorted(found),
                 "playbook_ids": [item.id for item in guidance],
-                "attachments": [],
+                "attachments": attachments,
                 "step": step,
                 "conversation_id": conversation.id,
                 "in_reply_to": conversation.last_message_id if step else None,
@@ -176,8 +194,27 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
         contact = session.get(Contact, snapshot["contact_id"])
         mailbox = session.get(Mailbox, snapshot["mailbox_id"])
         campaign = session.get(Campaign, snapshot["campaign_id"])
-        if not conversation or conversation.state in {"held", "stopped", "replied"}:
+        if (
+            not conversation
+            or conversation.state in {"held", "stopped"}
+            or (conversation.state == "replied" and draft.step < 2)
+        ):
             reasons.append("Conversation is held or has a reply")
+        if draft.step >= 2 and conversation:
+            try:
+                attachments = snapshot.get("attachments", [])
+                if len(attachments) != 1:
+                    raise ValueError("Concept binding missing")
+                current = concept_attachment(
+                    session,
+                    attachments[0]["id"],
+                    conversation,
+                    transmitting=draft.state == "sending",
+                )
+                if current != attachments[0] or current["url"] not in snapshot["body"]:
+                    raise ValueError("Concept binding changed")
+            except (ValueError, KeyError, TypeError):
+                reasons.append("Concept approval, share link or qualification changed")
         if not campaign or not campaign.active:
             reasons.append("Campaign is inactive")
         if conversation and (

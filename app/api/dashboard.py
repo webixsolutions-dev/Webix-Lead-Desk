@@ -59,13 +59,28 @@ def outbox(request: Request, principal: CurrentUser) -> HTMLResponse:
 @router.get("/pipeline", response_class=HTMLResponse)
 def pipeline(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show the planned reply and call handoff interface as a labeled preview."""
-    return render(request, "pipeline.html", dashboard_context(request, principal, "pipeline"))
+    from app.pipeline.service import board
+
+    context = dashboard_context(request, principal, "pipeline")
+    context.update(board(services(request).db))
+    return render(request, "pipeline.html", context)
 
 
 @router.get("/demos", response_class=HTMLResponse)
 def demos(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show future demo types without generating or sending artifacts."""
-    return render(request, "demos.html", dashboard_context(request, principal, "demos"))
+    from sqlalchemy import select
+
+    from app.db.pipeline_models import DemoVersion
+    from app.demos.service import KINDS
+
+    context = dashboard_context(request, principal, "demos")
+    with services(request).db.sessions() as session:
+        context["concepts"] = list(
+            session.scalars(select(DemoVersion).order_by(DemoVersion.created_at.desc()).limit(100))
+        )
+    context["concept_kinds"] = KINDS
+    return render(request, "demos.html", context)
 
 
 @router.get("/settings", response_class=HTMLResponse)

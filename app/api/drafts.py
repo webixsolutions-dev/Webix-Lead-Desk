@@ -57,7 +57,12 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
         conversation = session.scalar(
             select(Conversation).where(Conversation.company_id == company_id)
         )
-        step = 1 if request.query_params.get("step") == "1" else 0
+        try:
+            step = int(request.query_params.get("step", "0"))
+        except ValueError as error:
+            raise HTTPException(422, "Invalid message step") from error
+        if not 0 <= step <= 20:
+            raise HTTPException(422, "Invalid message step")
         item = (
             session.scalar(
                 select(Draft)

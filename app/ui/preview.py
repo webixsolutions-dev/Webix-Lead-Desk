@@ -28,7 +28,7 @@ LEADS: list[PreviewLead] = [
         "city": "Calgary",
         "service": "After-hours enquiries",
         "score": 8,
-        "color": "violet",
+        "color": "brand-tone",
         "website": "prairie-peak.example",
         "observation": "Example finding: the contact page shows a phone number and a quote form.",
         "question": "Who looks after quote requests that arrive after the office closes?",

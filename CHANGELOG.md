@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 — Reviewed learning
+
+- Captured edits, draft rejections and recorded sales outcomes as inert suggestions.
+- Added exact owner-reviewed application to versioned Playbook guidance, with concurrent-edit guards.
+- Added restoration of earlier guidance as a new version while preserving approved drafts.
+
+
 ## 0.8.0 — Partners and results
 
 - Added owner-reviewed Canada/US partner targeting and a shared five-new-business daily draft cap.

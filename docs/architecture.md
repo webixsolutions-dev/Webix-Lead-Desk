@@ -139,3 +139,11 @@ serialize five-new-business capacity across campaigns before optional AI costs. 
 versions preserve historical import snapshots. `form_drafts` keeps immutable manual copy
 and recorded outcomes; channel reservations are shared with SMTP. Reports aggregate
 accepted events independently to prevent join multiplication. No external form submission runs.
+
+## Phase 9 reviewed memory
+
+`learning_proposals` captures attributable internal edit/rejection/outcome evidence. Raw websites
+and incoming mail have no publication path. Applying a proposal and appending a Playbook version
+share one transaction and expected-version check. Restoring guidance appends a new version;
+old draft content, approvals and guidance references remain unchanged. No model training or
+paid generation is involved in this memory workflow.

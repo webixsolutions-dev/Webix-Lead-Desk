@@ -178,7 +178,18 @@ def test_quiesce_requires_expired_leases_and_marks_interrupted_work(
     item = approved_intent(db, drafting_setup)
     job = claim_send(db, delivery_setup, item)
     set_maintenance(db, True, "Recovering a synthetic interrupted worker")
+    with db.sessions.begin() as session:
+        worker = session.get(WorkerInstance, "primary")
+        stored = session.get(Job, job.id)
+        assert worker and stored
+        worker.lease_expires_at = stored.lease_expires_at = utc_now() + timedelta(minutes=1)
     with pytest.raises(ValueError, match="worker lease"):
+        quiesce(db, offline_confirmed=True)
+    with db.sessions.begin() as session:
+        worker = session.get(WorkerInstance, "primary")
+        assert worker
+        worker.lease_expires_at = utc_now() - timedelta(seconds=1)
+    with pytest.raises(ValueError, match="job lease"):
         quiesce(db, offline_confirmed=True)
     with db.sessions.begin() as session:
         worker = session.get(WorkerInstance, "primary")

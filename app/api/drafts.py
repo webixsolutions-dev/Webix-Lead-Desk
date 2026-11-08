@@ -16,6 +16,7 @@ from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.research_models import Evidence
 from app.drafting.brief import build_brief
 from app.drafting.service import approval_blocks, approve, save_draft
+from app.learning.capture import capture
 
 router = APIRouter()
 
@@ -167,6 +168,18 @@ async def reject_draft(request: Request, principal: Owner, draft_id: str) -> Red
                 entity_id=draft_id,
                 details={"reason": reason},
             )
+        )
+        draft = session.get(Draft, draft_id)
+        assert draft
+        capture(
+            session,
+            "rejection",
+            draft_id,
+            draft.snapshot["campaign_id"],
+            principal.user.id,
+            "Remember why a draft was skipped",
+            "Apply this owner feedback to future drafts: " + reason,
+            {"draft_id": draft_id, "reason": reason},
         )
     return RedirectResponse("/outbox", 303)
 

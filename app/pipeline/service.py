@@ -13,6 +13,7 @@ from app.db.models import User
 from app.db.outreach_models import Conversation
 from app.db.pipeline_models import Opportunity, PipelineEvent
 from app.db.session import Database
+from app.learning.capture import capture
 from app.pipeline.handoff import call_due
 from app.sending.window import CALGARY
 from app.sources.validation import website_url
@@ -146,6 +147,18 @@ def update_opportunity(
         )
         if not changed:
             raise ValueError("Opportunity changed in another tab; reload before saving")
+        if stage in {"Won", "Lost"} and conversation:
+            capture(
+                session,
+                "outcome",
+                card_id + ":" + str(expected_version + 1),
+                conversation.campaign_id,
+                actor_id,
+                "Review a recorded sales outcome",
+                "Consider this reviewed outcome as one observation, not proof of causation: "
+                + outcome_note.strip(),
+                {"opportunity_id": card_id, "stage": stage, "reason": outcome_note.strip()},
+            )
         session.add(
             PipelineEvent(
                 opportunity_id=card_id,

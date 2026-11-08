@@ -2,7 +2,7 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 8 adds separate partner controls, editable targeting and observed campaign results.** The app includes sign-in,
+**Phase 9 adds reviewed persistent guidance, learning suggestions and version restoration.** The app includes sign-in,
 owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
 AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
 use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
@@ -236,3 +236,5 @@ recipient/message approvals and provider acceptance remain pending in the instal
 See [pipeline and concepts](docs/pipeline.md) for publication, same-thread delivery and revocation.
 
 See [partner controls and manual forms](docs/partners.md).
+
+See [reviewed learning and memory](docs/learning.md).

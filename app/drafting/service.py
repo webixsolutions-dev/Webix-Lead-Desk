@@ -14,6 +14,7 @@ from app.db.research_models import Evidence
 from app.db.session import Database
 from app.demos.service import concept_attachment
 from app.drafting.content import check_copy, fingerprint, footer
+from app.learning.capture import capture_edit
 from app.partners.service import partner_block, reserve_slot
 from app.playbook.service import current_guidance
 from app.policy.contacts import is_suppressed
@@ -178,6 +179,7 @@ def save_draft(
             session.add(item)
             session.flush()
             session.add(AuditEvent(actor_id=actor_id, action="draft.created", entity_id=item.id))
+            capture_edit(session, previous, item, actor_id)
             return item
     except IntegrityError as error:
         raise ValueError(

@@ -2,7 +2,7 @@
 {% block heading %}A message for {{ company_record.name }}{% endblock %}
 {% block description %}One verified observation. A useful question. A clear next step.{% endblock %}
 {% block content %}<a class="button secondary" href="/leads/{{ company_record.id }}">← Research &amp; contacts</a>
-<div class="settings-grid"><section class="panel work-panel"><h2>{{ 'Follow-up' if step else 'First contact' }}</h2><p class="small muted">Saving creates an unapproved revision. Nothing is sent from this editor.</p>
+<div class="settings-grid"><section class="panel work-panel"><h2>{{ 'Concept response' if step >= 2 else 'Follow-up' if step else 'First contact' }}</h2><p class="small muted">Saving creates an unapproved revision. Nothing is sent from this editor.</p>
 <form action="/leads/{{ company_record.id }}/draft" method="post" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="previous_id" value="{{ draft.id if draft else '' }}"><input type="hidden" name="step" value="{{ step }}">
 <label>Campaign<select name="campaign_id" required>{% for item in campaigns %}<option value="{{ item.id }}" {% if item.id == selected_campaign %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label>
 <label>Recipient<select name="contact_id" required>{% for item in contacts %}<option value="{{ item.id }}" {% if draft and item.id == draft.snapshot.contact_id %}selected{% endif %}>{{ item.email }} · {{ item.verification }}</option>{% endfor %}</select></label>

@@ -165,8 +165,16 @@ def reserve(
             .values(state="sending")
             .returning(Draft.id)
         )
-        if not changed or conversation.state in {"replied", "held", "stopped"}:
+        if (
+            not changed
+            or conversation.state in {"held", "stopped"}
+            or (conversation.state == "replied" and current.step < 2)
+        ):
             current.state, current.hold_reason = "held", "approval_or_conversation_changed"
+            if changed:
+                session.execute(
+                    update(Draft).where(Draft.id == current.draft_id).values(state="approved")
+                )
             return None
         draft = session.get(Draft, current.draft_id)
         assert draft

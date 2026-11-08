@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     display_timezone: str = "Asia/Karachi"
     sending_timezone: str = "America/Edmonton"
     preview_enabled: bool = True
+    public_base_url: str = Field(default="", max_length=2000)
     live_send_enabled: bool = False
     encryption_key: SecretStr | None = None
     titan_smtp_host: Literal["smtp.titan.email"] = "smtp.titan.email"
@@ -48,6 +49,27 @@ class Settings(BaseSettings):
     ip_login_attempt_limit: int = Field(default=30, ge=1, le=100)
     login_csrf_seconds: int = Field(default=1800, ge=60, le=3600)
     max_form_bytes: int = Field(default=16384, ge=1024, le=65536)
+
+    @field_validator("public_base_url")
+    @classmethod
+    def valid_public_origin(cls, value: str) -> str:
+        """Require an explicit HTTPS origin before publishing prospect concept links."""
+        from urllib.parse import urlsplit
+
+        from app.sources.validation import website_url
+
+        if not value:
+            return ""
+        normalized = website_url(value)
+        parsed = urlsplit(normalized)
+        if (
+            parsed.scheme != "https"
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("PUBLIC_BASE_URL must be the deployed HTTPS origin without a path")
+        return normalized.rstrip("/")
 
     @field_validator("encryption_key")
     @classmethod

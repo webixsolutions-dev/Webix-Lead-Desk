@@ -63,7 +63,7 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
                 existing.wire_message = None
                 return existing
             due = now
-            if draft.step:
+            if draft.step == 1:
                 first = session.scalar(
                     select(SendIntent).where(
                         SendIntent.conversation_id == draft.conversation_id,

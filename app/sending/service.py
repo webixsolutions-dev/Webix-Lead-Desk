@@ -109,6 +109,9 @@ def record_result(db: Database, attempt_id: str, result: SMTPResult, now: dateti
         if result.outcome == "accepted":
             item.state, item.accepted_at = "accepted", now
             draft.state = "sent"
+            from app.demos.service import record_demo_acceptance
+
+            record_demo_acceptance(session, draft)
             conversation.first_message_id = conversation.first_message_id or item.message_id
             conversation.last_message_id = item.message_id
             if conversation.state == "draft":

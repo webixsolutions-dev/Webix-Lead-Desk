@@ -63,6 +63,8 @@ def import_candidates(
                 "area": campaign.area,
                 "services": campaign.services,
                 "lane": campaign.lane,
+                "country": campaign.country,
+                "version": campaign.version,
                 "daily_limit": campaign.daily_limit,
             },
             imported=0,

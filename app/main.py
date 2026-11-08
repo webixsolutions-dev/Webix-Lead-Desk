@@ -17,6 +17,8 @@ from app.api import (
     delivery,
     demos,
     drafts,
+    forms,
+    partners,
     pilot,
     pipeline,
     playbook,
@@ -105,6 +107,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(pilot.router)
     app.include_router(pipeline.router)
     app.include_router(demos.router)
+    app.include_router(partners.router)
+    app.include_router(forms.router)
     app.mount(
         "/static", StaticFiles(directory=Path(__file__).parent / "ui" / "static"), name="static"
     )

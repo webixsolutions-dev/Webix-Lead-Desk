@@ -75,6 +75,9 @@ async def create_campaign(request: Request, principal: Owner) -> RedirectRespons
             value.strip() for value in fields.get("services", "").split(",") if value.strip()
         ]
         lane = fields.get("lane", "client")
+        country = fields.get("country", "CA")
+        if country not in {"CA", "US"}:
+            raise ValueError("Choose Canada or the US")
         limit = int(fields.get("daily_limit", "10"))
         if (
             not all(1 <= len(v) <= 120 for v in (name, industry, area))
@@ -92,6 +95,7 @@ async def create_campaign(request: Request, principal: Owner) -> RedirectRespons
                 area=area,
                 services=options,
                 lane=lane,
+                country=country,
                 daily_limit=limit,
             )
             session.add(campaign)

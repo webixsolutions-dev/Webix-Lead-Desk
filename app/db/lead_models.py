@@ -20,6 +20,8 @@ class Campaign(Base):
     area: Mapped[str] = mapped_column(String(120))
     services: Mapped[list[str]] = mapped_column(JSON)
     lane: Mapped[str] = mapped_column(String(16), default="client")
+    country: Mapped[str] = mapped_column(String(2), default="CA", server_default="CA")
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     daily_limit: Mapped[int] = mapped_column(Integer, default=10)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)

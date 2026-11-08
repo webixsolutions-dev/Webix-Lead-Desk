@@ -28,3 +28,7 @@ Each phase gets offline tests, typing/lint, migration checks and secret scanning
 Phase 2 was merged as PR #3 after all Linux, Windows, PostgreSQL and secret checks passed.
 Phase 3 adds research and optional AI budgeting; configured provider and PC acceptance are
 owner setup items, not credentials embedded in the repository.
+
+Phase 3 was merged as PR #4 after green required checks. Phase 4 implements the exact-message
+review workflow. Live credentials, funding, sender validation and specific live test approval
+remain deferred to the owner handoff; code tests use only synthetic data.

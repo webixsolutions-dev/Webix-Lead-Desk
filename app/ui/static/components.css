@@ -155,3 +155,5 @@ label { display: block; color: #798395; font-size: 13px; font-weight: 500; margi
 .work-form label.checkbox-row input { flex: 0 0 15px; }
 .inline-form label.checkbox-row { display: flex; align-items: center; gap: 10px; margin: 0; }
 .inline-form input[type='checkbox'] { width: 16px; height: 16px; min-height: 16px; flex: 0 0 16px; margin: 0; }
+.message-copy { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.copy-brief { width: 100%; resize: vertical; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 12px; }

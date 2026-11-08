@@ -2,7 +2,12 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 2 adds real discovery to the foundation.** It includes real sign-in, owner/reviewer roles, saved preferences, a responsive six-tab interface, database migrations and a durable health-job worker. Business cards and outreach shown in preview mode are fictional. Campaigns, CSV import, Open Calgary discovery, website/contact review and global suppression are now available. AI, mailbox connections and sending arrive in subsequent phases.
+**Phase 4 adds personalized drafting and exact-message review.** The app includes sign-in,
+owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
+AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
+use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
+its own owner approval. SMTP/IMAP delivery is still disabled in this release.
+Preview examples are fictional and separate from actual imported records.
 
 The repository is public temporarily at the owner's direction. The running application is private, and real data, credentials, screenshots and databases stay outside Git.
 
@@ -156,3 +161,19 @@ The research budget pauses at 90% of the lifetime allowance. Each call reserves 
 overestimated maximum cost before network access. Unknown outcomes retain the reservation
 and cannot be reissued with the same request key. No auto-recharge or model name is assumed.
 See [research controls](docs/research.md) for limitations and acceptance checks.
+
+
+### Phase 4: drafting and owner review
+
+1. Add a real Titan sender identity in Settings. Its mailing address and contact details form
+   the reviewed footer. Saving a profile does not connect the mailbox.
+2. Publish global or campaign-specific Playbook guidance. Keep genuine examples here; website
+   content cannot update this guidance. Offers use your own CAD prices; first-touch copy omits them.
+3. Open a researched lead and choose **Write a draft**. Cite stored evidence IDs. Paste your own
+   copy, use the copyable ChatGPT brief, or choose optional configured AI generation.
+4. Save and inspect the complete sender, recipient, subject, body and footer. Confirm contact
+   verification and relevant permission evidence before approving. A reviewer can draft; only
+   the owner can approve. Every edit supersedes the old revision and needs fresh approval.
+
+Draft approvals are not blanket permission for a campaign or sequence. A reply, suppression,
+changed sender profile, expired contact evidence or later revision can still block dispatch.

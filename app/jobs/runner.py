@@ -116,4 +116,8 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
         from app.audit.ai import assess
 
         return assess(db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id)
+    if job.kind == "draft" and settings is not None:
+        from app.drafting.ai import generate
+
+        return generate(db, settings, job.payload, job.id)
     raise PermanentJobError("Unknown job handler")

@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.responses import JSONResponse, Response
 
-from app.api import auth, dashboard, research, sources
+from app.api import auth, dashboard, drafts, playbook, research, sources
 from app.core.config import Settings
 from app.core.context import Services
 from app.core.logging import configure_logging
@@ -88,6 +88,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(sources.router)
     app.include_router(research.router)
+    app.include_router(drafts.router)
+    app.include_router(playbook.router)
     app.mount(
         "/static", StaticFiles(directory=Path(__file__).parent / "ui" / "static"), name="static"
     )

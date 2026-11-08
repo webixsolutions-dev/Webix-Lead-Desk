@@ -20,6 +20,7 @@ def main() -> None:
     contents = contents.replace(
         "ENCRYPTION_KEY=\n", f"ENCRYPTION_KEY={Fernet.generate_key().decode()}\n"
     )
+    contents = contents.replace("BACKUP_KEY=\n", f"BACKUP_KEY={Fernet.generate_key().decode()}\n")
     try:
         descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:

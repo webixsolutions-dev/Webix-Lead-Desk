@@ -69,5 +69,6 @@ NAVIGATION = [
     ("learning", "/learning", "Learning & Memory", "spark"),
     ("partners", "/partners", "Partners & Results", "activity"),
     ("demos", "/demos", "Demos", "window"),
+    ("operations", "/operations", "Operations", "shield"),
     ("settings", "/settings", "Playbook & Settings", "sliders"),
 ]

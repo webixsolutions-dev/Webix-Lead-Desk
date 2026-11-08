@@ -25,7 +25,7 @@ jobs:
       - run: uv sync --frozen --group dev
       - run: uv run ruff check app tests scripts
       - run: uv run ruff format --check app tests scripts
-      - run: uv run mypy app tests
+      - run: uv run mypy app tests scripts
       - run: uv run pytest -m "not postgres" --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
       - run: uv run python scripts/check_coverage.py
 

@@ -40,3 +40,9 @@ node_modules/
 package.json
 package-lock.json
 
+
+# Encrypted backups and private transfer configurations
+*.wld
+*.backup
+*.env
+.env-backup-*

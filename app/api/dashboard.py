@@ -47,7 +47,9 @@ def preview_lead(request: Request, principal: CurrentUser, lead_id: str) -> HTML
 @router.get("/outbox", response_class=HTMLResponse)
 def outbox(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show a non-sendable sample queue and real health-job status."""
-    return render(request, "outbox.html", dashboard_context(request, principal, "outbox"))
+    from app.api.drafts import outbox_context
+
+    return render(request, "outbox.html", outbox_context(request, principal))
 
 
 @router.get("/pipeline", response_class=HTMLResponse)
@@ -66,6 +68,9 @@ def demos(request: Request, principal: CurrentUser) -> HTMLResponse:
 def settings(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show safe persistent preferences and read-only connection status."""
     context = dashboard_context(request, principal, "settings")
+    from app.api.playbook import settings_data
+
+    context.update(settings_data(request))
     context["saved"] = request.query_params.get("saved") == "1"
     return render(request, "settings.html", context)
 
@@ -84,10 +89,16 @@ async def update_settings(request: Request, principal: Owner) -> HTMLResponse | 
         save_preferences(services(request).db, prefs, version, principal.user.id, utc_now())
     except SettingsConflict as error:
         context = dashboard_context(request, principal, "settings")
+        from app.api.playbook import settings_data
+
+        context.update(settings_data(request))
         context["error"] = str(error)
         return render(request, "settings.html", context, 409)
     except (ValueError, ValidationError):
         context = dashboard_context(request, principal, "settings")
+        from app.api.playbook import settings_data
+
+        context.update(settings_data(request))
         context["error"] = (
             "Check the workspace name, timezones and settings version, then try again."
         )

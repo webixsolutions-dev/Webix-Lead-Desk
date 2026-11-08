@@ -60,7 +60,9 @@ def check_csrf(principal: Principal, supplied: str) -> None:
         raise HTTPException(status_code=403, detail="Session check failed. Reload the page.")
 
 
-async def read_form(request: Request, *, maximum: int | None = None) -> dict[str, str]:
+async def read_form(
+    request: Request, *, maximum: int | None = None, repeatable: frozenset[str] = frozenset()
+) -> dict[str, str]:
     """Read bounded URL-encoded forms only; Phase 1 accepts no uploaded files."""
     content_type = request.headers.get("content-type", "").split(";")[0]
     if content_type != "application/x-www-form-urlencoded":
@@ -74,9 +76,19 @@ async def read_form(request: Request, *, maximum: int | None = None) -> dict[str
     from urllib.parse import parse_qsl
 
     try:
-        pairs = parse_qsl(body.decode("utf-8"), keep_blank_values=True, max_num_fields=12)
+        pairs = parse_qsl(
+            body.decode("utf-8"), keep_blank_values=True, max_num_fields=32 if repeatable else 12
+        )
     except (UnicodeDecodeError, ValueError) as error:
         raise HTTPException(status_code=400, detail="Invalid form") from error
-    if len({key for key, _ in pairs}) != len(pairs):
-        raise HTTPException(status_code=400, detail="Duplicate form fields are not accepted")
-    return dict(pairs)
+    fields: dict[str, str] = {}
+    for key, value in pairs:
+        if key in fields:
+            if key not in repeatable:
+                raise HTTPException(
+                    status_code=400, detail="Duplicate form fields are not accepted"
+                )
+            fields[key] += "," + value
+        else:
+            fields[key] = value
+    return fields

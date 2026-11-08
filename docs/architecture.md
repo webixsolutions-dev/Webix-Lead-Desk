@@ -83,3 +83,18 @@ bounded network requests. Database finalization still checks the claim token.
 `app/integrations/public_http.py` is the sole arbitrary-website transport. Fixed City
 of Calgary and OpenAI endpoints use separate mockable provider wrappers. The application
 never uses website text as agent instructions. See `docs/research.md` for the full bounds.
+
+
+## Phase 4 review implementation
+
+`mailboxes` hold disabled sender identity profiles. `conversations` bind one business to its
+contact/campaign/sender. `drafts` store immutable canonical JSON snapshots with per-step revision
+numbers and SHA-256 digests. `draft_approvals` bind the owner's decision to one exact digest.
+An edit conditionally supersedes its predecessor and creates a new unapproved revision. No
+content is patched into an approved row. Contact-basis and suppression checks run at approval
+and will run again immediately before delivery. Sender profiles are never provider credentials.
+
+`playbook_versions` are append-only, with unique scope/version and optimistic publish checks.
+`offers` store owner-provided CAD cents; `proof_cards` require explicit factual verification.
+Optional AI drafts reserve spend before one no-retry call and cannot approve themselves. The
+copyable brief path works with the owner's own ChatGPT session without API use or browser login.

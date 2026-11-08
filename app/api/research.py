@@ -156,3 +156,39 @@ async def verify_funding(request: Request, principal: Owner) -> RedirectResponse
     except (ValueError, InvalidOperation, OverflowError) as error:
         raise HTTPException(422, "Verify the allowance, expiry and funding confirmation") from error
     return RedirectResponse("/settings", 303)
+
+
+@router.post("/assessments/{assessment_id}/review")
+async def review_assessment(
+    request: Request, principal: Owner, assessment_id: str
+) -> RedirectResponse:
+    """Confirm a service hypothesis against the saved evidence without approving outreach."""
+    from app.audit.classify import Recommendation, validate_recommendation
+    from app.db.lead_models import Campaign
+    from app.db.research_models import Assessment
+
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    if fields.get("verified") != "true":
+        raise HTTPException(422, "Confirm the observation and uncertainty before reviewing")
+    with services(request).db.sessions.begin() as session:
+        assessment = session.get(Assessment, assessment_id)
+        if not assessment:
+            raise HTTPException(404, "Hypothesis not found")
+        campaign = session.get(Campaign, assessment.campaign_id)
+        evidence = list(
+            session.scalars(select(Evidence).where(Evidence.company_id == assessment.company_id))
+        )
+        if not campaign or not campaign.active:
+            raise HTTPException(422, "Campaign is inactive")
+        try:
+            validate_recommendation(
+                Recommendation.model_validate(assessment.result), evidence, campaign.services
+            )
+        except ValueError as error:
+            raise HTTPException(
+                422, "Evidence or enabled services changed; create a fresh hypothesis"
+            ) from error
+        assessment.reviewed_by = principal.user.id
+        company_id = assessment.company_id
+    return RedirectResponse(f"/leads/{company_id}", 303)

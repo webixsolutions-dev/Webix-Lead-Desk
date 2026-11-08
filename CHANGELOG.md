@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — Drafting and review
+
+- Add immutable message revisions and owner approvals bound to exact routing/content fingerprints.
+- Add manual ChatGPT briefs and optional personalized API drafting; all results remain unapproved.
+- Add versioned global/campaign Playbooks, sender identity profiles, editable CAD offers and verified proof cards.
+- Add contact verification records, hypothesis review and skip reasons; retain global suppression checks.
+- Keep mailbox delivery disabled until Phase 5 safeguards and provider acceptance are complete.
+
+
 ## 0.3.0 — Website research
 
 - Add bounded website audits with robots checks, same-origin redirects, pacing, transient retries and a 30-day cache.

@@ -1,0 +1,42 @@
+# Local secrets. The example contains names and safe defaults only.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+# Private application state and exports
+var/
+data/
+backups/
+exports/
+logs/
+screenshots/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.log
+# Python and developer outputs
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+coverage.xml
+htmlcov/
+build/
+dist/
+.idea/
+.vscode/
+.DS_Store
+.openai/
+node_modules/
+package.json
+package-lock.json
+

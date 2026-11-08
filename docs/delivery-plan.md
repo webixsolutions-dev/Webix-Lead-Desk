@@ -32,3 +32,8 @@ owner setup items, not credentials embedded in the repository.
 Phase 3 was merged as PR #4 after green required checks. Phase 4 implements the exact-message
 review workflow. Live credentials, funding, sender validation and specific live test approval
 remain deferred to the owner handoff; code tests use only synthetic data.
+
+
+Phase 5 implements guarded delivery and inbox processing. Its automated acceptance is offline;
+live Titan, sender DNS, owner contact identity, provider limits and test-recipient acceptance are
+still owner setup items. No real send is implied by a merged phase or enabled UI profile.

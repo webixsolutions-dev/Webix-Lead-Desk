@@ -11,9 +11,9 @@ from app.core.security import hash_password, make_login_csrf, valid_login_csrf, 
 
 
 @pytest.mark.parametrize("option", ["live_send_enabled", "external_integrations_enabled"])
-def test_phase_one_cannot_enable_integrations(option: str) -> None:
+def test_integrations_require_explicit_configuration(option: str) -> None:
     """A config edit cannot bypass the absence of approved integration code."""
-    with pytest.raises(ValidationError, match="unavailable in Phase 1"):
+    with pytest.raises(ValidationError, match="ENCRYPTION_KEY|legacy integration"):
         Settings(
             _env_file=None,
             session_secret=SecretStr(secrets.token_urlsafe(48)),

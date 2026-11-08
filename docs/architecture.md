@@ -98,3 +98,18 @@ and will run again immediately before delivery. Sender profiles are never provid
 `offers` store owner-provided CAD cents; `proof_cards` require explicit factual verification.
 Optional AI drafts reserve spend before one no-retry call and cannot approve themselves. The
 copyable brief path works with the owner's own ChatGPT session without API use or browser login.
+
+
+## Phase 5 delivery implementation
+
+`delivery_models.py` adds encrypted integration secrets, sender readiness, local-day counters,
+IMAP checkpoints, one send intent per conversation step, transport attempts and deduplicated replies.
+Queue claims now include the singleton worker owner. The worker plans short inbox/send jobs;
+Vercel handles authenticated reviews and scheduling only. No in-process background tasks run there.
+The dedicated encryption key is environment-held and must follow the database during migration.
+
+The last pre-DATA check revalidates approval, reply/suppression state, mailbox readiness and both
+leases. SMTP cannot atomically commit with our database: a tiny interval remains between checking
+and the remote server accepting DATA. Uncertain results are therefore held, never replayed.
+Accepted late responses can record known delivery without reviving a stopped conversation.
+Raw inbox content is untrusted data and cannot call tools or approve/resume outreach.

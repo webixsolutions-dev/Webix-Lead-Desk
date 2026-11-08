@@ -2,11 +2,11 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 4 adds personalized drafting and exact-message review.** The app includes sign-in,
+**Phase 5 adds guarded delivery, reply sync and encrypted connection settings.** The app includes sign-in,
 owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
 AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
 use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
-its own owner approval. SMTP/IMAP delivery is still disabled in this release.
+its own owner approval. Live SMTP delivery defaults off until sender setup and test acceptance are complete.
 Preview examples are fictional and separate from actual imported records.
 
 The repository is public temporarily at the owner's direction. The running application is private, and real data, credentials, screenshots and databases stay outside Git.
@@ -177,3 +177,38 @@ See [research controls](docs/research.md) for limitations and acceptance checks.
 
 Draft approvals are not blanket permission for a campaign or sequence. A reply, suppression,
 changed sender profile, expired contact evidence or later revision can still block dispatch.
+
+
+### Phase 5: delivery and inbox
+
+The web process never sends mail. A single PC/VPS worker reads Titan IMAP before each
+scheduled delivery and requires an owner-approved exact draft, verified contact basis,
+ready sender, current inbox, Calgary weekday window and available capacity. Enable
+`LIVE_SEND_ENABLED=true` only on that worker after completing the sender checklist in Settings.
+Keep it false in Vercel. Create a dedicated Fernet `ENCRYPTION_KEY` in private configuration;
+the web app and worker must share it. `scripts/setup_local.py` generates it for new installs.
+Never replace an existing encryption key without decrypting/re-encrypting stored credentials.
+
+Settings accepts write-only Titan app passwords and optional OpenAI/Firecrawl/Places keys.
+Saved OpenAI credentials still require enabled model settings, current prices and verified funding.
+Firecrawl and Places are saved only; their paid discovery adapters remain disabled.
+Titan requires third-party access; use an app password if the account has 2FA. The supported
+pilot uses smtp.titan.email:465 and imap.titan.email:993 with verified TLS. EU-region Titan
+endpoints are not yet supported. No mailbox credentials are present in this repository.
+
+Outbox → Schedule approved message queues one exact revision. Follow-ups require their own
+approval, the original sender and subject, and at least three days after confirmed delivery.
+The pilot permits only one follow-up. Daily ceilings ramp 10/20/35/50 across four weeks,
+counting follow-ups and conservative attempt reservations; the owner can lower them.
+Messages start Monday–Friday 08:30–11:30 America/Edmonton, 3–8 minutes apart. There is no
+catch-up burst. Three distinct bounces pause the mailbox until the next Calgary day.
+
+Every correlated reply stops pending outreach before classification. Unsubscribe and not-interested
+responses also suppress the recipient globally. Replies render escaped plain text only.
+An ambiguous SMTP outcome or expired worker during transmission is held without an automatic
+retry. Check Sent evidence searches Titan's Sent folder for the exact stable Message-ID,
+sender, recipient, subject and content. No match never means it is safe to resend.
+
+Offline acceptance uses loopback SMTP/IMAP servers and synthetic inboxes. Real mailbox/DNS,
+provider limits, deliverability and owner-approved recipient acceptance remain deployment steps.
+See [delivery safety](docs/decisions/0005-delivery-safety.md).

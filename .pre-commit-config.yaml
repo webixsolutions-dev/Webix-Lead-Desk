@@ -1,0 +1,26 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff lint
+        entry: uv run --frozen ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: Ruff format
+        entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+      - id: mypy
+        name: Mypy strict
+        entry: uv run --frozen mypy app tests
+        language: system
+        pass_filenames: false
+        types: [python]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 107a41827bb6698dbbff756b2300537774a1d84c # v8.24.3
+    hooks:
+      - id: gitleaks-system
+        pass_filenames: false
+        always_run: true
+

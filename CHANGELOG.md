@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — Website research
+
+- Add bounded website audits with robots checks, same-origin redirects, pacing, transient retries and a 30-day cache.
+- Store source-addressed facts and reviewer observations; discovered contacts remain unverified.
+- Add optional structured AI hypotheses with evidence-ID validation and atomic, zero-default spending limits.
+- Pin website connections to checked public IPs and renew worker leases during long research.
+- Keep live email disabled; no paid provider or prospect was contacted during verification.
+
+
 ## 0.2.0 — 2026-11-08
 
 - Add campaigns, targeting snapshots, atomic CSV imports and queued Open Calgary discovery.

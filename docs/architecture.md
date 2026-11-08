@@ -70,3 +70,16 @@ Phase 2 implements permitted imports and deduplication. The owner authorized seq
 
 Fifty first touches per day is a later target constrained by sending windows, follow-up capacity and verified account limits. No delivery or sales outcome is guaranteed by the foundation.
 
+
+
+## Phase 3 research implementation
+
+Research adds `website_audits`, `evidence`, `assessments`, `ai_budget_accounts` and
+`ai_calls`. Audit jobs are safe to recover because the stored result is unique per job.
+Model jobs are not automatically retried after lease expiry; their spending reservation
+is retained. A renewal thread extends the singleton worker and current job lease during
+bounded network requests. Database finalization still checks the claim token.
+
+`app/integrations/public_http.py` is the sole arbitrary-website transport. Fixed City
+of Calgary and OpenAI endpoints use separate mockable provider wrappers. The application
+never uses website text as agent instructions. See `docs/research.md` for the full bounds.

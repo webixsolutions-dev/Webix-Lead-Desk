@@ -24,3 +24,7 @@ The original architecture remains the guide. Add domain model modules under app/
 ## Acceptance and owner handoff
 
 Each phase gets offline tests, typing/lint, migration checks and secret scanning. Provider acceptance is separate from tests and never substituted with synthetic success. UI review uses fictional records only. At the end list incomplete external checks and the smallest set of owner actions: database cost/account selection if unresolved, owner credentials, Titan and optional AI/Firecrawl keys, legal sender details, verified domain/mailbox settings, test inboxes and approval of actual prospects/messages. Secrets go only into private environment/settings fields.
+
+Phase 2 was merged as PR #3 after all Linux, Windows, PostgreSQL and secret checks passed.
+Phase 3 adds research and optional AI budgeting; configured provider and PC acceptance are
+owner setup items, not credentials embedded in the repository.

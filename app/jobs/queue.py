@@ -20,7 +20,7 @@ def enqueue(
     db: Database, unique_key: str, kind: str, payload: dict[str, Any], now: datetime
 ) -> Job:
     """Enqueue bounded reference data with a unique business key."""
-    if kind not in {"health", "calgary"}:
+    if kind not in {"health", "calgary", "audit", "assess"}:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
         raise ValueError("Job key must contain 1–128 characters")
@@ -86,7 +86,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             return None
         expired = session.scalars(
             select(Job).where(
-                Job.kind.in_(["health", "calgary"]),
+                Job.kind.in_(["health", "calgary", "audit", "assess"]),
                 Job.state == "running",
                 Job.lease_expires_at <= now,
             )
@@ -100,7 +100,11 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                 )
                 .values(finished_at=now, outcome="lease_expired")
             )
-            job.state = "failed" if job.attempts >= settings.job_max_attempts else "queued"
+            job.state = (
+                "failed"
+                if job.kind == "assess" or job.attempts >= settings.job_max_attempts
+                else "queued"
+            )
             job.finished_at = now if job.state == "failed" else None
             job.claim_token = None
             job.lease_expires_at = None

@@ -37,3 +37,8 @@ remain deferred to the owner handoff; code tests use only synthetic data.
 Phase 5 implements guarded delivery and inbox processing. Its automated acceptance is offline;
 live Titan, sender DNS, owner contact identity, provider limits and test-recipient acceptance are
 still owner setup items. No real send is implied by a merged phase or enabled UI profile.
+
+
+Phase 5 merged as PR #6 after 150 offline tests, PostgreSQL/Windows checks and secret scanning.
+Phase 6 implements the pilot gates and real dashboard. The actual ten-company cohort and live
+provider acceptance are not fabricated; they remain owner-reviewed operating steps after setup.

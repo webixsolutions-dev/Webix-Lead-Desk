@@ -2,7 +2,7 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 5 adds guarded delivery, reply sync and encrypted connection settings.** The app includes sign-in,
+**Phase 6 adds a controlled pilot and truthful launch readiness.** The app includes sign-in,
 owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
 AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
 use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
@@ -212,3 +212,23 @@ sender, recipient, subject and content. No match never means it is safe to resen
 Offline acceptance uses loopback SMTP/IMAP servers and synthetic inboxes. Real mailbox/DNS,
 provider limits, deliverability and owner-approved recipient acceptance remain deployment steps.
 See [delivery safety](docs/decisions/0005-delivery-safety.md).
+
+
+### Phase 6: small pilot and readiness
+
+Open **Today → Review launch readiness**. This screen separates database/encryption,
+worker heartbeat/live switch, stored Titan credentials, owner-attested sender checks,
+complete inbox sync and pilot review. It does not claim to verify billing or DNS automatically.
+
+Review ten imported businesses with current evidence and a verified website match:
+4 HVAC, 4 roofing and 2 cleaning. Activating freezes that cohort and permits at most five
+first-contact businesses; every draft still needs exact owner approval and scheduling.
+The pilot reservation is atomic, counts uncertain attempts conservatively, and survives retries.
+Pausing blocks new transmissions and follow-ups. Completion requires at least one confirmed
+accepted pilot first-touch and no uncertain or in-progress pilot transmission, plus explicit owner acceptance.
+Completing a pilot does not approve later email content or change ramp/recipient checks.
+
+Today counts actual imported companies, unapproved drafts, Calgary-day accepted sends and
+recorded replies. Fictional samples are separate and never count toward results.
+No live pilot has been launched by this repository release: credentials, actual cohort review,
+recipient/message approvals and provider acceptance remain pending in the installed workspace.

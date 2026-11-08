@@ -13,6 +13,7 @@ from app.core.vault import store_secret
 from app.db.delivery_models import MailboxState, SendIntent
 from app.db.models import Job
 from app.db.outreach_models import Mailbox
+from app.db.pilot_models import Pilot
 from app.db.session import Database
 from app.drafting.service import approve
 from app.inbox.service import sync_inbox
@@ -37,6 +38,14 @@ def delivery_setup(db: Database, settings: Settings, drafting_setup: dict[str, s
         }
     )
     with db.sessions.begin() as session:
+        session.add(
+            Pilot(
+                key="primary",
+                state="complete",
+                acceptance_note="Synthetic offline acceptance",
+                updated_by=drafting_setup["actor_id"],
+            )
+        )
         mailbox = session.get(Mailbox, drafting_setup["mailbox_id"])
         assert mailbox
         mailbox.enabled = True

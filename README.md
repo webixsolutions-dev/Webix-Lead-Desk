@@ -1,15 +1,26 @@
 # Webix Lead Desk
 
-A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
+A workspace for researching businesses, reviewing personalized outreach and following up on real conversations. Python 3.12, FastAPI, Jinja/HTMX, SQLAlchemy and Alembic; Webix red branding and the supplied logo.
 
-**Phase 9 adds reviewed persistent guidance, learning suggestions and version restoration.** The app includes sign-in,
-owner/reviewer roles, campaigns, CSV/Open Calgary imports, website evidence, optional budgeted
-AI, versioned Playbook guidance, editable offers/proofs and sender profiles. Draft manually,
-use a copyable ChatGPT brief, or enable the API after verifying funding. Every revision needs
-its own owner approval. Live SMTP delivery defaults off until sender setup and test acceptance are complete.
-Preview examples are fictional and separate from actual imported records.
+**Phases 1–10 are implemented. Hosted account setup and live Titan acceptance remain pending.** Neon is supported but not connected. No prospect has been contacted by the development workflow. Start locally without buying API access, or configure Vercel with a dedicated PostgreSQL database and a separate PC worker.
 
-The repository is public temporarily at the owner's direction. The running application is private, and real data, credentials, screenshots and databases stay outside Git.
+The repository is public temporarily at the owner's direction. The application requires private accounts. Real records, credentials, databases, screenshots, exports and backups must stay outside Git.
+
+## What works
+
+| Area | Behavior |
+|---|---|
+| Leads and campaigns | Editable targeting; bounded CSV/Open Calgary imports; deduplication, provenance, website/contact review and global suppression |
+| Research | Bounded public website fetching; evidence, assessments, manual visual/social/ads observations and optional budgeted AI |
+| Drafts and Playbook | Manual writing or copyable ChatGPT brief; optional API drafting; versioned guidance, editable offers/proofs and exact owner approval |
+| Sending and inbox | Titan SMTP/IMAP adapters, sender/thread locks, fresh-inbox checks, ramp/window limits, reply cancellation and uncertain-send holds |
+| Pilot | Reviewed ten-business cohort, five-first-touch cap and explicit live readiness/acceptance gates |
+| Pipeline and concepts | Assigned call cards, meetings, outcomes, approved concept links and separately approved same-thread messages |
+| Partners and results | Separate sender lane, five-new-business daily cap, country review, manually submitted form records and actual activity reports |
+| Learning | Suggestions from internal edits/rejections/outcomes; owner-approved guidance versions and restoration |
+| Operations | Runtime/hold status, maintenance, encrypted backup/restore and SQLite-to-PostgreSQL transfer |
+
+Examples are clearly fictional and separate from actual records. Automatic Google Maps collection, Firecrawl/Places adapters, social/ads browsing and automatic external form submission are **not implemented**. Contact forms use approved copy and manual outcome recording. The built-in website audit does not infer revenue, traffic, missed calls or ad spend. See [owner setup and integration limits](docs/owner-setup.md).
 
 ## Windows setup
 
@@ -23,218 +34,86 @@ uv run lead-desk migrate
 uv run lead-desk create-user --email owner@company.example --name "Workspace Owner"
 ```
 
-Replace the example email/name with your own. The command prompts for a password locally without showing it. Use 12–256 characters. There is no default password or public sign-up. Do not paste credentials into chat or command arguments.
+Replace the example identity with your own. The account command prompts privately for a password. There is no default password or public signup. Never paste credentials into chat or command arguments.
 
-Start the web app in one terminal:
+Start the dashboard and worker in separate terminals:
 
 ```powershell
 .\scripts\start.ps1
 ```
 
-Start the worker in a second terminal:
-
 ```powershell
 .\scripts\worker.ps1
 ```
 
-Open **http://127.0.0.1:8000** and sign in. The server binds to your PC only. A responsive phone layout does not create remote access. Keep both processes running while using the workspace. Closing the browser is fine; sleeping or shutting down the PC pauses work.
+Open **http://127.0.0.1:8000**. The dashboard binds to your PC only. A responsive phone layout does not create remote access. Keep the PC awake; sleeping or shutdown pauses work. Closing the browser does not stop an independently running worker.
 
-If your existing PowerShell policy does not permit scripts, use the equivalent Python commands without changing that policy:
+If the PowerShell policy does not allow these scripts, use the equivalent commands in separate terminals without changing the policy:
 
 ```powershell
 uv run python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log --no-proxy-headers
 uv run lead-desk worker
 ```
 
-Run the two commands in separate terminals. Stop each with Ctrl+C.
+Stop each with Ctrl+C. On macOS/Linux, use the same `uv` setup commands and `sh scripts/start.sh` / `sh scripts/worker.sh`.
 
-## macOS / Linux setup
+## First use
 
-With Python 3.12 and uv 0.13.5 installed:
+Sign in, turn off fictional previews when ready, create a campaign and import a small reviewed list. Open Calgary imports require the running worker but no provider key. Confirm the business website, record contact publication/relevance evidence and audit the site. Write Playbook guidance and factual offers/proofs before drafting.
 
-```sh
-uv sync --frozen --group dev
-uv run python scripts/setup_local.py
-uv run lead-desk migrate
-uv run lead-desk create-user --email owner@company.example --name "Workspace Owner"
-sh scripts/start.sh
-# In another terminal:
-sh scripts/worker.sh
-```
+Every outgoing revision requires its own owner approval. Delivery also requires actual sender/provider setup, a fresh inbox, the pilot gate, suppression clearance and current contact evidence. Approval alone never overrides those conditions. Live delivery defaults off. The first pilot is smaller than the eventual 50-first-touch target; no sales or inbox-placement result is guaranteed.
 
-## What works now
+To verify the worker without external calls, select **Run health check** in Outbox. Repeated clicks within a minute reuse one job. Real activity reports do not count synthetic preview examples.
 
-| Tab | Current behavior |
-|---|---|
-| Today | Fictional review queue, clearly labeled preview metrics, real database/worker status |
-| Leads | Campaigns, CSV/city imports, website and contact review, suppression; separate fictional examples |
-| Outbox | Non-sendable example steps and real health checks with automatic status refresh |
-| Replies & Pipeline | Labeled preview of the future reply and call handoff |
-| Demos | Future concept types and an honest empty state |
-| Playbook & Settings | Real persisted preferences, preview toggle and disabled integration placeholders |
-
-To verify the worker, open Outbox and select **Run health check**. A queued item will complete when the worker is running. It makes no external requests. Duplicate clicks within a minute create one job. Only owners can edit settings or enqueue checks.
-
-Add a reviewer locally:
+Add a reviewer or recover owner access locally:
 
 ```sh
 uv run lead-desk create-user --email reviewer@company.example --name "Team Reviewer" --role reviewer
-```
-
-Recover access locally, revoking all existing sessions for that account:
-
-```sh
 uv run lead-desk reset-password --email owner@company.example
 ```
 
-Local administrator commands assume access to the operating-system account that owns the application. There is no remote password-reset endpoint.
+Password reset revokes that account's sessions. Local administrative commands assume access to the operating-system account that owns the installation.
 
-## Configuration and data
+## Configuration and runtime
 
-`scripts/setup_local.py` creates `.env` once with a random signing key. It preserves an existing file. `.env.example` documents the environment variables. Database files live in `var/` by default and are ignored by Git.
+`scripts/setup_local.py` creates `.env` once with separate random session, credential and backup keys; it preserves an existing file. `.env.example` documents settings. SQLite files live in ignored `var/` by default.
 
-- Preferences in the dashboard override environment defaults for workspace name, timezones and preview visibility.
-- `APP_MODE=PC` is the pilot default. VPS and Vercel profiles require PostgreSQL and secure cookies, but do not deploy or migrate anything automatically.
-- `LIVE_SEND_ENABLED` and `EXTERNAL_INTEGRATIONS_ENABLED` must remain false. This release refuses to start otherwise.
-- `SESSION_SECRET` is required. The database stores password hashes and hashed bearer tokens, never plaintext passwords or bearer tokens.
-- All timestamps are stored in UTC. IANA timezones handle Calgary daylight saving and local display time.
-- No automatic provider payments, account creation or purchases occur.
+| Mode | Web | Database | Worker |
+|---|---|---|---|
+| PC only | Local loopback | SQLite | Separate PC process |
+| Vercel + PC | Vercel FastAPI | Dedicated PostgreSQL, including Neon | PC using the same database, with APP_MODE=PC |
+| VPS | HTTPS reverse proxy + FastAPI | PostgreSQL | Separate supervised service |
 
-Take a backup only with both processes stopped. Copy `var/` and `.env` to private storage outside the repository and protect it with your operating system's access controls/encryption. SQLite WAL/journal files must remain with the database if present. Backups contain sensitive data and are never Git commits. Restore is a supervised local operation; VPS transfer is a later approved phase.
+`APP_MODE` changes validation/runtime behavior; it does not transfer data or provision infrastructure. Vercel uses `app.vercel:app`, requires PostgreSQL/secure cookies/exact allowed hosts and never runs a worker. Keep `LIVE_SEND_ENABLED=false` there. The separate PC/VPS worker can enable delivery only after sender setup and actual approved test acceptance. The legacy `EXTERNAL_INTEGRATIONS_ENABLED` switch remains unsupported and false.
 
-## Vercel web hosting
+Optional OpenAI access needs separately verified API funding/model rates and a budget. A ChatGPT Pro subscription is not API credit; the copyable brief workflow works manually without API use. No automatic provider purchases occur. Stored integration credentials are encrypted using the environment-held key; keep its recovery copy privately.
 
-Select the **FastAPI** preset with root directory `./`. The explicit `app.vercel:app` entry point supplies the top-level instance that Vercel needs. Configure a dedicated PostgreSQL database, a session key, secure cookies and exact allowed domains before deployment; see [Vercel setup](docs/deploy-to-vercel.md). The web function does not start the worker or migrate a database. A PC worker can process hosted health jobs only when configured against that same PostgreSQL database.
+Use [Vercel setup](docs/deploy-to-vercel.md) for hosted configuration. A green build alone does not prove the database, login or worker works. Use [operations](docs/operations.md) for encrypted backup/restore and [cutover](docs/move-to-vps.md) to move data. Do not copy a live SQLite file or resume both sides of a database transfer.
 
 ## Development checks
 
-The Python dependencies are locked in `uv.lock`. Install [Gitleaks 8.24.3](https://github.com/gitleaks/gitleaks/releases/tag/v8.24.3) from the official release and put its executable on PATH, then:
+Dependencies are pinned in `uv.lock`. Install [Gitleaks 8.24.3](https://github.com/gitleaks/gitleaks/releases/tag/v8.24.3) on PATH, then:
 
 ```sh
 uv run pre-commit install
 uv run ruff check app tests scripts
 uv run ruff format --check app tests scripts
-uv run mypy app tests
+uv run mypy app tests scripts
 uv run pytest -m "not postgres" --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
 uv run python scripts/check_coverage.py
 uv run pre-commit run --all-files
 gitleaks git --redact --log-opts="--all"
 ```
 
-Hooks run Ruff, Ruff formatting, mypy and gitleaks. The secret hook inspects staged changes. The history scan inspects commits. Never bypass a failed secret scan. CI runs these checks plus an isolated PostgreSQL migration check and a Windows setup smoke test.
+CI checks lint/types, offline tests/coverage, PostgreSQL migrations and data transfer, Windows setup and secrets. Jobs, sending and inbox each require at least 80% coverage. Tests use synthetic records and fake providers; external socket calls are blocked. PostgreSQL tests accept only a disposable local database named `lead_desk_test` and recreate its schema. See [testing](docs/testing.md).
 
-Automated tests use disposable databases and synthetic users. They make no live email or external API calls. The PostgreSQL test accepts only a local database named `lead_desk_test` and explicitly downgrades/recreates its schema. See [testing](docs/testing.md) before running it.
+One coding agent, one phase branch and one reviewed PR at a time. The owner authorized sequential checked merges; specific outreach still requires in-app approval. The main-branch tag job creates the version from `pyproject.toml` only after required checks pass, and never moves a tag. See [engineering rules](AGENTS.md), [architecture](docs/architecture.md), [delivery plan](docs/delivery-plan.md) and [changelog](CHANGELOG.md).
 
-## Architecture and workflow
+## Module guides
 
-See [architecture](docs/architecture.md), [decisions](docs/decisions/0001-foundation.md), [VPS migration plan](docs/move-to-vps.md) and [engineering instructions](AGENTS.md).
+- [Research](docs/research.md), [runtime architecture](docs/architecture.md)
+- [Sender and pilot setup](docs/owner-setup.md), [pipeline/concepts](docs/pipeline.md)
+- [Partners and forms](docs/partners.md), [reviewed memory](docs/learning.md)
+- [Operations](docs/operations.md), [owner setup](docs/owner-setup.md)
 
-One coding agent and one phase at a time. The owner authorized sequential implementation and merges on 8 November 2026. Changes belong on phase/feature branches. Every phase ends in a PR with a self-review. Passing required checks are necessary before merge and a version tag. Exact outgoing messages still need owner approval.
-
-The owner approved the initial Phase 1 publication to main after the Webix logo/red branding update. The CI tag job creates the version in `pyproject.toml` once, only after every quality job passes on main. Only that job has repository write permission; it never moves an existing tag or approves later phases.
-
-Vendored HTMX 2.0.8 is included with its license and is used only for authenticated worker-status polling. Assets are served locally without a CDN. No analytics or tracking scripts are included.
-
-
-## Campaigns and source imports
-
-Open Leads, create a campaign, then import UTF-8 CSV (name, city, industry; optional website, email, phone, address, source_key, source_url). A file picker fills an editable CSV preview; without JavaScript paste the CSV. Imports are atomic, capped at 500 rows/1 MB and never authorize delivery. Reimports reuse source identities and campaign memberships. Shared domains stay separate and are flagged for review.
-
-Open Calgary discovery queues a job for the PC worker. Use city licence categories such as CONTRACTOR or CLEANING; the dataset only covers Calgary and does not supply verified websites or contact permission. Inspect each business, confirm its website with evidence, and record role relevance and publication restrictions for contacts. Global suppression applies across all campaigns. Current results show at most 100 businesses; use campaign/name filters.
-
-Phase 2 source acceptance imported ten public licensed-business candidates into a separate private local acceptance database, with no outreach. Full hosted testing awaits database and account configuration. See docs/delivery-plan.md for the remaining sequence and owner setup items.
-
-
-### Phase 3: website research
-
-Open an imported lead, confirm its business website, and choose **Research website**.
-The separate worker reads robots.txt and at most three HTML pages. Redirects stay on
-the reviewed origin. Fresh successful audits are reused for 30 days unless refreshed.
-Page elements are observations, not claims of revenue, traffic, mobile quality or form delivery.
-Add dated visual/social/ads observations manually with a source URL. Extracted email
-addresses remain unverified and require contact-basis review before outreach.
-
-AI classification is optional and disabled by default. Verify a dedicated API project's
-available funds, expiration and current model rates; record the allowance in Settings;
-then configure `OPENAI_*` variables from `.env.example`. Never paste keys into chat.
-The research budget pauses at 90% of the lifetime allowance. Each call reserves an
-overestimated maximum cost before network access. Unknown outcomes retain the reservation
-and cannot be reissued with the same request key. No auto-recharge or model name is assumed.
-See [research controls](docs/research.md) for limitations and acceptance checks.
-
-
-### Phase 4: drafting and owner review
-
-1. Add a real Titan sender identity in Settings. Its mailing address and contact details form
-   the reviewed footer. Saving a profile does not connect the mailbox.
-2. Publish global or campaign-specific Playbook guidance. Keep genuine examples here; website
-   content cannot update this guidance. Offers use your own CAD prices; first-touch copy omits them.
-3. Open a researched lead and choose **Write a draft**. Cite stored evidence IDs. Paste your own
-   copy, use the copyable ChatGPT brief, or choose optional configured AI generation.
-4. Save and inspect the complete sender, recipient, subject, body and footer. Confirm contact
-   verification and relevant permission evidence before approving. A reviewer can draft; only
-   the owner can approve. Every edit supersedes the old revision and needs fresh approval.
-
-Draft approvals are not blanket permission for a campaign or sequence. A reply, suppression,
-changed sender profile, expired contact evidence or later revision can still block dispatch.
-
-
-### Phase 5: delivery and inbox
-
-The web process never sends mail. A single PC/VPS worker reads Titan IMAP before each
-scheduled delivery and requires an owner-approved exact draft, verified contact basis,
-ready sender, current inbox, Calgary weekday window and available capacity. Enable
-`LIVE_SEND_ENABLED=true` only on that worker after completing the sender checklist in Settings.
-Keep it false in Vercel. Create a dedicated Fernet `ENCRYPTION_KEY` in private configuration;
-the web app and worker must share it. `scripts/setup_local.py` generates it for new installs.
-Never replace an existing encryption key without decrypting/re-encrypting stored credentials.
-
-Settings accepts write-only Titan app passwords and optional OpenAI/Firecrawl/Places keys.
-Saved OpenAI credentials still require enabled model settings, current prices and verified funding.
-Firecrawl and Places are saved only; their paid discovery adapters remain disabled.
-Titan requires third-party access; use an app password if the account has 2FA. The supported
-pilot uses smtp.titan.email:465 and imap.titan.email:993 with verified TLS. EU-region Titan
-endpoints are not yet supported. No mailbox credentials are present in this repository.
-
-Outbox → Schedule approved message queues one exact revision. Follow-ups require their own
-approval, the original sender and subject, and at least three days after confirmed delivery.
-The pilot permits only one follow-up. Daily ceilings ramp 10/20/35/50 across four weeks,
-counting follow-ups and conservative attempt reservations; the owner can lower them.
-Messages start Monday–Friday 08:30–11:30 America/Edmonton, 3–8 minutes apart. There is no
-catch-up burst. Three distinct bounces pause the mailbox until the next Calgary day.
-
-Every correlated reply stops pending outreach before classification. Unsubscribe and not-interested
-responses also suppress the recipient globally. Replies render escaped plain text only.
-An ambiguous SMTP outcome or expired worker during transmission is held without an automatic
-retry. Check Sent evidence searches Titan's Sent folder for the exact stable Message-ID,
-sender, recipient, subject and content. No match never means it is safe to resend.
-
-Offline acceptance uses loopback SMTP/IMAP servers and synthetic inboxes. Real mailbox/DNS,
-provider limits, deliverability and owner-approved recipient acceptance remain deployment steps.
-See [delivery safety](docs/decisions/0005-delivery-safety.md).
-
-
-### Phase 6: small pilot and readiness
-
-Open **Today → Review launch readiness**. This screen separates database/encryption,
-worker heartbeat/live switch, stored Titan credentials, owner-attested sender checks,
-complete inbox sync and pilot review. It does not claim to verify billing or DNS automatically.
-
-Review ten imported businesses with current evidence and a verified website match:
-4 HVAC, 4 roofing and 2 cleaning. Activating freezes that cohort and permits at most five
-first-contact businesses; every draft still needs exact owner approval and scheduling.
-The pilot reservation is atomic, counts uncertain attempts conservatively, and survives retries.
-Pausing blocks new transmissions and follow-ups. Completion requires at least one confirmed
-accepted pilot first-touch and no uncertain or in-progress pilot transmission, plus explicit owner acceptance.
-Completing a pilot does not approve later email content or change ramp/recipient checks.
-
-Today counts actual imported companies, unapproved drafts, Calgary-day accepted sends and
-recorded replies. Fictional samples are separate and never count toward results.
-No live pilot has been launched by this repository release: credentials, actual cohort review,
-recipient/message approvals and provider acceptance remain pending in the installed workspace.
-
-See [pipeline and concepts](docs/pipeline.md) for publication, same-thread delivery and revocation.
-
-See [partner controls and manual forms](docs/partners.md).
-
-See [reviewed learning and memory](docs/learning.md).
+HTMX is vendored with its license; assets are served locally. No analytics or tracking scripts are included.

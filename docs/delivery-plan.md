@@ -42,3 +42,5 @@ still owner setup items. No real send is implied by a merged phase or enabled UI
 Phase 5 merged as PR #6 after 150 offline tests, PostgreSQL/Windows checks and secret scanning.
 Phase 6 implements the pilot gates and real dashboard. The actual ten-company cohort and live
 provider acceptance are not fabricated; they remain owner-reviewed operating steps after setup.
+
+Phases 7–9 merged as PRs #8–#10 with checked pipeline/concepts, partner/form workflows and owner-reviewed memory. Phase 10 adds operations and cutover tooling. All phases describe implemented code, not completed live provider acceptance. The final owner-only configuration and current integration limits are recorded in owner-setup.md.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0 — Operations and cutover
+
+- Added shared maintenance gates for web mutations, worker claims and final send checks.
+- Added authenticated encrypted backups, private key setup and transactional empty-target restore.
+- Preserved approvals, sender locks, suppression and uncertain-send identities; restored sessions are revoked and maintenance remains on.
+- Added SQLite-to-PostgreSQL transfer, isolated CI rehearsal, VPS service templates and owner setup instructions.
+- Added owner-only Operations status. Live Neon/Titan/PC acceptance remains pending; no resources purchased or prospects contacted.
+
 ## 0.9.0 — Reviewed learning
 
 - Captured edits, draft rejections and recorded sales outcomes as inert suggestions.

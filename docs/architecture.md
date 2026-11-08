@@ -25,7 +25,7 @@ Routes use domain services and typed configuration. Services use short-lived dat
 | app/sending, app/inbox | Reserved transport, threading, inbox and suppression boundaries |
 | app/pipeline, app/playbook | Reserved sales handoff and approved-learning boundaries |
 
-The reserved modules contain no fake working implementation. Their schema and code are added only in the relevant approved phase.
+This section records the initial foundation. Subsequent implementation sections below describe the completed modules and migrations; optional provider adapters remain explicitly unavailable.
 
 ## Phase 1 database
 
@@ -60,7 +60,7 @@ Only safe workspace preferences are editable in Phase 1. Unknown setting fields 
 
 ## Operating modes
 
-PC mode runs locally with SQLite, an explicit web process and a separate worker. The PC must remain awake for queued work to progress. VPS mode requires PostgreSQL and HTTPS and will be completed through an approved migration phase. Changing APP_MODE does not move data or deploy a server.
+PC mode runs locally with SQLite, an explicit web process and a separate worker. The PC must remain awake for queued work to progress. VPS mode requires PostgreSQL and HTTPS; Phase 10 provides explicit transfer tools and service templates. Changing APP_MODE does not move data or deploy a server.
 
 Vercel web hosting uses the explicit `app.vercel:app` entry point, which builds the same application through the existing factory and enforces PostgreSQL and secure cookies. Its database and exact allowed domains must be configured separately; see [deployment setup](deploy-to-vercel.md). The worker stays a separate PC/VPS process connected to that environment's database. Importing the entry point does not open a database connection or run migrations. The local PC dashboard remains bound to loopback.
 
@@ -147,3 +147,7 @@ and incoming mail have no publication path. Applying a proposal and appending a 
 share one transaction and expected-version check. Restoring guidance appends a new version;
 old draft content, approvals and guidance references remain unchanged. No model training or
 paid generation is involved in this memory workflow.
+
+## Phase 10 operations
+
+`runtime_control` provides a shared maintenance gate. `app/operations/` fences work, takes a consistent portable snapshot, verifies credential recovery and restores only empty current-schema databases in a transaction. A separate backup key protects files; environment secrets never enter the payload. Restored login sessions are omitted, all delivery identities and approval hashes remain intact, and maintenance stays on. The operator must stop web/workers and confirm the offline window; maintenance alone cannot cancel an in-flight write. See operations.md and move-to-vps.md.

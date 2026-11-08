@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", case_sensitive=False, hide_input_in_errors=True
     )
-    app_mode: Literal["PC", "VPS"] = "PC"
+    app_mode: Literal["PC", "VPS", "VERCEL"] = "PC"
     database_url: str = Field(default="sqlite:///./var/lead-desk.sqlite", repr=False)
     data_dir: Path = Path("var")
     session_secret: SecretStr
@@ -58,15 +58,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def phase_one_guards(self) -> Self:
-        """Fail closed on unsupported live actions and insecure VPS profiles."""
+        """Fail closed on unsupported live actions and insecure hosted profiles."""
         if self.live_send_enabled or self.external_integrations_enabled:
             raise ValueError("Live integrations are unavailable in Phase 1")
         if not self.allowed_hosts or "*" in self.allowed_hosts:
             raise ValueError("ALLOWED_HOSTS must contain explicit hosts")
-        if self.app_mode == "VPS" and (
+        if self.app_mode in {"VPS", "VERCEL"} and (
             not self.database_url.startswith("postgresql") or not self.cookie_secure
         ):
-            raise ValueError("VPS profile requires PostgreSQL and secure cookies")
+            raise ValueError(f"{self.app_mode} profile requires PostgreSQL and secure cookies")
         if self.worker_poll_seconds >= self.worker_lease_seconds:
             raise ValueError("Worker poll interval must be shorter than its lease")
         return self

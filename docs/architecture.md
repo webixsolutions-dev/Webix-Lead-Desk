@@ -62,7 +62,7 @@ Only safe workspace preferences are editable in Phase 1. Unknown setting fields 
 
 PC mode runs locally with SQLite, an explicit web process and a separate worker. The PC must remain awake for queued work to progress. VPS mode requires PostgreSQL and HTTPS and will be completed through an approved migration phase. Changing APP_MODE does not move data or deploy a server.
 
-Vercel can be reconsidered as a later web-interface host, with persistent data and a separately designed worker. It is not used by this foundation. The local dashboard is not remotely accessible merely because its CSS supports phones.
+Vercel web hosting uses the explicit `app.vercel:app` entry point, which builds the same application through the existing factory and enforces PostgreSQL and secure cookies. Its database and exact allowed domains must be configured separately; see [deployment setup](deploy-to-vercel.md). The worker stays a separate PC/VPS process connected to that environment's database. Importing the entry point does not open a database connection or run migrations. The local PC dashboard remains bound to loopback.
 
 ## Phase boundaries
 

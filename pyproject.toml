@@ -34,6 +34,9 @@ dev = [
 [project.scripts]
 lead-desk = "app.cli:main"
 
+[tool.vercel]
+entrypoint = "app.vercel:app"
+
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 

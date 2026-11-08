@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fix Vercel FastAPI discovery with an explicit top-level application entry point, preserving the PC app factory.
+- Require PostgreSQL and secure cookies in the Vercel profile; reject ephemeral SQLite even if a PC profile is copied.
+- Document hosted configuration, explicit migrations/account setup and the separate PC worker.
+
 ## 0.1.0 — 2026-11-08
 
 - Add local owner/reviewer sign-in, revocable sessions, CSRF protection and login throttles.

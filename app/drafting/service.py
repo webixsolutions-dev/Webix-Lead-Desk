@@ -94,6 +94,16 @@ def save_draft(
                 raise ValueError("This conversation is stopped or requires a human response")
             if step and not conversation.first_message_id:
                 raise ValueError("A follow-up requires an accepted first message")
+            if step:
+                initial = session.scalar(
+                    select(Draft).where(
+                        Draft.conversation_id == conversation.id,
+                        Draft.step == 0,
+                        Draft.state == "sent",
+                    )
+                )
+                if not initial or subject.strip() != initial.snapshot["subject"]:
+                    raise ValueError("Keep the original subject for this same-thread follow-up")
             previous = session.scalar(
                 select(Draft)
                 .where(Draft.conversation_id == conversation.id, Draft.step == step)

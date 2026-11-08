@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0] — 2026-11-09
+- Add encrypted, write-only mailbox and optional research connections.
+- Add exact-revision scheduling, sender locks, immutable Message-IDs and one approved follow-up.
+- Enforce Calgary windows, spacing, ramp/campaign limits, freshness and global channel/suppression checks.
+- Read Titan inboxes, stop on every reply and pause after three distinct daily bounces.
+- Hold uncertain SMTP/crashed-worker sends and reconcile only matching Sent evidence.
+- Verify protocol behavior against local fake SMTP/IMAP servers; no live outreach enabled.
+
 ## 0.4.0 — Drafting and review
 
 - Add immutable message revisions and owner approvals bound to exact routing/content fingerprints.

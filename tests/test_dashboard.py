@@ -23,7 +23,7 @@ def test_six_pages_and_preview_detail_render(client: TestClient, owner: Account)
         response = client.get(path)
         assert response.status_code == 200
         assert "Workspace preview" in response.text
-        assert "Nothing can be sent" in response.text
+        assert "Sample cards are fictional" in response.text
     assert client.get("/leads/preview/unknown").status_code == 404
 
 

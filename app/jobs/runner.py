@@ -77,6 +77,9 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     logger.info("Worker started")
     try:
         while True:
+            from app.sending.schedule import plan_jobs
+
+            plan_jobs(db, settings, utc_now())
             run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
             if once:
                 break
@@ -120,4 +123,22 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
         from app.drafting.ai import generate
 
         return generate(db, settings, job.payload, job.id)
+    if settings is not None and job.kind == "inbox":
+        from app.inbox.service import sync_inbox
+
+        if not sync_inbox(db, settings, str(job.payload["mailbox_id"])):
+            raise TemporaryJobError("Inbox sync incomplete")
+        return "Inbox synchronized."
+    if settings is not None and job.kind == "send":
+        from app.sending.service import dispatch
+
+        return dispatch(db, settings, job)
+    if settings is not None and job.kind == "reconcile":
+        from app.sending.service import reconcile
+
+        return (
+            "Sent copy confirmed."
+            if reconcile(db, settings, str(job.payload["intent_id"]))
+            else "No matching Sent evidence; held."
+        )
     raise PermanentJobError("Unknown job handler")

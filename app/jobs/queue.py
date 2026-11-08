@@ -20,7 +20,7 @@ def enqueue(
     db: Database, unique_key: str, kind: str, payload: dict[str, Any], now: datetime
 ) -> Job:
     """Enqueue bounded reference data with a unique business key."""
-    if kind not in {"health", "calgary", "audit", "assess", "draft"}:
+    if kind not in {"health", "calgary", "audit", "assess", "draft", "inbox", "send", "reconcile"}:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
         raise ValueError("Job key must contain 1–128 characters")
@@ -86,12 +86,18 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             return None
         expired = session.scalars(
             select(Job).where(
-                Job.kind.in_(["health", "calgary", "audit", "assess", "draft"]),
+                Job.kind.in_(
+                    ["health", "calgary", "audit", "assess", "draft", "inbox", "send", "reconcile"]
+                ),
                 Job.state == "running",
                 Job.lease_expires_at <= now,
             )
         ).all()
         for job in expired:
+            if job.kind == "send":
+                from app.sending.recovery import hold_expired_send
+
+                hold_expired_send(session, job, now)
             session.execute(
                 update(JobAttempt)
                 .where(
@@ -102,10 +108,12 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             )
             job.state = (
                 "failed"
-                if job.kind in {"assess", "draft"} or job.attempts >= settings.job_max_attempts
+                if job.kind in {"assess", "draft", "send"}
+                or job.attempts >= settings.job_max_attempts
                 else "queued"
             )
             job.finished_at = now if job.state == "failed" else None
+            job.claim_owner = None
             job.claim_token = None
             job.lease_expires_at = None
             job.error_code = "lease_expired"
@@ -133,6 +141,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                 state="running",
                 attempts=Job.attempts + 1,
                 claim_token=claim,
+                claim_owner=owner,
                 lease_expires_at=now + timedelta(seconds=settings.job_lease_seconds),
                 error_code=None,
             )
@@ -171,6 +180,7 @@ def finish_job(
                 result=result,
                 error_code=error_code,
                 claim_token=None,
+                claim_owner=None,
                 lease_expires_at=None,
             )
             .returning(Job.id)

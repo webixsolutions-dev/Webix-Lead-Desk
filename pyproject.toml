@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "webix-lead-desk"
-version = "0.4.0"
+version = "0.5.0"
 description = "A private workspace for evidence-led research and reviewed outreach."
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -19,6 +19,7 @@ dependencies = [
   "itsdangerous>=2.2,<3",
   "psycopg[binary]>=3.2,<4",
   "tzdata>=2025.1",
+  "cryptography>=44,<47",
 ]
 
 [dependency-groups]

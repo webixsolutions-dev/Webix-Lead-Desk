@@ -20,6 +20,8 @@ router = APIRouter()
 
 def settings_data(request: Request) -> dict[str, Any]:
     """Read non-secret configuration and version history for authenticated settings."""
+    from app.api.delivery import connection_data
+
     scope = request.query_params.get("scope", "global")
     with services(request).db.sessions() as session:
         versions = list(
@@ -31,6 +33,7 @@ def settings_data(request: Request) -> dict[str, Any]:
             )
         )
         return {
+            **connection_data(request),
             "playbook_scope": scope,
             "playbook_versions": versions,
             "current_playbook": versions[0] if versions else None,

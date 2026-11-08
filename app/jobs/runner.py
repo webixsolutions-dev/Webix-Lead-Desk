@@ -75,7 +75,7 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     logger.info("Worker started")
     try:
         while True:
-            run_once(db, settings, owner)
+            run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job))
             if once:
                 break
             time.sleep(settings.worker_poll_seconds)
@@ -83,3 +83,27 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
         logger.info("Worker stopping")
     finally:
         release_worker(db, owner, utc_now())
+
+
+def dispatch_job(db: Database, job: Job) -> str:
+    """Run an explicitly registered handler; imports are idempotent by source key."""
+    if job.kind == "health":
+        return health_handler(job)
+    if job.kind == "calgary":
+        from app.integrations.http import FetchError
+        from app.sources.calgary import discover
+        from app.sources.importing import import_candidates
+
+        try:
+            rows = discover(job.payload["category"])
+            if not rows:
+                return "No matching licensed businesses were returned."
+            run = import_candidates(
+                db, job.payload["campaign_id"], rows, "open_calgary", job.payload["actor_id"]
+            )
+            return f"Imported {run.imported} candidates; matched {run.duplicates} existing records."
+        except FetchError as error:
+            if error.temporary:
+                raise TemporaryJobError("Source temporarily unavailable") from error
+            raise PermanentJobError("Source unavailable") from error
+    raise PermanentJobError("Unknown job handler")

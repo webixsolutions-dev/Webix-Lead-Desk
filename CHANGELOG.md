@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-11-08
+
+- Add campaigns, targeting snapshots, atomic CSV imports and queued Open Calgary discovery.
+- Add shared-domain review, source provenance, contact publication review and global suppression.
+- Keep fictional examples separate from actual candidate records.
+- Record owner authorization for sequential checked merges; tag verified phase versions through CI.
+
+## 0.1.1 — 2026-11-08
 
 - Fix Vercel FastAPI discovery with an explicit top-level application entry point, preserving the PC app factory.
 - Require PostgreSQL and secure cookies in the Vercel profile; reject ephemeral SQLite even if a PC profile is copied.

@@ -26,7 +26,7 @@ def test_schema_matches_models_and_foreign_keys_enabled(db: Database) -> None:
         assert connection.scalar(text("PRAGMA foreign_keys")) == 1
         context = MigrationContext.configure(connection)
         assert compare_metadata(context, Base.metadata) == []
-    assert "companies" not in inspect(db.engine).get_table_names()
+    assert "companies" in inspect(db.engine).get_table_names()
 
 
 def test_reapplying_migrations_preserves_jobs(db: Database, settings: Settings) -> None:

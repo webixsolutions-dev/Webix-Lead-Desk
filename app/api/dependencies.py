@@ -60,12 +60,12 @@ def check_csrf(principal: Principal, supplied: str) -> None:
         raise HTTPException(status_code=403, detail="Session check failed. Reload the page.")
 
 
-async def read_form(request: Request) -> dict[str, str]:
+async def read_form(request: Request, *, maximum: int | None = None) -> dict[str, str]:
     """Read bounded URL-encoded forms only; Phase 1 accepts no uploaded files."""
     content_type = request.headers.get("content-type", "").split(";")[0]
     if content_type != "application/x-www-form-urlencoded":
         raise HTTPException(status_code=415, detail="Only form fields are accepted")
-    maximum = services(request).settings.max_form_bytes
+    maximum = maximum or services(request).settings.max_form_bytes
     body = bytearray()
     async for chunk in request.stream():
         body.extend(chunk)

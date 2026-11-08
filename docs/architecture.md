@@ -7,7 +7,7 @@ The owner approved starting Phase 1 after reviewing the architecture plan. This 
 - Python 3.12, FastAPI, server-rendered Jinja2, local CSS/JavaScript and vendored HTMX.
 - SQLAlchemy 2 and Alembic, SQLite for the PC pilot and portable models for PostgreSQL.
 - A separate worker polls a durable database queue. The HTTP process never starts a worker.
-- The app currently processes only a harmless health job. All external integrations fail closed.
+- The worker processes health checks and fixed-source Open Calgary discovery. Paid and mailbox integrations remain disabled.
 
 Routes use domain services and typed configuration. Services use short-lived database sessions. Future HTTP, OpenAI, SMTP and IMAP adapters belong in `app/integrations/` and must be independently mockable. Future website content is data, never trusted instructions.
 
@@ -42,7 +42,7 @@ The reserved modules contain no fake working implementation. Their schema and co
 
 Identifiers are UUID strings, timestamps are UTC-aware in application code, foreign keys are enabled on SQLite and schema changes go through Alembic. Preview businesses are static fixtures with reserved example domains, not database contacts.
 
-Future tables will add campaigns, runs, companies/domains, contacts/bases, evidence/audits, offers/proofs, immutable drafts/approvals, conversations/sequences, mailboxes, send intents, inbound messages, suppression, pipeline/calls/demos, Playbook versions/proposals and AI cost reservations. They are not migrated in Phase 1.
+Phase 2 adds campaigns/runs, companies/domains, campaign membership, source provenance, contacts/bases, global suppression and channel reservations. Website matches require recorded evidence; shared domains never silently merge companies. Later migrations add audits, drafting, delivery and pipeline tables.
 
 ## Job lifecycle
 
@@ -66,7 +66,7 @@ Vercel web hosting uses the explicit `app.vercel:app` entry point, which builds 
 
 ## Phase boundaries
 
-Phase 2 adds permitted imports and deduplication. Phase 3 adds factual audits and budgeted AI. Phase 4 adds immutable drafts, review and Playbook/offer/proof libraries. Phase 5 adds sender locks, approved delivery, inbox cancellation and basic call cards. Phase 6 is a separately approved small live pilot. Later phases cover extended pipeline/demos, partners, approved learning and VPS migration.
+Phase 2 implements permitted imports and deduplication. The owner authorized sequential checked merges; see delivery-plan.md. Phase 3 adds factual audits and budgeted AI. Phase 4 adds immutable drafts, review and Playbook/offer/proof libraries. Phase 5 adds sender locks, approved delivery, inbox cancellation and basic call cards. Phase 6 is a separately approved small live pilot. Later phases cover extended pipeline/demos, partners, approved learning and VPS migration.
 
 Fifty first touches per day is a later target constrained by sending windows, follow-up capacity and verified account limits. No delivery or sales outcome is guaranteed by the foundation.
 

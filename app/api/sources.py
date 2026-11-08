@@ -23,6 +23,7 @@ from app.db.lead_models import (
     SuppressionEntry,
 )
 from app.db.models import AuditEvent
+from app.db.research_models import Assessment, Evidence, WebsiteAudit
 from app.jobs.queue import enqueue
 from app.policy.contacts import suppress
 from app.sources.importing import import_candidates, parse_csv
@@ -154,6 +155,35 @@ def company_detail(request: Request, principal: CurrentUser, company_id: str) ->
             raise HTTPException(404, "Business not found")
         context.update(
             company_record=company,
+            audits=list(
+                session.scalars(
+                    select(WebsiteAudit)
+                    .where(WebsiteAudit.company_id == company_id)
+                    .order_by(WebsiteAudit.created_at.desc())
+                    .limit(5)
+                )
+            ),
+            evidence=list(
+                session.scalars(
+                    select(Evidence)
+                    .where(Evidence.company_id == company_id)
+                    .order_by(Evidence.observed_at.desc())
+                    .limit(30)
+                )
+            ),
+            assessments=list(
+                session.scalars(
+                    select(Assessment)
+                    .where(Assessment.company_id == company_id)
+                    .order_by(Assessment.created_at.desc())
+                    .limit(5)
+                )
+            ),
+            campaigns=list(
+                session.scalars(
+                    select(Campaign).join(CampaignLead).where(CampaignLead.company_id == company_id)
+                )
+            ),
             domains=list(
                 session.scalars(select(CompanyDomain).where(CompanyDomain.company_id == company_id))
             ),

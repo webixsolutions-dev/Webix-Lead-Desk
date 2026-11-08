@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     preview_enabled: bool = True
     live_send_enabled: bool = False
     external_integrations_enabled: bool = False
+    openai_enabled: bool = False
+    openai_api_key: SecretStr | None = None
+    openai_model: str = Field(default="", max_length=120)
+    openai_input_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_output_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_max_output_tokens: int = Field(default=1500, ge=500, le=4000)
     worker_poll_seconds: float = Field(default=2, ge=0.1, le=30)
     worker_lease_seconds: int = Field(default=30, ge=5, le=300)
     job_lease_seconds: int = Field(default=60, ge=5, le=600)

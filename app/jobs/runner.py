@@ -10,6 +10,7 @@ from app.core.clock import utc_now
 from app.core.config import Settings
 from app.db.models import Job, new_id
 from app.db.session import Database
+from app.jobs.heartbeat import keep_alive
 from app.jobs.queue import acquire_worker, claim_next, finish_job, release_worker
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,8 @@ def run_once(
     if job is None:
         return False
     try:
-        result = handler(job)
+        with keep_alive(db, settings, owner, job, clock):
+            result = handler(job)
     except TemporaryJobError:
         retry = None
         if job.attempts < settings.job_max_attempts:
@@ -75,7 +77,7 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     logger.info("Worker started")
     try:
         while True:
-            run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job))
+            run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
             if once:
                 break
             time.sleep(settings.worker_poll_seconds)
@@ -85,7 +87,7 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
         release_worker(db, owner, utc_now())
 
 
-def dispatch_job(db: Database, job: Job) -> str:
+def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> str:
     """Run an explicitly registered handler; imports are idempotent by source key."""
     if job.kind == "health":
         return health_handler(job)
@@ -106,4 +108,12 @@ def dispatch_job(db: Database, job: Job) -> str:
             if error.temporary:
                 raise TemporaryJobError("Source temporarily unavailable") from error
             raise PermanentJobError("Source unavailable") from error
+    if job.kind == "audit":
+        from app.audit.service import research
+
+        return research(db, job)
+    if job.kind == "assess" and settings is not None:
+        from app.audit.ai import assess
+
+        return assess(db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id)
     raise PermanentJobError("Unknown job handler")

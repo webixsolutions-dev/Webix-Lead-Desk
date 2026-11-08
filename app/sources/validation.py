@@ -15,14 +15,20 @@ def website_url(value: str) -> str:
         return ""
     if "://" not in value:
         value = "https://" + value
+    if "\\" in value or any(ord(c) < 33 for c in value):
+        raise ValueError("Ambiguous URL characters are not accepted")
     parts = urlsplit(value)
     host = (parts.hostname or "").encode("idna").decode().lower().rstrip(".")
     if (
         parts.scheme not in {"https", "http"}
         or not host
+        or not re.fullmatch(r"[a-z0-9.-]+", host)
+        or any(
+            not label or label.startswith("-") or label.endswith("-") for label in host.split(".")
+        )
         or parts.username
         or parts.password
-        or parts.port not in {None, 80, 443}
+        or parts.port not in {None, 443 if parts.scheme == "https" else 80}
         or len(value) > 2000
         or any(ord(c) < 33 for c in value)
     ):

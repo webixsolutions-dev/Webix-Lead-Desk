@@ -138,3 +138,21 @@ Open Leads, create a campaign, then import UTF-8 CSV (name, city, industry; opti
 Open Calgary discovery queues a job for the PC worker. Use city licence categories such as CONTRACTOR or CLEANING; the dataset only covers Calgary and does not supply verified websites or contact permission. Inspect each business, confirm its website with evidence, and record role relevance and publication restrictions for contacts. Global suppression applies across all campaigns. Current results show at most 100 businesses; use campaign/name filters.
 
 Phase 2 source acceptance imported ten public licensed-business candidates into a separate private local acceptance database, with no outreach. Full hosted testing awaits database and account configuration. See docs/delivery-plan.md for the remaining sequence and owner setup items.
+
+
+### Phase 3: website research
+
+Open an imported lead, confirm its business website, and choose **Research website**.
+The separate worker reads robots.txt and at most three HTML pages. Redirects stay on
+the reviewed origin. Fresh successful audits are reused for 30 days unless refreshed.
+Page elements are observations, not claims of revenue, traffic, mobile quality or form delivery.
+Add dated visual/social/ads observations manually with a source URL. Extracted email
+addresses remain unverified and require contact-basis review before outreach.
+
+AI classification is optional and disabled by default. Verify a dedicated API project's
+available funds, expiration and current model rates; record the allowance in Settings;
+then configure `OPENAI_*` variables from `.env.example`. Never paste keys into chat.
+The research budget pauses at 90% of the lifetime allowance. Each call reserves an
+overestimated maximum cost before network access. Unknown outcomes retain the reservation
+and cannot be reissued with the same request key. No auto-recharge or model name is assumed.
+See [research controls](docs/research.md) for limitations and acceptance checks.

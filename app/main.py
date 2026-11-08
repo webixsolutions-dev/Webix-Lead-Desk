@@ -11,10 +11,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.responses import JSONResponse, Response
 
-from app.api import auth, dashboard
+from app.api import auth, dashboard, sources
 from app.core.config import Settings
 from app.core.context import Services
 from app.core.logging import configure_logging
+from app.db.migrate import migration_head
 from app.db.session import create_database
 
 
@@ -30,7 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             with db.engine.connect() as connection:
                 revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-                if revision != "0001_foundation":
+                if revision != migration_head():
                     raise RuntimeError("Run lead-desk migrate before starting the application")
         except SQLAlchemyError:
             db.engine.dispose()
@@ -85,6 +86,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(dashboard.router)
+    app.include_router(sources.router)
     app.mount(
         "/static", StaticFiles(directory=Path(__file__).parent / "ui" / "static"), name="static"
     )

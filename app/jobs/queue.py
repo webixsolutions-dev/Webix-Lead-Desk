@@ -1,6 +1,7 @@
 """Atomic database queue operations for the Phase 1 health handler."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -12,11 +13,20 @@ from app.db.session import Database
 
 def enqueue_health(db: Database, unique_key: str, now: datetime) -> Job:
     """Enqueue once or return an existing health job with the same key."""
+    return enqueue(db, unique_key, "health", {}, now)
+
+
+def enqueue(
+    db: Database, unique_key: str, kind: str, payload: dict[str, Any], now: datetime
+) -> Job:
+    """Enqueue bounded reference data with a unique business key."""
+    if kind not in {"health", "calgary"}:
+        raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
         raise ValueError("Job key must contain 1–128 characters")
     try:
         with db.sessions.begin() as session:
-            job = Job(unique_key=unique_key, kind="health", due_at=now, payload={})
+            job = Job(unique_key=unique_key, kind=kind, due_at=now, payload=payload)
             session.add(job)
             session.flush()
             return job
@@ -76,7 +86,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             return None
         expired = session.scalars(
             select(Job).where(
-                Job.kind == "health",
+                Job.kind.in_(["health", "calgary"]),
                 Job.state == "running",
                 Job.lease_expires_at <= now,
             )

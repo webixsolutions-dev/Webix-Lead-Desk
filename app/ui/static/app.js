@@ -33,3 +33,13 @@ if (leadFilter) {
   });
 }
 
+
+const csvFile = document.getElementById('csv-file');
+if (csvFile) csvFile.addEventListener('change', async () => {
+  const file = csvFile.files[0];
+  const error = document.getElementById('csv-error');
+  if (!file) return;
+  if (file.size > 1000000) { error.textContent = 'Choose a CSV smaller than 1 MB.'; return; }
+  try { document.getElementById('csv-text').value = await file.text(); error.textContent = ''; }
+  catch { error.textContent = 'Could not read this file. Paste its CSV contents instead.'; }
+});

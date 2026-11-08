@@ -28,7 +28,9 @@ def today(request: Request, principal: CurrentUser) -> HTMLResponse:
 @router.get("/leads", response_class=HTMLResponse)
 def leads(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show searchable fictional lead cards without enabling research or sending."""
-    return render(request, "leads.html", dashboard_context(request, principal, "leads"))
+    from app.api.sources import lead_context
+
+    return render(request, "leads.html", lead_context(request, principal))
 
 
 @router.get("/leads/preview/{lead_id}", response_class=HTMLResponse)

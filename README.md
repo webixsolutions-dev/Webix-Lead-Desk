@@ -2,7 +2,7 @@
 
 A focused workspace for understanding businesses, reviewing outreach and keeping the next conversation moving.
 
-**Phase 1 is a local foundation.** It includes real sign-in, owner/reviewer roles, saved preferences, a responsive six-tab interface, database migrations and a durable health-job worker. Business cards and outreach shown in preview mode are fictional. There is no crawler, AI integration, connected mailbox or email sender in this release.
+**Phase 2 adds real discovery to the foundation.** It includes real sign-in, owner/reviewer roles, saved preferences, a responsive six-tab interface, database migrations and a durable health-job worker. Business cards and outreach shown in preview mode are fictional. Campaigns, CSV import, Open Calgary discovery, website/contact review and global suppression are now available. AI, mailbox connections and sending arrive in subsequent phases.
 
 The repository is public temporarily at the owner's direction. The running application is private, and real data, credentials, screenshots and databases stay outside Git.
 
@@ -59,10 +59,10 @@ sh scripts/worker.sh
 
 ## What works now
 
-| Tab | Phase 1 behavior |
+| Tab | Current behavior |
 |---|---|
 | Today | Fictional review queue, clearly labeled preview metrics, real database/worker status |
-| Leads | Searchable synthetic businesses and read-only example evidence cards |
+| Leads | Campaigns, CSV/city imports, website and contact review, suppression; separate fictional examples |
 | Outbox | Non-sendable example steps and real health checks with automatic status refresh |
 | Replies & Pipeline | Labeled preview of the future reply and call handoff |
 | Demos | Future concept types and an honest empty state |
@@ -90,7 +90,7 @@ Local administrator commands assume access to the operating-system account that 
 
 - Preferences in the dashboard override environment defaults for workspace name, timezones and preview visibility.
 - `APP_MODE=PC` is the pilot default. VPS and Vercel profiles require PostgreSQL and secure cookies, but do not deploy or migrate anything automatically.
-- `LIVE_SEND_ENABLED` and `EXTERNAL_INTEGRATIONS_ENABLED` must remain false. Phase 1 refuses to start otherwise.
+- `LIVE_SEND_ENABLED` and `EXTERNAL_INTEGRATIONS_ENABLED` must remain false. This release refuses to start otherwise.
 - `SESSION_SECRET` is required. The database stores password hashes and hashed bearer tokens, never plaintext passwords or bearer tokens.
 - All timestamps are stored in UTC. IANA timezones handle Calgary daylight saving and local display time.
 - No automatic provider payments, account creation or purchases occur.
@@ -124,9 +124,17 @@ Automated tests use disposable databases and synthetic users. They make no live 
 
 See [architecture](docs/architecture.md), [decisions](docs/decisions/0001-foundation.md), [VPS migration plan](docs/move-to-vps.md) and [engineering instructions](AGENTS.md).
 
-One coding agent and one approved phase at a time. Changes belong on phase/feature branches. Every phase ends in a PR with a self-review. Owner approval and passing required checks are necessary before merge and a version tag. Do not start Phase 2 until Phase 1 is reviewed and approved.
+One coding agent and one phase at a time. The owner authorized sequential implementation and merges on 8 November 2026. Changes belong on phase/feature branches. Every phase ends in a PR with a self-review. Passing required checks are necessary before merge and a version tag. Exact outgoing messages still need owner approval.
 
-The owner approved the initial Phase 1 publication to main after the Webix logo/red branding update. Its CI tag job creates `v0.1.0` once, only after every quality job passes on main. Only that job has repository write permission; it never moves an existing tag or approves later phases.
+The owner approved the initial Phase 1 publication to main after the Webix logo/red branding update. The CI tag job creates the version in `pyproject.toml` once, only after every quality job passes on main. Only that job has repository write permission; it never moves an existing tag or approves later phases.
 
 Vendored HTMX 2.0.8 is included with its license and is used only for authenticated worker-status polling. Assets are served locally without a CDN. No analytics or tracking scripts are included.
 
+
+## Campaigns and source imports
+
+Open Leads, create a campaign, then import UTF-8 CSV (name, city, industry; optional website, email, phone, address, source_key, source_url). A file picker fills an editable CSV preview; without JavaScript paste the CSV. Imports are atomic, capped at 500 rows/1 MB and never authorize delivery. Reimports reuse source identities and campaign memberships. Shared domains stay separate and are flagged for review.
+
+Open Calgary discovery queues a job for the PC worker. Use city licence categories such as CONTRACTOR or CLEANING; the dataset only covers Calgary and does not supply verified websites or contact permission. Inspect each business, confirm its website with evidence, and record role relevance and publication restrictions for contacts. Global suppression applies across all campaigns. Current results show at most 100 businesses; use campaign/name filters.
+
+Phase 2 source acceptance imported ten public licensed-business candidates into a separate private local acceptance database, with no outreach. Full hosted testing awaits database and account configuration. See docs/delivery-plan.md for the remaining sequence and owner setup items.

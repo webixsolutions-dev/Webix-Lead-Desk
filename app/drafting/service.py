@@ -14,6 +14,7 @@ from app.db.research_models import Evidence
 from app.db.session import Database
 from app.demos.service import concept_attachment
 from app.drafting.content import check_copy, fingerprint, footer
+from app.partners.service import partner_block, reserve_slot
 from app.playbook.service import current_guidance
 from app.policy.contacts import is_suppressed
 from app.sources.validation import domain_of
@@ -59,6 +60,8 @@ def save_draft(
                 or not member
             ):
                 raise ValueError("Choose a contact and sender matching this business and campaign")
+            if step == 0:
+                reserve_slot(session, company_id, campaign, utc_now())
             found = set(
                 session.scalars(
                     select(Evidence.id).where(
@@ -217,6 +220,8 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
                 reasons.append("Concept approval, share link or qualification changed")
         if not campaign or not campaign.active:
             reasons.append("Campaign is inactive")
+        elif block := partner_block(session, snapshot["company_id"], campaign):
+            reasons.append(block)
         if conversation and (
             conversation.contact_id != snapshot["contact_id"]
             or conversation.mailbox_id != snapshot["mailbox_id"]

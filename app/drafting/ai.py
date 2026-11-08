@@ -18,6 +18,7 @@ from app.db.session import Database
 from app.drafting.brief import build_brief
 from app.drafting.service import save_draft
 from app.integrations.openai import ModelUnavailable, create_response
+from app.partners.service import reserve_slot
 
 
 class DraftCopy(BaseModel):
@@ -85,6 +86,10 @@ def generate(
                 or (current and current.id != payload.get("previous_id"))
             ):
                 raise ValueError("Conversation changed; review it before generating another draft")
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, payload["campaign_id"])
+        assert campaign
+        reserve_slot(session, payload["company_id"], campaign, utc_now())
     brief = build_brief(db, payload["company_id"], payload["campaign_id"])
     request: dict[str, Any] = {
         "model": settings.openai_model,

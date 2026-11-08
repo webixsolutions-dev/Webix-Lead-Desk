@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.audit.budget import BudgetBlocked, reserve, settle
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.core.vault import openai_key
 from app.db.lead_models import Campaign, CampaignLead, Contact
 from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.session import Database
@@ -39,12 +40,15 @@ def generate(
     """Reserve cost, request one structured draft and save it without any approval."""
     if (
         not settings.openai_enabled
-        or not settings.openai_api_key
         or not settings.openai_model
         or not settings.openai_input_usd_micro_per_million
         or not settings.openai_output_usd_micro_per_million
     ):
         raise BudgetBlocked("Configure verified API funding and model rates first")
+    try:
+        api_key = openai_key(db, settings)
+    except ValueError as error:
+        raise BudgetBlocked("Save a valid OpenAI connection before enabling AI") from error
     with db.sessions() as session:
         campaign = session.get(Campaign, payload["campaign_id"])
         contact = session.get(Contact, payload["contact_id"])
@@ -109,7 +113,7 @@ def generate(
     )
     call = reserve(db, request_key, settings.openai_model, maximum, utc_now(), audit=False)
     try:
-        response = provider(settings.openai_api_key.get_secret_value(), request)
+        response = provider(api_key, request)
         if response.get("status") != "completed":
             raise ModelUnavailable("Draft was incomplete or refused")
         texts = [

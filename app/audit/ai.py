@@ -11,6 +11,7 @@ from app.audit.budget import BudgetBlocked, reserve, settle
 from app.audit.classify import Recommendation, validate_recommendation
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.core.vault import openai_key
 from app.db.lead_models import Campaign, CampaignLead
 from app.db.research_models import Assessment, Evidence
 from app.db.session import Database
@@ -38,12 +39,15 @@ def assess(
     """Classify bounded evidence once, retaining reservations after uncertain failures."""
     if (
         not settings.openai_enabled
-        or not settings.openai_api_key
         or not settings.openai_model
         or not settings.openai_input_usd_micro_per_million
         or not settings.openai_output_usd_micro_per_million
     ):
         raise BudgetBlocked("AI is disabled or verified model rates are missing")
+    try:
+        api_key = openai_key(db, settings)
+    except ValueError as error:
+        raise BudgetBlocked("Save a valid OpenAI connection before enabling AI") from error
     with db.sessions() as session:
         campaign = session.get(Campaign, campaign_id)
         membership = session.scalar(
@@ -94,7 +98,7 @@ def assess(
     )
     call = reserve(db, key, settings.openai_model, maximum, utc_now())
     try:
-        response = provider(settings.openai_api_key.get_secret_value(), payload)
+        response = provider(api_key, payload)
         usage = response.get("usage", {})
         inputs, outputs = usage.get("input_tokens"), usage.get("output_tokens")
         actual = None

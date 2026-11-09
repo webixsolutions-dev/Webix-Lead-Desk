@@ -2,7 +2,6 @@
 
 from datetime import timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
@@ -12,6 +11,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from app.api.dependencies import CurrentUser, Owner, Principal, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
+from app.core.timezones import zone
 from app.db.acquisition_models import LeadScore
 from app.db.lead_models import (
     Campaign,
@@ -82,7 +82,7 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
             if request.query_params.get("since") and (
                 not journey["last"]
                 or journey["last"]
-                .occurred_at.astimezone(ZoneInfo("America/Edmonton"))
+                .occurred_at.astimezone(zone("America/Edmonton"))
                 .date()
                 .isoformat()
                 < request.query_params["since"]

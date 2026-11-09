@@ -194,3 +194,8 @@ LinkedIn L1 introduces verified professional identities and one serialized compa
 coordination record shared by manual LinkedIn, email, calls and forms. See
 [ADR 0014](decisions/0014-linkedin-channel.md) for the L1–L5 build boundary and
 [LinkedIn setup](linkedin.md) for review and stop semantics.
+
+LinkedIn L2 uses database-backed profile locks, quota rows, sequence progress and human
+leases. The dedicated worker plans bounded weekday batches without executing them.
+Named-person day reservations fence both SMTP and future human LinkedIn starts. See
+[LinkedIn setup](linkedin.md) for limits, catch-up, Windows startup and recovery.

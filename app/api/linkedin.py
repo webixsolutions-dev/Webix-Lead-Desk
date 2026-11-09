@@ -9,9 +9,11 @@ from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
 from app.db.lead_models import Campaign, CampaignLead, Company
 from app.db.linkedin_models import LinkedInProfile, Person, PersonCandidate, PersonOwnership, Touch
+from app.db.linkedin_queue_models import LinkedInPolicy
 from app.db.models import User, new_id
 from app.jobs.queue import enqueue
 from app.linkedin.identity import add_profile, assign_person, confirm_person, release_company
+from app.linkedin.quotas import Quotas
 from app.linkedin.replies import log_reply, reopen_company
 
 router = APIRouter()
@@ -25,6 +27,11 @@ def profiles(request: Request, principal: Owner) -> HTMLResponse:
         context.update(
             profiles=list(session.scalars(select(LinkedInProfile))),
             staff=list(session.scalars(select(User).where(User.active.is_(True)))),
+            quota_values={
+                p.profile_id: Quotas.model_validate(p.limits).model_dump()
+                for p in session.scalars(select(LinkedInPolicy))
+            },
+            quota_defaults=Quotas().model_dump(),
         )
     return render(request, "linkedin_profiles.html", context)
 

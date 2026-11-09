@@ -1,13 +1,14 @@
 """Validated, versioned, non-secret settings with optimistic conflict handling."""
 
 from datetime import datetime
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import Settings
+from app.core.timezones import zone
 from app.db.models import AuditEvent, WorkspaceSetting
 from app.db.session import Database
 
@@ -34,7 +35,7 @@ class Preferences(BaseModel):
     def validate_timezone(cls, value: str) -> str:
         """Accept only an actual IANA timezone."""
         try:
-            ZoneInfo(value)
+            zone(value)
         except (ZoneInfoNotFoundError, ValueError) as error:
             raise ValueError("Choose a valid IANA timezone") from error
         return value

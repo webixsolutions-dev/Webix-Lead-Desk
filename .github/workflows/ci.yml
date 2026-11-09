@@ -70,6 +70,7 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen --group dev
       - run: uv run python scripts/setup_local.py
+      - run: powershell -NoProfile -File scripts/install-autostart.ps1 -ValidateOnly
       - run: uv run lead-desk migrate
       - run: uv run lead-desk enqueue-health
       - run: uv run lead-desk worker --once

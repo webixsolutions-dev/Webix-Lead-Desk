@@ -2,7 +2,6 @@
 
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
@@ -12,6 +11,7 @@ from starlette.responses import HTMLResponse
 from app.api.dependencies import Principal, services
 from app.core.clock import utc_now
 from app.core.preferences import get_preferences
+from app.core.timezones import zone
 from app.db.lead_models import Company
 from app.db.models import Job, WorkerInstance
 from app.ui.preview import LEADS, NAVIGATION
@@ -60,9 +60,9 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         "queued_jobs": queued,
         "completed_jobs": completed,
         "latest_job": latest_job,
-        "local_time": now.astimezone(ZoneInfo(prefs.display_timezone)).strftime("%I:%M %p"),
-        "calgary_time": now.astimezone(ZoneInfo("America/Edmonton")).strftime("%I:%M %p"),
-        "today_date": now.astimezone(ZoneInfo(prefs.display_timezone)).strftime("%A, %d %B"),
+        "local_time": now.astimezone(zone(prefs.display_timezone)).strftime("%I:%M %p"),
+        "calgary_time": now.astimezone(zone("America/Edmonton")).strftime("%I:%M %p"),
+        "today_date": now.astimezone(zone(prefs.display_timezone)).strftime("%A, %d %B"),
         "leads": LEADS if prefs.preview_enabled else [],
         "lead_count": lead_count,
         "sample_count": len(LEADS) if prefs.preview_enabled else 0,

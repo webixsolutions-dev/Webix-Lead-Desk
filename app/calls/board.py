@@ -2,11 +2,11 @@
 
 from datetime import timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
 from app.core.clock import utc_now
+from app.core.timezones import zone
 from app.db.acquisition_models import CallNote, CallRecord, LeadScore
 from app.db.lead_models import (
     Campaign,
@@ -134,7 +134,7 @@ def call_list(db: Database) -> list[dict[str, Any]]:
                     "question": question,
                     "opener": opener,
                     "offer": service,
-                    "best_time": last.due_at.astimezone(ZoneInfo("America/Edmonton")).strftime(
+                    "best_time": last.due_at.astimezone(zone("America/Edmonton")).strftime(
                         "%d %b, %I:%M %p Calgary"
                     )
                     if last and last.due_at

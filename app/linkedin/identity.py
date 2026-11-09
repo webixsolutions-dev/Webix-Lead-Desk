@@ -55,6 +55,9 @@ def add_profile(db: Database, user_id: str, url: str, actor: str) -> LinkedInPro
         with db.sessions.begin() as session:
             require_staff(session, actor, owner=True)
             member = require_staff(session, user_id)
+            from app.linkedin.quotas import lock_registry
+
+            lock_registry(session)
             if (session.scalar(select(func.count()).select_from(LinkedInProfile)) or 0) >= 10:
                 raise ValueError("This workspace supports at most ten real member profiles")
             item = LinkedInProfile(user_id=user_id, display_name=member.name, profile_url=url)

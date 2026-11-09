@@ -5,6 +5,7 @@
 - Persistent weekday planner, conservative warmup/daily/weekly quotas, catch-up slots and uncertain-action holds.
 - Shared email/LinkedIn person-day reservations and serialized ten-member registration cap.
 - Owner quota controls, member-scoped daily plans and Windows startup/sleep management.
+- Bundled current timezone rules keep Calgary windows consistent across PC/VPS/Vercel after Alberta's November 2026 move to permanent UTC-6.
 - No invitation or DM execution; exact-approved member actions arrive in L3.
 
 

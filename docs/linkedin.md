@@ -105,3 +105,10 @@ VPS supervision continues to use the existing systemd services; Vercel has no wo
 
 Windows references: https://learn.microsoft.com/powershell/module/scheduledtasks/new-scheduledtasksettingsset
 and https://learn.microsoft.com/powershell/module/scheduledtasks/new-scheduledtaskprincipal
+
+All time calculations and displays now use the locked Python tzdata package rather
+than the host OS database. Alberta adopted permanent UTC-6 beginning November 2026;
+stale Linux/Windows data could otherwise shift every window by an hour. The app keeps
+America/Edmonton as its IANA identity and preserves historical seasonal rules. Before
+upgrading to newer tzdata, run the historical/current boundary regressions.
+Source: https://www.alberta.ca/albertas-new-time-system-abt

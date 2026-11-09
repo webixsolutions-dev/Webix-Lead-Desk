@@ -13,11 +13,12 @@ from app.db.session import Database
 from app.linkedin.identity import add_profile, assign_person
 from app.linkedin.planner import plan_day
 from app.linkedin.quotas import Quotas, save_quotas
+from app.sending.window import CALGARY
 from tests.acquisition.helpers import business
 from tests.conftest import Account
 from tests.linkedin.test_identity import person
 
-NOW = datetime(2026, 11, 9, 14, 30, tzinfo=UTC)  # 07:30 Calgary, Monday.
+NOW = datetime(2026, 11, 9, 7, 30, tzinfo=CALGARY).astimezone(UTC)
 
 
 def seed(db: Database, owner: Account) -> tuple[str, str]:

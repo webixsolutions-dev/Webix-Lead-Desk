@@ -2,13 +2,13 @@
 
 import hashlib
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit.budget import BudgetBlocked, reserve_in_session, settle
+from app.core.timezones import zone
 from app.db.acquisition_models import SearchBucket, SearchRecord
 from app.db.session import Database
 from app.sources.enrichment.config import SearchConfig
@@ -29,7 +29,7 @@ def ensure_bucket(session: Session, key: str) -> None:
 
 def bucket_keys(provider: str, now: datetime) -> tuple[str, str]:
     """Use Calgary calendar boundaries, including daylight-saving transitions."""
-    local = now.astimezone(ZoneInfo("America/Edmonton"))
+    local = now.astimezone(zone("America/Edmonton"))
     return f"{provider}:day:{local:%Y-%m-%d}", f"{provider}:month:{local:%Y-%m}"
 
 

@@ -82,3 +82,7 @@ expired action claims, member isolation, and the actual SMTP dispatch deferral u
 fake transports. PowerShell CI validates startup script syntax without installing tasks;
 actual Windows sign-out/reboot acceptance remains an owner-PC check. No live provider
 calls are made and no real LinkedIn action is performed.
+
+CI exposed different OS timezone databases. Current bundled tzdata is now used across
+all application clocks, display, callbacks and quotas. Regression checks cover Alberta's
+November 2026 permanent UTC-6 transition and historical UTC-7 winter behavior.

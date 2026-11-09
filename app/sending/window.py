@@ -1,11 +1,11 @@
 """Calgary weekday windows and conservative mailbox ramp limits with DST support."""
 
 from datetime import datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
+from app.core.timezones import zone
 from app.db.delivery_models import MailboxState
 
-CALGARY = ZoneInfo("America/Edmonton")
+CALGARY = zone("America/Edmonton")
 
 
 def within_window(now: datetime) -> bool:

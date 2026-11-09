@@ -2,12 +2,12 @@
 
 from datetime import UTC, datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
+from app.core.timezones import zone
 from app.db.acquisition_models import LeadEvent, LeadScore
 from app.db.models import User
 from app.db.outreach_models import Mailbox
@@ -190,22 +190,20 @@ def summary(session: Session, company_id: str) -> dict[str, Any]:
     result["ai_score"] = assessment.result.get("score") if assessment else None
     due = result["due_at"]
     result["due_label"] = (
-        due.astimezone(ZoneInfo("America/Edmonton")).strftime("%d %b, %I:%M %p Calgary")
-        if due
-        else ""
+        due.astimezone(zone("America/Edmonton")).strftime("%d %b, %I:%M %p Calgary") if due else ""
     )
     result["needs_today"] = (
         not result["stopped_reason"]
         and result["stage"] not in {"Won", "Lost"}
         and (
             due is None
-            or due.astimezone(ZoneInfo("America/Edmonton")).date()
-            <= utc_now().astimezone(ZoneInfo("America/Edmonton")).date()
+            or due.astimezone(zone("America/Edmonton")).date()
+            <= utc_now().astimezone(zone("America/Edmonton")).date()
         )
     )
     result["last_label"] = (
         result["last"]
-        .occurred_at.astimezone(ZoneInfo("America/Edmonton"))
+        .occurred_at.astimezone(zone("America/Edmonton"))
         .strftime("%d %b, %I:%M %p Calgary")
         if result["last"]
         else ""
@@ -230,10 +228,10 @@ def detail(db: Database, company_id: str) -> dict[str, Any]:
                 "actor": actor.name
                 if item.actor_id and (actor := session.get(User, item.actor_id))
                 else "System / worker",
-                "calgary": item.occurred_at.astimezone(ZoneInfo("America/Edmonton")).strftime(
+                "calgary": item.occurred_at.astimezone(zone("America/Edmonton")).strftime(
                     "%d %b %Y, %I:%M %p"
                 ),
-                "pakistan": item.occurred_at.astimezone(ZoneInfo("Asia/Karachi")).strftime(
+                "pakistan": item.occurred_at.astimezone(zone("Asia/Karachi")).strftime(
                     "%d %b %Y, %I:%M %p"
                 ),
             }

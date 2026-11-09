@@ -1,7 +1,6 @@
 """Reviewer-accessible human call list and attributable outcomes."""
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -11,6 +10,7 @@ from app.api.views import dashboard_context, render
 from app.calls.board import call_history, call_list
 from app.calls.service import OUTCOMES, record_call
 from app.core.clock import utc_now
+from app.core.timezones import zone
 from app.db.acquisition_models import CallRecord
 from app.jobs.queue import enqueue
 
@@ -37,7 +37,7 @@ async def outcome(request: Request, principal: CurrentUser, company_id: str) -> 
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         due = (
-            datetime.fromisoformat(fields["due_at"]).replace(tzinfo=ZoneInfo("America/Edmonton"))
+            datetime.fromisoformat(fields["due_at"]).replace(tzinfo=zone("America/Edmonton"))
             if fields.get("due_at")
             else None
         )

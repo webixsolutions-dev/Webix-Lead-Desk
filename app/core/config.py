@@ -2,11 +2,13 @@
 
 from pathlib import Path
 from typing import Literal, Self
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfoNotFoundError
 
 from cryptography.fernet import Fernet
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.timezones import zone
 
 
 class Settings(BaseSettings):
@@ -116,7 +118,7 @@ class Settings(BaseSettings):
     def valid_timezone(cls, value: str) -> str:
         """Require an installed IANA timezone."""
         try:
-            ZoneInfo(value)
+            zone(value)
         except ZoneInfoNotFoundError as error:
             raise ValueError("Use a valid IANA timezone") from error
         return value

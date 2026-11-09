@@ -156,7 +156,8 @@ def test_dst_weekends_and_late_afternoon_are_bounded() -> None:
     from datetime import UTC, datetime
 
     assert slots(datetime(2026, 7, 6, 13, 30, tzinfo=UTC), 1)[0].hour == 15
-    assert slots(NOW, 1)[0].hour == 16
+    assert slots(NOW, 1)[0].hour == 15
+    assert slots(datetime(2025, 1, 6, 14, 30, tzinfo=UTC), 1)[0].hour == 16
     assert not daytime(NOW + timedelta(days=5), planning=True)
     assert slots(NOW + timedelta(hours=9, minutes=28), 20) == []
 

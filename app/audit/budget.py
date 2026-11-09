@@ -15,20 +15,45 @@ class BudgetBlocked(Exception):
 
 
 def reserve(
-    db: Database, key: str, model: str, maximum: int, now: datetime, *, audit: bool = True
+    db: Database,
+    key: str,
+    model: str,
+    maximum: int,
+    now: datetime,
+    *,
+    audit: bool = True,
+    category: str = "reserve",
+    company_id: str | None = None,
 ) -> AICall:
     """Reserve a worst-case USD-micro cost once, pausing research at 90% of allowance."""
     if not 0 < maximum <= 1_000_000_000 or not model or len(key) > 128:
         raise BudgetBlocked("Invalid model rate or maximum cost")
     try:
         with db.sessions.begin() as session:
-            return reserve_in_session(session, key, model, maximum, now, audit=audit)
+            return reserve_in_session(
+                session,
+                key,
+                model,
+                maximum,
+                now,
+                audit=audit,
+                category=category,
+                company_id=company_id,
+            )
     except IntegrityError as error:
         raise BudgetBlocked("Request was already reserved") from error
 
 
 def reserve_in_session(
-    session: Session, key: str, model: str, maximum: int, now: datetime, *, audit: bool = True
+    session: Session,
+    key: str,
+    model: str,
+    maximum: int,
+    now: datetime,
+    *,
+    audit: bool = True,
+    category: str = "reserve",
+    company_id: str | None = None,
 ) -> AICall:
     """Reserve within a caller transaction so provider quotas and funds commit together."""
     if not 0 < maximum <= 1_000_000_000 or not model or len(key) > 128:
@@ -48,7 +73,18 @@ def reserve_in_session(
     )
     if not changed:
         raise BudgetBlocked("Verified funding is missing, expired or at its spending limit")
-    call = AICall(request_key=key, model=model, reserved=maximum, state="reserved")
+    from app.audit.monthly import check
+
+    check(session, category, maximum, now)
+    call = AICall(
+        request_key=key,
+        model=model,
+        reserved=maximum,
+        state="reserved",
+        category=category,
+        company_id=company_id,
+        created_at=now,
+    )
     session.add(call)
     session.flush()
     return call

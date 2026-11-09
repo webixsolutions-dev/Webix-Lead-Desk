@@ -54,7 +54,7 @@ def test_ramp_and_immutable_ceilings(db: Database, owner: Account) -> None:
     [
         ("invite", 10),
         ("message1", 5),
-        ("message2", 30),
+        ("message2", 20),
         ("view", 20),
         ("comment", 5),
         ("post", 1),

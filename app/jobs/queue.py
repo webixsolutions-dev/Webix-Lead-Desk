@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import case, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import Settings
@@ -36,6 +36,7 @@ def enqueue(
         "call_notes",
         "score",
         "find_owner",
+        "linkedin_draft",
     }:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
@@ -116,6 +117,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "audit",
                         "assess",
                         "draft",
+                        "linkedin_draft",
                         "inbox",
                         "send",
                         "reconcile",
@@ -150,6 +152,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                 in {
                     "assess",
                     "draft",
+                    "linkedin_draft",
                     "send",
                     "discover",
                     "enrich_company",
@@ -172,7 +175,16 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                 Job.due_at <= now,
                 Job.attempts < settings.job_max_attempts,
             )
-            .order_by(Job.due_at, Job.created_at)
+            .order_by(
+                case(
+                    (Job.kind.in_(["inbox", "reconcile"]), 0),
+                    (Job.kind.in_(["call_notes", "linkedin_draft"]), 1),
+                    (Job.kind.in_(["send", "draft"]), 2),
+                    else_=3,
+                ),
+                Job.due_at,
+                Job.created_at,
+            )
             .limit(1)
         )
         if candidate is None:

@@ -1,6 +1,7 @@
 """Authentication, role and CSRF checks enforced on the server."""
 
 import hmac
+import re
 from dataclasses import dataclass
 from typing import Annotated, cast
 
@@ -35,6 +36,13 @@ def require_user(request: Request) -> Principal:
             if stored is not None and stored.expires_at > utc_now():
                 user = session.get(User, stored.user_id)
                 if user is not None and user.active:
+                    if user.role != "owner" and not re.fullmatch(
+                        r"/|/logout|/status/worker|/calls(?:/[^/]+/(?:outcome|notes))?"
+                        r"|/linkedin/(?:plan|queue)|/linkedin/tasks/[^/]+(?:/(?:start|complete))?"
+                        r"|/people/[^/]+/(?:reply|event)",
+                        request.url.path,
+                    ):
+                        raise HTTPException(403, "This page is available to the owner")
                     return Principal(user=user, csrf_token=stored.csrf_token)
     if request.headers.get("HX-Request") == "true":
         raise HTTPException(status_code=401, headers={"HX-Redirect": "/login"})

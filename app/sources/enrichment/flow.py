@@ -223,11 +223,13 @@ def enrich_company(
 
 def advance(db: Database, settings: Settings, job: Job) -> str:
     """Continue only through evidence-backed stages; never create send approval."""
-    from app.policy.contacts import company_suppressed
+    from app.linkedin.coordination import outreach_block
 
     company_id, campaign_id = job.payload["company_id"], job.payload["campaign_id"]
-    if company_suppressed(db, company_id):
-        return hold(db, company_id, job.id, "Business is globally suppressed")
+    with db.sessions() as session:
+        blocked = outreach_block(session, company_id)
+    if blocked:
+        return hold(db, company_id, job.id, blocked)
     score(db, company_id, campaign_id)
     with db.sessions() as session:
         company = session.get(Company, company_id)

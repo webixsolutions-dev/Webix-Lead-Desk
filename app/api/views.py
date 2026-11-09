@@ -44,13 +44,23 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         )
         latest_job = session.scalar(select(Job).order_by(Job.created_at.desc()).limit(1))
     return {
+        "linkedin_action_labels": {
+            "invite": "Connection request",
+            "message1": "First message",
+            "message2": "Helpful follow-up",
+            "message3": "Closing message",
+            "reply": "Reply",
+            "withdraw": "Withdraw invitation",
+        },
         "user": principal.user,
         "csrf": principal.csrf_token,
         "page": "settings" if page in {"learning", "partners", "operations"} else page,
-        "navigation": [
-            item
-            for item in NAVIGATION
-            if item[0] not in {"operations", "settings"} or principal.user.role == "owner"
+        "navigation": [item for item in NAVIGATION if principal.user.role == "owner"]
+        if principal.user.role == "owner"
+        else [
+            ("today", "/", "Today", "grid"),
+            ("calls", "/calls", "Calls", "phone"),
+            ("linkedin", "/linkedin/queue", "LinkedIn", "send"),
         ],
         "preferences": prefs,
         "settings_version": version,

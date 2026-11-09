@@ -112,3 +112,42 @@ stale Linux/Windows data could otherwise shift every window by an hour. The app 
 America/Edmonton as its IANA identity and preserves historical seasonal rules. Before
 upgrading to newer tzdata, run the historical/current boundary regressions.
 Source: https://www.alberta.ca/albertas-new-time-system-abt
+
+
+## L3 acceptance and operator flow
+
+Migration 0017 adds `linkedin_drafts`, `linkedin_approvals`, `person_pipeline` and AI
+category/company attribution. Draft content/routing and approvals have SQLite and
+PostgreSQL mutation guards. Existing AI records retain the conservative reserve category.
+
+A task revision is not its approval. Changing copy, recipient URL, sender identity or
+reviewed evidence requires a fresh owner decision; expired contact basis blocks starts.
+The profile owner alone can start/confirm a human task. Workday and shared person-day
+checks run again at claim. A timed-out claim becomes `needs_check`; an owner must verify
+its actual outcome. Confirmed-not-completed work loses approval before rescheduling.
+
+Invitation → accepted → M1 after 2 days → M2 after 5 days → M3 after 8 days.
+Weekday windows and quotas take precedence. Follow-ups over five days late require an
+owner review. A completed close has a 90-day hold; withdrawal has a 21-day hold. A new
+angle and explicit review are required to restart. Ownership remains locked for 180 days.
+Wrong-person and low-presence observations close the LinkedIn sequence. A real reply
+stops the company, while separately approved requested responses retain the same member.
+
+Reviewers cannot access global lead/email/pipeline/settings URLs, even by typing them.
+Owner call assignment uses the same one-member company routing and requires explicit
+release before switching an existing member. The owner sees six main tabs.
+
+AI categories (USD/month): enrichment 40, audits 25, email drafts 25, LinkedIn 25,
+reply/call-note/demo work 20, reserve 35, with a combined hard ceiling of 170.
+Known actual charges replace reservations; unknown usage stays fully reserved. The
+funding-row lock serializes category and total decisions. A 90% warning is shown in
+Settings; unused allowance does not carry into the next Calgary month.
+
+Offline acceptance covers draft tampering, wrong member, expired approval/claim,
+reply cancellation, no repeat completion, manual reconciliation, category limits,
+sequence cooldowns and reviewer URL isolation. Real member actions and provider account
+setup remain owner acceptance tasks; no live LinkedIn action occurs in automated tests.
+
+Every task that opens a prospect profile also consumes the conservative view allowance;
+combined invitations/messages/comments cannot bypass it. Activity performed outside
+Lead Desk is not observable and must be accounted for by lowering owner limits.

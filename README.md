@@ -181,3 +181,29 @@ funded web-search quotas and leaves every result unconfirmed. See [LinkedIn setu
 LinkedIn L2 adds a persistent weekday planner under Today → LinkedIn, owner-lowered
 profile quotas and a shared named-person/day email fence. Human action execution remains
 pending L3. Windows startup installation and recovery details are in [docs/linkedin.md](docs/linkedin.md).
+
+
+### LinkedIn L3 — review, then a human action
+
+Open **Outbox → LinkedIn approvals & tasks**. Review a planned task, save its exact
+copy and approve that revision. Direct messages require reviewed evidence, a complete
+business identity and a contact basis specifically applicable to that LinkedIn person.
+Email publication alone is not a LinkedIn permission record. First-message bodies are
+150–200 characters; the mandatory identity and reply-to-stop footer remains separate.
+
+Members see only their approved queue and assigned calls. **Start my action** reserves
+the person/day and profile quota; the member opens LinkedIn, copies the approved text,
+and confirms the real action. No automated invitation, DM, comment or profile visit is
+performed. An expired action is held for owner checking, never blindly repeated. The
+application fences task starts; it cannot control actions performed outside its UI.
+
+Any recorded reply stops pending company outreach. Review LinkedIn replies in
+**Replies & Pipeline** and prepare a separately approved response when appropriate.
+Member voice cards live in Settings. Optional AI improves an unapproved brief with the
+configured draft model; the copyable concept/walkthrough prompt uses no provider API.
+The monthly AI ceiling is $170 with separate category ceilings, Calgary month boundaries,
+no carryover, and full reservation of unknown usage. Verified funding and configured
+rates remain required; a ChatGPT subscription or promotional balance is not inferred.
+
+Run `lead-desk migrate` before restarting the dashboard/worker after this release.
+L4 official posting/OAuth and L5 channel reporting are subsequent phases.

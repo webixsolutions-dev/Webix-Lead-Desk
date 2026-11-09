@@ -23,6 +23,7 @@ router = APIRouter()
 def settings_data(request: Request) -> dict[str, Any]:
     """Read non-secret configuration and version history for authenticated settings."""
     from app.api.delivery import connection_data
+    from app.audit.monthly import CAPS, TOTAL, usage
 
     scope = request.query_params.get("scope", "global")
     with services(request).db.sessions() as session:
@@ -34,7 +35,12 @@ def settings_data(request: Request) -> dict[str, Any]:
                 .limit(20)
             )
         )
+        monthly_usage = usage(session, utc_now())
         return {
+            "ai_monthly_usage": monthly_usage,
+            "ai_monthly_caps": CAPS,
+            "ai_monthly_total": TOTAL,
+            "ai_monthly_used": sum(monthly_usage.values()),
             **connection_data(request),
             "playbook_scope": scope,
             "playbook_versions": versions,

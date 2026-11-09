@@ -56,6 +56,7 @@ def test_call_consent_is_required_and_preserves_approval_gate(
 ) -> None:
     """A reviewer can capture explicit consent, never approve or send an email."""
     company, campaign = business(db, owner)
+    _assign_member(db, owner, reviewer, company.id)
     review_listing(db, company.id, listing(), reviewer.user.id)
     assert len(call_list(db)) == 1
     with pytest.raises(ValueError, match="permission"):
@@ -157,6 +158,7 @@ def test_reviewer_calls_ui_without_settings(
 ) -> None:
     """Mobile call work remains accessible; settings GET and POST are owner-only."""
     company, campaign = business(db, owner)
+    _assign_member(db, owner, reviewer, company.id)
     sign_in(client, reviewer)
     page = client.get("/calls")
     assert page.status_code == 200 and company.name in page.text
@@ -224,3 +226,13 @@ def test_event_projection_stops_and_pending_followup() -> None:
     )
     value = derive(events)
     assert value["stopped_reason"] == "Recipient unsubscribed" and value["due_at"] is None
+
+
+def _assign_member(db: Database, owner: Account, reviewer: Account, company_id: str) -> None:
+    from app.calls.access import assign_calls
+    from app.linkedin.identity import add_profile
+
+    profile = add_profile(
+        db, reviewer.user.id, "https://linkedin.com/in/call-reviewer", owner.user.id
+    )
+    assign_calls(db, company_id, profile.id, owner.user.id)

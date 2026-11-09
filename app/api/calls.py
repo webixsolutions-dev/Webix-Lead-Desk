@@ -22,11 +22,19 @@ def calls_page(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Display a mobile and print-ready call list without opening Settings."""
     context = dashboard_context(request, principal, "today")
     context.update(
-        call_cards=call_list(services(request).db),
-        call_history=call_history(services(request).db),
+        call_cards=call_list(services(request).db, principal.user),
+        call_history=call_history(services(request).db, actor=principal.user),
         outcomes=OUTCOMES,
         ai_enabled=services(request).settings.openai_enabled,
     )
+    from sqlalchemy import select
+
+    from app.db.linkedin_models import LinkedInProfile
+
+    with services(request).db.sessions() as session:
+        context["profiles"] = (
+            list(session.scalars(select(LinkedInProfile))) if principal.user.role == "owner" else []
+        )
     return render(request, "calls.html", context)
 
 
@@ -65,7 +73,10 @@ async def notes(request: Request, principal: CurrentUser, call_id: str) -> Redir
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
     with services(request).db.sessions() as session:
-        if not session.get(CallRecord, call_id):
+        from app.calls.access import can_call
+
+        call = session.get(CallRecord, call_id)
+        if not call or not can_call(session, call.company_id, principal.user):
             raise HTTPException(404, "Call not found")
     enqueue(
         services(request).db, "call_notes:" + call_id, "call_notes", {"call_id": call_id}, utc_now()

@@ -25,6 +25,11 @@ def today(request: Request, principal: CurrentUser) -> HTMLResponse:
     from app.pilot.readiness import metrics
 
     context = dashboard_context(request, principal, "today")
+    if principal.user.role != "owner":
+        from app.linkedin.board import planned_tasks
+
+        context["planned_tasks"] = planned_tasks(services(request).db, principal.user, utc_now())
+        return render(request, "linkedin_plan.html", context)
     context.update(metrics(services(request).db))
     from app.calls.board import call_list
 
@@ -66,6 +71,9 @@ def pipeline(request: Request, principal: CurrentUser) -> HTMLResponse:
 
     context = dashboard_context(request, principal, "pipeline")
     context.update(board(services(request).db))
+    from app.linkedin.pipeline import cards
+
+    context["linkedin_cards"] = cards(services(request).db)
     return render(request, "pipeline.html", context)
 
 

@@ -262,7 +262,8 @@ def test_source_routes_and_contact_review(
 def test_reviewer_cannot_import(client: TestClient, reviewer: Account, campaign: Campaign) -> None:
     """Reviewers cannot upload contacts or change global targeting/policy."""
     sign_in(client, reviewer)
-    csrf = csrf_from(client.get("/leads").text)
+    assert client.get("/leads").status_code == 403
+    csrf = csrf_from(client.get("/").text)
     assert (
         client.post(
             "/sources/csv", data={"csrf_token": csrf, "campaign_id": campaign.id, "csv_text": ""}

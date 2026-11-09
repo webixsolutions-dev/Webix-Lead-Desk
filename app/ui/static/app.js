@@ -43,3 +43,13 @@ if (csvFile) csvFile.addEventListener('change', async () => {
   try { document.getElementById('csv-text').value = await file.text(); error.textContent = ''; }
   catch { error.textContent = 'Could not read this file. Paste its CSV contents instead.'; }
 });
+
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-copy-target]');
+  if (!button) return;
+  const field = document.getElementById(button.dataset.copyTarget);
+  const status = button.nextElementSibling;
+  if (!field) return;
+  try { await navigator.clipboard.writeText(field.value); status.textContent = 'Copied'; }
+  catch { field.focus(); field.select(); status.textContent = 'Select and copy the text manually'; }
+});

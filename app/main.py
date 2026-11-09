@@ -63,6 +63,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise RuntimeError(
                 "Database unavailable or unmigrated. Run lead-desk migrate."
             ) from None
+        from app.core.clock import utc_now
+
+        app.state.services.monitor.refresh(db, config, utc_now())
         try:
             yield
         finally:

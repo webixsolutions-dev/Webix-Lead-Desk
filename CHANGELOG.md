@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.0 — 2026-11-09
+
+- Supabase session-pooler defaults, SSL/port guards, Vercel NullPool and bounded worker pool.
+- Connection-only retry/backoff with existing send identity/uncertainty fences preserved.
+- Migration 0020 enables default-deny RLS on every application table.
+- Weekly encrypted online PC snapshots, scoped eight-file retention and restore review holds.
+- Owner backup-age, RLS drift, database-size and five-day worker-gap diagnostics.
+- Step-by-step hosted setup and worker-only Windows autostart.
+
+
 ## v0.17.0 — LinkedIn L5: observed results and reviewed learning
 
 - Scoped weekly profile cohorts with distinct people, explicit denominators and 30-day reply attribution.

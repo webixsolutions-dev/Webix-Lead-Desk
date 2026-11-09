@@ -223,3 +223,17 @@ performance data. Automatic profile holds run in the worker and action-start fen
 Fortnight summaries enter the existing pending LearningProposal workflow and cannot
 publish guidance. Publication-confirmation timestamps are nullable for legacy posts;
 no historical timestamps or metrics are invented.
+
+
+## v0.18 hosted operations
+
+SQLAlchemy remains the only application database interface; Supabase Auth/REST keys
+are not used. app/db/connection.py retries socket establishment only. Vercel uses
+NullPool; PC/VPS PostgreSQL engines use 3 connections, no overflow, pre-ping and
+300-second recycling. The worker restarts polling after transient DB disconnection
+without replaying a previous job handler. Migration 0020 adds backup_status and RLS.
+app/operations/hosted.py caches catalog checks for 60 seconds and exposes owner-only
+status. scheduled_backup.py runs once a week from the dedicated worker loop; it
+shares the encrypted exporter with CLI and recovery_snapshot.py fences the backup
+copy for safe restore. No live workspace maintenance toggling is needed for backups.
+SQLite/PC remains supported; hosted processes share one URL and credential key.

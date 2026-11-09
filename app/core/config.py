@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     app_mode: Literal["PC", "VPS", "VERCEL"] = "PC"
     database_url: str = Field(default="sqlite:///./var/lead-desk.sqlite", repr=False)
     data_dir: Path = Path("var")
+    database_prepare_statements: bool = True
+    backup_directory: Path | None = None
+    backup_interval_days: int = Field(default=7, ge=1, le=7)
+    backup_keep: int = Field(default=8, ge=8, le=52)
+    database_warning_bytes: int = Field(default=400_000_000, ge=1_000_000)
+    hosted_status_cache_seconds: int = Field(default=60, ge=5, le=300)
     session_secret: SecretStr
     cookie_secure: bool = False
     allowed_hosts: list[str] = ["127.0.0.1", "localhost", "testserver"]
@@ -74,6 +80,12 @@ class Settings(BaseSettings):
     ip_login_attempt_limit: int = Field(default=30, ge=1, le=100)
     login_csrf_seconds: int = Field(default=1800, ge=60, le=3600)
     max_form_bytes: int = Field(default=16384, ge=1024, le=65536)
+
+    @field_validator("backup_directory", mode="before")
+    @classmethod
+    def optional_backup_directory(cls, value: object) -> object:
+        """An empty optional folder disables scheduling rather than selecting the current folder."""
+        return None if value == "" else value
 
     @field_validator("public_base_url")
     @classmethod
@@ -132,6 +144,31 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def deployment_guards(self) -> Self:
         """Fail closed on unsupported live actions and insecure hosted profiles."""
+        from sqlalchemy.engine import make_url
+
+        try:
+            url = make_url(self.database_url)
+            host = (url.host or "").lower().rstrip(".")
+            port = url.port or 5432
+        except Exception:
+            # Never include the URL or SQLAlchemy's exception text in validation output.
+            raise ValueError("DATABASE_URL is not a valid database URL") from None
+        if host.endswith((".supabase.com", ".supabase.co")):
+            if url.drivername != "postgresql+psycopg":
+                raise ValueError("Supabase requires the postgresql+psycopg scheme")
+            if url.query.get("sslmode") not in {"require", "verify-ca", "verify-full"}:
+                raise ValueError("Supabase requires sslmode=require or certificate verification")
+            if not host.endswith(".pooler.supabase.com"):
+                raise ValueError("Use the Supabase Session pooler IPv4 host, port 5432")
+            if port == 6543 and self.database_prepare_statements:
+                raise ValueError(
+                    "Supabase port 6543 requires DATABASE_PREPARE_STATEMENTS=false; "
+                    "prefer Session pooler port 5432"
+                )
+            if port not in {5432, 6543}:
+                raise ValueError("Use Supabase pooler port 5432 (session) or 6543 (transaction)")
+        if self.app_mode == "VERCEL" and self.live_send_enabled:
+            raise ValueError("LIVE_SEND_ENABLED must stay false on Vercel")
         if self.external_integrations_enabled:
             raise ValueError(
                 "Use provider-specific settings; the legacy integration switch is unavailable"

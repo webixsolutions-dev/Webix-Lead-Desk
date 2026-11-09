@@ -43,7 +43,15 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
             or 0
         )
         latest_job = session.scalar(select(Job).order_by(Job.created_at.desc()).limit(1))
+    from app.operations.hosted import dashboard_status
+
+    hosted = (
+        dashboard_status(app.db, app.settings, app.monitor, now)
+        if principal.user.role == "owner"
+        else None
+    )
     return {
+        "hosted_status": hosted,
         "linkedin_action_labels": {
             "invite": "Connection request",
             "message1": "First message",

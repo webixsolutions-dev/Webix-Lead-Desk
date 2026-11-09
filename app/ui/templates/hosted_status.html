@@ -1,0 +1,9 @@
+{% if hosted_status %}
+<section class="panel work-panel" aria-label="Workspace protection">
+<h2>Workspace protection</h2>
+<p>Last encrypted backup: <strong>{{ hosted_status.backup_at.strftime('%d %b %Y %H:%M UTC') if hosted_status.backup_at else 'Not recorded' }}</strong></p>
+{% for warning in hosted_status.warnings %}<p class="notice" role="status">{{ warning }}</p>{% endfor %}
+{% if hosted_status.stats and not hosted_status.stats.error %}
+<p class="small muted">Database: {{ (hosted_status.stats.bytes / 1000000)|round(1) }} MB · catalog checked {{ hosted_status.checked_at.strftime('%H:%M UTC') }}. Supabase billing usage may differ.</p>
+{% if hosted_status.size_warning %}<details><summary>Largest application tables (including indexes)</summary><ul>{% for table in hosted_status.stats.largest %}<li>{{ table.relname }}: {{ (table.bytes / 1000000)|round(1) }} MB</li>{% endfor %}</ul></details>{% endif %}
+{% endif %}</section>{% endif %}

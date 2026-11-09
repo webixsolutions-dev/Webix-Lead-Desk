@@ -121,3 +121,22 @@ Limitations: analytics and SSI are member-entered observations; historical rows
 without exact provenance remain unknown. The acceptance pause conservatively
 includes pending invitations. An observed leading angle is not a causal finding.
 Real provider, owner-PC startup and hosted database acceptance remain setup tasks.
+
+
+## v0.18 hosted protection
+
+Local full offline suite: 393 passed (four PostgreSQL tests deferred to CI); final
+additional role/restore regressions: all eight hosted tests passed. Ruff, format
+and strict mypy pass. Full-run line coverage: 85.65% overall, jobs 83.79%, sending
+91.77%, inbox 94.85%. CI repeats the complete suite including the final additions.
+New PostgreSQL checks require RLS on every ORM table and Alembic version table,
+verify a granted ordinary role cannot read/insert, terminate an actual connection
+and check fresh checkout/pre-ping recovery with prepared statements disabled.
+No Supabase, SMTP or other real provider is contacted by these tests.
+
+Pool/SSL/port guards, connect-only backoff, weekly due time, error backoff, scoped
+eight-file retention, encrypted online restore holds, immutable Message-ID, owner
+isolation, cache refresh and backup/worker/size/RLS warnings are covered offline.
+Synthetic desktop/mobile browser review checked warning text and table expansion.
+Actual Supabase account connectivity, Data API toggle, Windows task credentials,
+backup folder ACLs and phone/laptop live sign-in remain owner acceptance Steps A–G.

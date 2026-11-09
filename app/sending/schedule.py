@@ -63,16 +63,16 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
                 existing.wire_message = None
                 return existing
             due = now
-            if draft.step == 1:
+            if draft.step and not draft.snapshot.get("attachments"):
                 first = session.scalar(
                     select(SendIntent).where(
                         SendIntent.conversation_id == draft.conversation_id,
-                        SendIntent.step == 0,
+                        SendIntent.step == draft.step - 1,
                         SendIntent.state == "accepted",
                     )
                 )
                 if not first or not first.accepted_at:
-                    raise ValueError("Follow-up requires confirmed first-touch delivery")
+                    raise ValueError("Follow-up requires confirmed delivery of the previous step")
                 due = max(now, first.accepted_at + timedelta(days=3))
             item = SendIntent(
                 conversation_id=draft.conversation_id,

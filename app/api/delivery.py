@@ -81,8 +81,8 @@ async def mailbox_readiness(
         enabled = fields.get("enabled") == "true"
         with app.db.sessions.begin() as session:
             mailbox = session.get(Mailbox, mailbox_id)
-            if not mailbox or mailbox.provider != "titan":
-                raise ValueError("Choose an existing Titan sender")
+            if not mailbox or mailbox.provider not in {"titan", "gmail"}:
+                raise ValueError("Choose an existing Titan or Gmail sender")
             if enabled and (
                 not all(readiness[key] for key in READINESS)
                 or not app.settings.encryption_key

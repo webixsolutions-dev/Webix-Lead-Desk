@@ -30,5 +30,13 @@ def check_copy(subject: str, body: str, *, first_touch: bool = True) -> None:
         raise ValueError("Keep the message body between 10 characters and 120 words")
     if re.search(r"<\s*(html|img|script|iframe|a\b)", body, re.I):
         raise ValueError("Use plain text without HTML or images")
-    if first_touch and re.search(r"[$€£]|\b(?:CAD|USD)\s*\d|\bguarantee(?:d)?\b", body, re.I):
-        raise ValueError("First-touch copy must omit prices and guarantees")
+    if re.search(
+        r"[$€£]|\b(?:CAD|USD)\s*\d|\b\d[\d,.]*\s*(?:CAD|USD|dollars?)\b|\bguarantee(?:d)?\b",
+        subject + " " + body,
+        re.I,
+    ):
+        raise ValueError("All outreach copy must omit prices and guarantees")
+    if first_touch and re.search(
+        r"https?://|www\.|\b(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:[/\s]|$)", subject + " " + body, re.I
+    ):
+        raise ValueError("First-touch subject and body must omit links")

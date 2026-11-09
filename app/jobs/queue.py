@@ -169,6 +169,7 @@ def finish_job(
     result: str | None = None,
     error_code: str | None = None,
     retry_at: datetime | None = None,
+    polling: bool = False,
 ) -> bool:
     """Finalize only a still-live claim, ignoring late results from stale workers."""
     outcome = "retry" if retry_at is not None else ("failed" if error_code else "succeeded")
@@ -185,6 +186,7 @@ def finish_job(
                 state="queued" if retry_at else outcome,
                 finished_at=None if retry_at else now,
                 due_at=retry_at or job.due_at,
+                attempts=Job.attempts - 1 if polling and retry_at else Job.attempts,
                 result=result,
                 error_code=error_code,
                 claim_token=None,

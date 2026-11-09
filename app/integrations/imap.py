@@ -42,7 +42,7 @@ def _raw_messages(data: list[Any]) -> bytes:
 
 def _client(settings: Settings) -> imaplib.IMAP4:
     return imaplib.IMAP4_SSL(
-        settings.titan_imap_host,
+        "imap.gmail.com" if settings.mail_provider == "gmail" else settings.titan_imap_host,
         993,
         ssl_context=ssl.create_default_context(),
         timeout=settings.mail_timeout_seconds,
@@ -112,7 +112,9 @@ def find_sent(
     try:
         client = factory() if factory else _client(settings)
         client.login(username, password)
-        status, _ = client.select('"Sent"', readonly=True)
+        status, _ = client.select(
+            '"[Gmail]/Sent Mail"' if settings.mail_provider == "gmail" else '"Sent"', readonly=True
+        )
         if status != "OK":
             raise IMAPUnavailable("Provider Sent folder unavailable")
         status, ids = client.uid(

@@ -20,6 +20,7 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
   "tzdata>=2025.1",
   "cryptography>=44,<47",
+  "dnspython>=2.7,<3",
 ]
 
 [dependency-groups]

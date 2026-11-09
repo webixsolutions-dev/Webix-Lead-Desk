@@ -17,6 +17,7 @@ from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.session import Database
 from app.inbox.parse import plain_text
 from app.inbox.service import sync_inbox
+from app.integrations.dns_mail import MailRoute, check_mail_route
 from app.integrations.imap import find_sent
 from app.integrations.smtp import SMTPResult, transmit
 from app.sending.reservations import before_data, reserve
@@ -29,6 +30,10 @@ class Transport:
     def sync(self, db: Database, settings: Settings, mailbox_id: str) -> bool:
         """Read all new inbox mail before any delivery attempt."""
         return sync_inbox(db, settings, mailbox_id)
+
+    def mail_route(self, recipient: str) -> MailRoute:
+        """Check the recipient domain before reserving an SMTP attempt."""
+        return check_mail_route(recipient)
 
     def send(
         self,
@@ -61,11 +66,30 @@ def dispatch(
         if not item or item.state != "scheduled":
             return "No scheduled transmission remains."
         mailbox_id = item.mailbox_id
+        mailbox = session.get(Mailbox, mailbox_id)
+        assert mailbox
+        settings = settings.model_copy(update={"mail_provider": mailbox.provider})
     if not transport.sync(db, settings, mailbox_id):
         from app.sending.reservations import postpone
 
         postpone(db, item_id, clock() + timedelta(minutes=5), "inbox_sync_required")
         return "Inbox sync is incomplete; sending is deferred."
+    with db.sessions() as session:
+        draft = session.get(Draft, item.draft_id)
+        assert draft
+        recipient = draft.snapshot["recipient"]
+    route = transport.mail_route(recipient)
+    if route not in {"mx", "implicit_mx"}:
+        with db.sessions.begin() as session:
+            current = session.get(SendIntent, item_id)
+            assert current
+            if current.state == "scheduled":
+                current.hold_reason = "recipient_dns_" + route
+                if route == "temporary":
+                    current.due_at = next_window(clock() + timedelta(minutes=15))
+                else:
+                    current.state = "held"
+        return "Recipient mail routing is unavailable; no SMTP attempt was made."
     password = read_secret(db, settings, "mailbox:" + mailbox_id)
     attempt = reserve(db, settings, job, item_id, clock())
     if not attempt:
@@ -152,6 +176,7 @@ def reconcile(
             .limit(1)
         )
         assert mailbox and attempt
+    settings = settings.model_copy(update={"mail_provider": mailbox.provider})
     password = read_secret(db, settings, "mailbox:" + mailbox.id)
     expected = BytesParser(policy=policy.default).parsebytes(item.wire_message.encode())
     for raw in finder(settings, mailbox.email, password, item.message_id):

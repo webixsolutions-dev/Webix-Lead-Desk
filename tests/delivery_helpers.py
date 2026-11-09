@@ -17,6 +17,7 @@ from app.db.pilot_models import Pilot
 from app.db.session import Database
 from app.drafting.service import approve
 from app.inbox.service import sync_inbox
+from app.integrations.dns_mail import MailRoute
 from app.integrations.imap import InboxBatch
 from app.integrations.smtp import SMTPResult
 from app.jobs.queue import acquire_worker, claim_next, enqueue
@@ -105,6 +106,10 @@ class FakeTransport(Transport):
         return sync_inbox(
             db, settings, mailbox_id, reader=lambda *args: self.batch, clock=lambda: self.now
         )
+
+    def mail_route(self, recipient: str) -> MailRoute:
+        """Return an offline positive mail route."""
+        return "mx"
 
     def send(
         self,

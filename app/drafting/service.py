@@ -41,6 +41,13 @@ def save_draft(
     if not 0 <= step <= 20 or not 1 <= len(evidence_ids) <= 10:
         raise ValueError("Use a supported message step with 1–10 evidence references")
     guidance = current_guidance(db, campaign_id)
+    if previous_id and not concept_id:
+        with db.sessions() as session:
+            old_draft = session.get(Draft, previous_id)
+            if old_draft and old_draft.snapshot.get("attachments"):
+                concept_id = old_draft.snapshot["attachments"][0]["id"]
+    if step > 4 and not concept_id:
+        raise ValueError("Only four follow-ups are supported")
     try:
         with db.sessions.begin() as session:
             campaign = session.get(Campaign, campaign_id)
@@ -97,7 +104,7 @@ def save_draft(
                     mailbox_id,
                 )
             if conversation.state in {"held", "stopped"} or (
-                conversation.state == "replied" and step < 2
+                conversation.state == "replied" and not concept_id
             ):
                 raise ValueError("This conversation is stopped or requires a human response")
             if step and not conversation.first_message_id:
@@ -136,7 +143,7 @@ def save_draft(
             elif previous_id:
                 raise ValueError("Previous draft not found")
             attachments: list[dict[str, str]] = []
-            if step >= 2:
+            if concept_id:
                 actor = session.get(User, actor_id)
                 if not actor or not actor.active or actor.role != "owner":
                     raise ValueError("Only the owner can prepare a concept response")
@@ -155,6 +162,7 @@ def save_draft(
                 "contact_id": contact_id,
                 "mailbox_id": mailbox_id,
                 "from_email": mailbox.email,
+                "provider": mailbox.provider,
                 "from_name": mailbox.sender_name,
                 "recipient": contact.email,
                 "subject": subject.strip(),
@@ -191,6 +199,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
     """Recheck identity, contact evidence, suppression and current sender against the snapshot."""
     snapshot = draft.snapshot
     reasons: list[str] = []
+    try:
+        check_copy(snapshot["subject"], snapshot["body"], first_touch=draft.step == 0)
+    except ValueError as error:
+        reasons.append(str(error))
     if fingerprint(snapshot) != draft.digest:
         reasons.append("Content fingerprint changed")
     with db.sessions() as session:
@@ -202,10 +214,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
         if (
             not conversation
             or conversation.state in {"held", "stopped"}
-            or (conversation.state == "replied" and draft.step < 2)
+            or (conversation.state == "replied" and not snapshot.get("attachments"))
         ):
             reasons.append("Conversation is held or has a reply")
-        if draft.step >= 2 and conversation:
+        if snapshot.get("attachments") and conversation:
             try:
                 attachments = snapshot.get("attachments", [])
                 if len(attachments) != 1:
@@ -234,14 +246,15 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append("Sender lane does not match the campaign")
         if (
             not mailbox
-            or mailbox.provider != "titan"
+            or mailbox.provider not in {"titan", "gmail"}
             or (
-                mailbox.email != snapshot["from_email"]
+                mailbox.provider != snapshot.get("provider", "titan")
+                or mailbox.email != snapshot["from_email"]
                 or footer(mailbox) != snapshot["footer"]
                 or mailbox.sender_name != snapshot["from_name"]
             )
         ):
-            reasons.append("Sender identity changed or is not an eligible Titan profile")
+            reasons.append("Sender identity changed or is not an eligible sender profile")
         if (
             not company
             or not company.website

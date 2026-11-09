@@ -73,6 +73,7 @@ class AICall(Base):
     model: Mapped[str] = mapped_column(String(120))
     state: Mapped[str] = mapped_column(String(24), default="reserved")
     reserved: Mapped[int] = mapped_column(Integer)
+    batch: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True), nullable=True)
     charged: Mapped[int | None] = mapped_column(Integer)
     result: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)

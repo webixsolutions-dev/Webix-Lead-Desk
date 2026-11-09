@@ -41,7 +41,9 @@ def record_reply(
                 .join(Contact)
                 .where(
                     Conversation.mailbox_id == mailbox_id,
-                    Contact.email.in_([reply.sender, reply.bounce_recipient]),
+                    Contact.email.in_(
+                        [reply.sender, reply.bounce_recipient, reply.delivery_recipient]
+                    ),
                 )
             )
             if conversation is None and reply.references:
@@ -56,6 +58,22 @@ def record_reply(
             # Do not retain unrelated personal mail or treat it as instructions.
             if conversation is None:
                 return False
+            label = classify(reply)
+            if label in {"delivery_delayed", "delivery_notice"}:
+                session.add(
+                    InboxMessage(
+                        mailbox_id=mailbox_id,
+                        conversation_id=conversation.id,
+                        provider_key=provider_key[:80],
+                        dedupe_key=reply.dedupe_key,
+                        sender=reply.sender,
+                        subject=reply.subject,
+                        body=reply.text,
+                        classification=label,
+                        received_at=now,
+                    )
+                )
+                return True
             conversation.state = "replied"
             pending = list(
                 session.scalars(
@@ -144,8 +162,8 @@ def sync_inbox(
     """Invalidate freshness first; only a complete successful read can restore it."""
     with db.sessions.begin() as session:
         mailbox = session.get(Mailbox, mailbox_id)
-        if mailbox is None or mailbox.provider != "titan":
-            raise ValueError("Choose an existing Titan mailbox")
+        if mailbox is None or mailbox.provider not in {"titan", "gmail"}:
+            raise ValueError("Choose an existing Titan or Gmail mailbox")
         cursor = session.get(InboxCursor, mailbox_id)
         if cursor is None:
             cursor = InboxCursor(mailbox_id=mailbox_id, uidvalidity="", last_uid=0)
@@ -154,7 +172,8 @@ def sync_inbox(
         cursor.synced_at, cursor.error_code = None, "sync_in_progress"
     try:
         password = read_secret(db, settings, "mailbox:" + mailbox_id)
-        batch = reader(settings, email, password, validity, checkpoint)
+        provider_settings = settings.model_copy(update={"mail_provider": mailbox.provider})
+        batch = reader(provider_settings, email, password, validity, checkpoint)
         for incoming in batch.messages:
             record_reply(
                 db, mailbox_id, incoming.raw, f"{batch.uidvalidity}:{incoming.uid}", clock()

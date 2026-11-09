@@ -36,7 +36,7 @@ def transmit(
             factory()
             if factory
             else smtplib.SMTP_SSL(
-                settings.titan_smtp_host,
+                "smtp.gmail.com" if settings.mail_provider == "gmail" else settings.titan_smtp_host,
                 465,
                 timeout=settings.mail_timeout_seconds,
                 context=ssl.create_default_context(),

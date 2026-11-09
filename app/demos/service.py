@@ -265,7 +265,7 @@ def demo_message(db: Database, demo_id: str, body: str, actor_id: str) -> Draft:
 
 def record_demo_acceptance(session: Session, draft: Draft) -> None:
     """Advance only a still-qualified early sales card after actual SMTP/Sent acceptance."""
-    if draft.step < 2:
+    if not draft.snapshot.get("attachments"):
         return
     card = session.scalar(
         select(Opportunity).where(Opportunity.conversation_id == draft.conversation_id)

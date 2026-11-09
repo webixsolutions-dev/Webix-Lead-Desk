@@ -24,7 +24,7 @@ Campaigns can change industry, city, offered services and supported country (Can
 
 Write initial Playbook guidance and approved examples in the dashboard. Suggestions from your edits and outcomes stay pending until you apply them. Memory is versioned application guidance; the system does not train the model or adopt website/inbox instructions.
 
-Every message revision needs owner approval. One automated follow-up is supported, with separate exact approval and at least three days after the accepted first touch; any reply cancels it. Interested replies can become assigned call cards and separately approved concept drafts. Configure the real `PUBLIC_BASE_URL` before publishing concept links. Do not claim invented booking availability, revenue, ad spend or client results.
+Every message revision needs owner approval. Up to four follow-ups are supported, each with separate exact approval and at least three days after the previous accepted message. Prepare each step after the previous delivery; any prospect reply cancels pending outreach. Delivery-delay notices are operational events, not prospect replies. Interested replies can become assigned call cards and separately approved concept drafts. Configure the real `PUBLIC_BASE_URL` before publishing concept links. Do not claim invented booking availability, revenue, ad spend or client results.
 
 ## 4. Optional integrations and current limits
 
@@ -35,7 +35,7 @@ Every message revision needs owner approval. One automated follow-up is supporte
 | Website audit | Bounded public-page fetching and evidence extraction; owner visual review |
 | Social/Meta ads | Owner-recorded observations; no automated login or ad-spend inference |
 | Personalized drafts | Manual text or copyable ChatGPT brief; optional paid OpenAI API after verified funding/rates |
-| ChatGPT Pro | Your manual brief workflow; it does not supply API credits |
+| ChatGPT Pro | Eligible subscriptions can claim API credits; verify the linked organization, remaining balance and expiry |
 | Firecrawl/Places | Private key storage is available for later adapters; adapters are not enabled or implemented |
 | Contact forms | Approved copy and manual submission/outcome recording; no automatic external filling/submission |
 | Demos | Reviewed concept pages/flows tied to evidence; no full prospect website built automatically |
@@ -46,3 +46,15 @@ No provider account purchase is automatic. Start with the paths that need no new
 ## 5. Record real acceptance
 
 Verify the actual PC worker, hosted sign-in if used, Titan inbox sync, approved test delivery/threading, reply cancellation and suppression against owner-controlled test addresses. Then review the pilot cohort and approve individual outreach. Synthetic CI results do not replace these checks. Keep an encrypted backup and rehearse restoration before relying on the workspace as the only record of outreach.
+
+## Review fixes and provider setup
+
+- Select Titan or Gmail/Google Workspace when creating a sender. Gmail uses TLS SMTP 465 and IMAP 993 with a Google app password where eligible (2-Step Verification required). OAuth onboarding is not implemented. Credentials go only into the private Settings field. Real provider acceptance remains untested. Gmail Sent reconciliation currently expects `[Gmail]/Sent Mail`; other localized folder names require a configuration improvement.
+- DNS MX/null-MX and implicit A/AAAA routing are checked before each SMTP attempt. This is not mailbox-existence verification and does not replace address provenance or contact permission. DNS outages postpone delivery; domains without routing are held.
+- All message bodies/subjects omit prices and guarantees; first-touch bodies/subjects also omit links. Identity/contact footers are preserved.
+- `OPENAI_AUDIT_MODEL` and `OPENAI_DRAFT_MODEL` select independent models, with independent verified standard-token rates. Suggested roles: Luna for assessment, Sol for drafting. API model access must be confirmed on your account.
+- `OPENAI_PROCESSING=batch` selects optional asynchronous Batch API processing for assessment and drafting. Each job submits one request, persists its provider batch ID and polls every five minutes for up to 25 hours. This is not a multi-lead batch coalescer. Uncertain creates never resubmit automatically. Reserves and usage accounting remain conservative at configured standard rates (they do not claim to reproduce provider invoices or discounts). Input files contain business evidence; review OpenAI retention settings before enabling.
+- Apply migration `0011_ai_batch` to web and worker's shared database before starting the updated worker. Stop the old worker first.
+- AI and live sending remain disabled until private credentials, verified allowance/expiry and sender acceptance are configured. A user-reported claimed balance is not silently written as a verified live balance.
+
+Sources checked 2026-11-09: [API credits](https://developers.openai.com/api/docs/guides/chatgpt-api-credits), [Batch API](https://developers.openai.com/api/docs/guides/batch), [Google app passwords](https://support.google.com/mail/answer/185833).

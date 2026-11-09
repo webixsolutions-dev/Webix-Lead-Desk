@@ -46,6 +46,11 @@ def settings_data(request: Request) -> dict[str, Any]:
                 session.scalars(select(AICall).order_by(AICall.created_at.desc()).limit(10))
             ),
             "ai_enabled": services(request).settings.openai_enabled,
+            "ai_audit_model": services(request).settings.openai_audit_model
+            or services(request).settings.openai_model,
+            "ai_draft_model": services(request).settings.openai_draft_model
+            or services(request).settings.openai_model,
+            "ai_processing": services(request).settings.openai_processing,
         }
 
 
@@ -70,19 +75,21 @@ async def publish_playbook(request: Request, principal: Owner) -> RedirectRespon
 
 @router.post("/settings/mailboxes")
 async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse:
-    """Save a disabled Titan sender identity with a complete, owner-provided footer."""
+    """Save a disabled Titan or Gmail sender identity with a complete, owner-provided footer."""
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         email = email_address(fields.get("email", ""))
         lane = fields.get("lane", "client")
+        provider = fields.get("provider", "titan")
         profile = {
             key: fields.get(key, "").strip()
             for key in ("brand", "sender_name", "mailing_address", "contact_details")
         }
         if (
             not email
-            or email.split("@")[-1] in {"gmail.com", "googlemail.com"}
+            or provider not in {"titan", "gmail"}
+            or (provider == "titan" and email.split("@")[-1] in {"gmail.com", "googlemail.com"})
             or lane not in {"client", "partner"}
             or any(
                 not 2 <= len(value) <= (120 if key in {"brand", "sender_name"} else 500)
@@ -91,10 +98,10 @@ async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse
             )
         ):
             raise ValueError(
-                "Provide the actual Titan sender identity and complete mailing/contact details"
+                "Provide the actual sender identity and complete mailing/contact details"
             )
         with services(request).db.sessions.begin() as session:
-            session.add(Mailbox(email=email, provider="titan", lane=lane, **profile))
+            session.add(Mailbox(email=email, provider=provider, lane=lane, **profile))
     except (ValueError, IntegrityError) as error:
         raise HTTPException(
             422, "Check sender details; this address may already have a profile"

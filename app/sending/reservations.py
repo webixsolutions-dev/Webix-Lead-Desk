@@ -155,6 +155,8 @@ def reserve(
                 "hourly_limit",
             )
             return None
+        draft = session.get(Draft, current.draft_id)
+        assert draft
         changed = session.scalar(
             update(Draft)
             .where(
@@ -168,7 +170,7 @@ def reserve(
         if (
             not changed
             or conversation.state in {"held", "stopped"}
-            or (conversation.state == "replied" and current.step < 2)
+            or (conversation.state == "replied" and not draft.snapshot.get("attachments"))
         ):
             current.state, current.hold_reason = "held", "approval_or_conversation_changed"
             if changed:

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -69,12 +70,22 @@ def delivery_blocks(
             or item.step != draft.snapshot["step"]
         ):
             reasons.append("scheduled_routing_changed")
+        if draft and item.step and not draft.snapshot.get("attachments"):
+            prior = session.scalar(
+                select(SendIntent).where(
+                    SendIntent.conversation_id == item.conversation_id,
+                    SendIntent.step == item.step - 1,
+                    SendIntent.state == "accepted",
+                )
+            )
+            if not prior or not prior.accepted_at or now < prior.accepted_at + timedelta(days=3):
+                reasons.append("followup_interval_or_predecessor")
         if draft:
             reasons.extend(approval_blocks(db, draft))
         if (
             not mailbox
             or not mailbox.enabled
-            or mailbox.provider != "titan"
+            or mailbox.provider not in {"titan", "gmail"}
             or not state
             or not all(state.readiness.get(key) is True for key in READINESS)
         ):

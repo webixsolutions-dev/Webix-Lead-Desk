@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Outreach review corrections
+
+- Add Gmail provider selection, four individually approved follow-ups and DNS mail-route preflight.
+- Fix negative reply labels and distinguish delayed DSNs from permanent bounces.
+- Apply price checks to every message and reject first-touch links during editing and approval.
+- Add independent assessment/drafting models and optional durable Batch API submission/polling (migration 0011).
+- Correct claimed subscription-credit guidance; retain explicit budget and credential gates.
+- Consolidate navigation into six main tabs with secondary settings links; extend white sidebar background.
+- Live hosting/provider acceptance remains pending; no prospect outreach was performed.
+
+
 ## 0.10.0 — Operations and cutover
 
 - Added shared maintenance gates for web mutations, worker claims and final send checks.

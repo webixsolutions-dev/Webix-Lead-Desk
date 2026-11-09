@@ -13,7 +13,7 @@ The repository is public temporarily at the owner's direction. The application r
 | Leads and campaigns | Editable targeting; bounded CSV/Open Calgary imports; deduplication, provenance, website/contact review and global suppression |
 | Research | Bounded public website fetching; evidence, assessments, manual visual/social/ads observations and optional budgeted AI |
 | Drafts and Playbook | Manual writing or copyable ChatGPT brief; optional API drafting; versioned guidance, editable offers/proofs and exact owner approval |
-| Sending and inbox | Titan SMTP/IMAP adapters, sender/thread locks, fresh-inbox checks, ramp/window limits, reply cancellation and uncertain-send holds |
+| Sending and inbox | Titan and Gmail SMTP/IMAP adapters, sender/thread locks, fresh-inbox checks, ramp/window limits, reply cancellation and uncertain-send holds |
 | Pilot | Reviewed ten-business cohort, five-first-touch cap and explicit live readiness/acceptance gates |
 | Pipeline and concepts | Assigned call cards, meetings, outcomes, approved concept links and separately approved same-thread messages |
 | Partners and results | Separate sender lane, five-new-business daily cap, country review, manually submitted form records and actual activity reports |
@@ -86,7 +86,7 @@ Password reset revokes that account's sessions. Local administrative commands as
 
 `APP_MODE` changes validation/runtime behavior; it does not transfer data or provision infrastructure. Vercel uses `app.vercel:app`, requires PostgreSQL/secure cookies/exact allowed hosts and never runs a worker. Keep `LIVE_SEND_ENABLED=false` there. The separate PC/VPS worker can enable delivery only after sender setup and actual approved test acceptance. The legacy `EXTERNAL_INTEGRATIONS_ENABLED` switch remains unsupported and false.
 
-Optional OpenAI access needs separately verified API funding/model rates and a budget. A ChatGPT Pro subscription is not API credit; the copyable brief workflow works manually without API use. No automatic provider purchases occur. Stored integration credentials are encrypted using the environment-held key; keep its recovery copy privately.
+Optional OpenAI access needs separately verified API funding/model rates and a budget. Eligible ChatGPT Pro/Business subscriptions can claim API credits in a linked API organization. Record the actual available allowance and expiry; this app cannot infer a billing balance from a ChatGPT login. The manual brief remains a fallback. No automatic provider purchases occur. Stored integration credentials are encrypted using the environment-held key; keep its recovery copy privately.
 
 Use [Vercel setup](docs/deploy-to-vercel.md) for hosted configuration. A green build alone does not prove the database, login or worker works. Use [operations](docs/operations.md) for encrypted backup/restore and [cutover](docs/move-to-vps.md) to move data. Do not copy a live SQLite file or resume both sides of a database transfer.
 

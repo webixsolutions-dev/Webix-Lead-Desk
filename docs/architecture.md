@@ -151,3 +151,13 @@ paid generation is involved in this memory workflow.
 ## Phase 10 operations
 
 `runtime_control` provides a shared maintenance gate. `app/operations/` fences work, takes a consistent portable snapshot, verifies credential recovery and restores only empty current-schema databases in a transaction. A separate backup key protects files; environment secrets never enter the payload. Restored login sessions are omitted, all delivery identities and approval hashes remain intact, and maintenance stays on. The operator must stop web/workers and confirm the offline window; maintenance alone cannot cancel an in-flight write. See operations.md and move-to-vps.md.
+
+## Outreach review corrections
+
+Mailbox provider is selected explicitly and bound into new approval snapshots. Fixed provider hosts prevent arbitrary SMTP/IMAP routing. DNS routing is checked at the worker transport boundary before SMTP reservation, and is mockable.
+
+Follow-up steps 1–4 are sequential, separately approved and spaced at least three days from previous acceptance. Concept responses are identified by their reviewed attachment binding rather than by numeric step; existing concept IDs remain compatible. Human replies stop all pending outreach; delayed/success DSNs are recorded without becoming prospect replies.
+
+Optional Batch API adds a nullable `ai_calls.batch` JSON field via migration 0011. Reserve budget, atomically persist submission intent, submit once, persist provider ID, then release the worker job until the next poll. Ambiguous creates remain held. Expected polling does not consume temporary-error retry attempts. Both AI tasks retain their output validation and never approve messages. Six main navigation items expose Learning, Partners and Operations under Settings.
+
+Deployment profiles describe capabilities, not configured infrastructure. Hosted Vercel dashboard and separate PC/VPS worker are the implemented architecture; a Vercel-only scheduler/worker has not been implemented or verified. Neon connectivity is a setup item, not implied by the PostgreSQL adapter.

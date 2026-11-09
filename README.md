@@ -231,3 +231,7 @@ and a Windows PC worker. Follow [Steps A–G](docs/supabase-setup.md) one at a t
 Session pooler safeguards, bounded connection pools, default-deny PostgreSQL RLS,
 weekly encrypted PC backups and owner capacity/activity warnings are implemented.
 This release does not provision accounts, configure production secrets or enable sending.
+
+## Windows desktop setup
+
+Use the v0.19.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.

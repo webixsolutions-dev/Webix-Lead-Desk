@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import case, or_, select, update
+from sqlalchemy import case, literal, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import Settings
@@ -58,7 +58,11 @@ def enqueue(
 
 def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) -> bool:
     """Acquire or refresh the singleton lease without displacing a live worker."""
-    runtime = {"app_mode": settings.app_mode, "live_send_enabled": settings.live_send_enabled}
+    runtime = {
+        "app_mode": settings.app_mode,
+        "live_send_enabled": settings.live_send_enabled,
+        "mailbox_tests": settings.mailbox_tests_enabled and settings.app_mode != "VERCEL",
+    }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:
         if maintenance_enabled(session):
@@ -129,6 +133,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "advance_company",
                         "call_notes",
                         "score",
+                        "mailbox_test",
                     ]
                 ),
                 Job.state == "running",
@@ -161,6 +166,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                     "enrich_company",
                     "call_notes",
                     "find_owner",
+                    "mailbox_test",
                 }
                 or job.attempts >= settings.job_max_attempts
                 else "queued"
@@ -177,6 +183,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                 Job.state == "queued",
                 Job.due_at <= now,
                 Job.attempts < settings.job_max_attempts,
+                or_(Job.kind != "mailbox_test", literal(settings.mailbox_tests_enabled)),
             )
             .order_by(
                 case(
@@ -226,6 +233,9 @@ def finish_job(
     polling: bool = False,
 ) -> bool:
     """Finalize only a still-live claim, ignoring late results from stale workers."""
+    if job.kind == "mailbox_test" and retry_at is not None:
+        retry_at = None
+        error_code = error_code or "test_retry_disabled"
     outcome = "retry" if retry_at is not None else ("failed" if error_code else "succeeded")
     with db.sessions.begin() as session:
         changed = session.scalar(
@@ -241,7 +251,7 @@ def finish_job(
                 finished_at=None if retry_at else now,
                 due_at=retry_at or job.due_at,
                 attempts=Job.attempts - 1 if polling and retry_at else Job.attempts,
-                result=result,
+                result=Job.result if job.kind == "mailbox_test" and result is None else result,
                 error_code=error_code,
                 claim_token=None,
                 claim_owner=None,

@@ -50,6 +50,7 @@ class DesktopConfig(BaseModel):
             public_base_url=self.dashboard_url,
             preview_enabled=False,
             live_send_enabled=False,
+            mailbox_tests_enabled=True,
             external_integrations_enabled=False,
             openai_enabled=False,
             linkedin_posting_enabled=False,

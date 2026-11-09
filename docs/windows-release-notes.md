@@ -1,13 +1,15 @@
-v0.20 improves the web dashboard: a clear next action, compact lead filters, grouped
-settings and mobile navigation. The existing v0.19 PC worker remains compatible;
-updating the desktop installer is optional and no new database migration is required.
+v0.21 adds owner-approved connection tests under Settings → Email setup. Update the
+Windows companion to execute these tests. The fixed message and recipient are reviewed
+in the dashboard; outreach remains off. Saved desktop settings are preserved and no
+database migration is required. Stop the worker before running the updated installer.
 
 Install the bundled Windows worker without Python, uv, Git or terminal setup.
 
 - Red/white Webix companion with masked setup fields, Test connection, Start/Stop and Open Dashboard.
 - Current-Windows-user encrypted settings and private backup recovery key access.
 - Cooperative shutdown, existing database worker lock and optional sign-in startup.
-- Weekly encrypted backups using the existing scheduler. Live sending and paid integrations remain off.
+- Weekly encrypted backups using the existing scheduler. Outreach and paid integrations remain off;
+  only separately approved fixed-content diagnostic emails can send.
 - Tested on Windows: bundled migrations, SQLite health job, psycopg driver, DPAPI, GUI launch, installer/upgrade/uninstall preservation.
 
 Read docs/windows-setup.md first. This build is unsigned; verify its source and SHA256SUMS.txt. Private settings and backups are preserved on uninstall. Sign-in startup needs a signed-in Windows user. Real Supabase connection and an owner's Windows PC remain an owner acceptance step.

@@ -1,6 +1,11 @@
 # Install the Windows worker
 
-Download `Webix-Lead-Desk-Setup-0.19.0.exe` from this repository's v0.19.0 release.
+Download `Webix-Lead-Desk-Setup-0.21.0.exe` from this repository's v0.21.0 release.
+
+Updating an existing installation: press **Stop**, wait for the worker to finish, close the
+companion, then run the new installer under the same Windows account. Saved connection details
+and backups stay in place. Start the worker again. v0.21 can execute individually approved
+test emails from Settings; normal outreach remains off.
 The release includes SHA256SUMS.txt. The installer bundles Python and all runtime
 packages: no Python, uv, Git, PowerShell commands or PyPI download is needed on the
 owner's PC. Internet is still needed for the hosted database and research jobs.
@@ -33,7 +38,7 @@ PowerShell worker or Scheduled Task before starting this app; the shared databas
 lease also rejects concurrent workers. A shutdown/power loss can still interrupt
 work; the existing uncertain-send and expired-lease safeguards remain in effect.
 
-This first desktop release keeps live sending, OpenAI and LinkedIn publishing off,
+The desktop app keeps outreach, OpenAI and LinkedIn publishing off,
 including when environment variables try to enable them. It does not create owner
 accounts or automatically migrate production schemas. Those are administrator steps.
 The existing PC/VPS CLI remains available; Vercel continues to serve only the web UI.

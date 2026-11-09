@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     preview_enabled: bool = True
     public_base_url: str = Field(default="", max_length=2000)
     live_send_enabled: bool = False
+    mailbox_tests_enabled: bool = False
     encryption_key: SecretStr | None = None
     backup_key: SecretStr | None = None
     backup_max_bytes: int = Field(default=100_000_000, ge=100_000, le=1_000_000_000)
@@ -169,6 +170,8 @@ class Settings(BaseSettings):
                 raise ValueError("Use Supabase pooler port 5432 (session) or 6543 (transaction)")
         if self.app_mode == "VERCEL" and self.live_send_enabled:
             raise ValueError("LIVE_SEND_ENABLED must stay false on Vercel")
+        if self.app_mode == "VERCEL" and self.mailbox_tests_enabled:
+            raise ValueError("MAILBOX_TESTS_ENABLED must stay false on Vercel")
         if self.external_integrations_enabled:
             raise ValueError(
                 "Use provider-specific settings; the legacy integration switch is unavailable"

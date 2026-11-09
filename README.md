@@ -234,7 +234,7 @@ This release does not provision accounts, configure production secrets or enable
 
 ## Windows desktop setup
 
-Use the v0.19.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
+Use the v0.21.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
 
 ### Dashboard navigation
 
@@ -244,3 +244,17 @@ Start on **Today** for your next action. Use **Leads** to find/import businesses
 and System & backups into expandable sections. See [the layout guide](docs/branding.md).
 The v0.20 web layout works with the installed v0.19 PC worker; no reinstall or key change
 is needed. Sending still requires the existing worker settings and exact approvals.
+
+
+### Mailbox connection tests (v0.21)
+
+Settings → Email setup → Mailbox connections → **Send a test email** now previews one
+fixed message and accepts one explicitly approved test inbox. Update the Windows companion
+to v0.21, or enable `MAILBOX_TESTS_ENABLED=true` on the PC/VPS worker only. Keep it false
+on Vercel. Existing encrypted settings and schema are unchanged.
+
+The test sends once through the existing SMTP adapter while outreach remains off. Three
+requests per mailbox per UTC day, signed approvals, request deduplication and durable
+uncertainty holds prevent automatic duplicate sends. Check the actual recipient inbox
+before confirming receipt. This does not mark all sender checks as complete or enable
+campaigns. See [owner setup](docs/owner-setup.md) and [diagnostic design](docs/decisions/0021-mailbox-diagnostics.md).

@@ -28,6 +28,7 @@ from app.api import (
     linkedin_posts,
     linkedin_review,
     linkedin_tasks,
+    mailbox_tests,
     operations,
     partners,
     pilot,
@@ -142,6 +143,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(drafts.router)
     app.include_router(playbook.router)
     app.include_router(delivery.router)
+    app.include_router(mailbox_tests.router)
     app.include_router(pilot.router)
     app.include_router(pipeline.router)
     app.include_router(demos.router)

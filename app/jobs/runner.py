@@ -274,6 +274,10 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
         from app.sending.service import dispatch
 
         return dispatch(db, settings, job)
+    if settings is not None and job.kind == "mailbox_test":
+        from app.sending.diagnostic_worker import send_test
+
+        return send_test(db, settings, job)
     if settings is not None and job.kind == "reconcile":
         from app.sending.service import reconcile
 

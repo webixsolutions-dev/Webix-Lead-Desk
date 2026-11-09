@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.0 — 2026-11-09
+
+- Focused Today page with a next action, real counts and concise worker/sending/backup status.
+- Six clear navigation destinations, stronger contrast and responsive spacing.
+- Compact lead filters, expandable import tools and readable business cards.
+- Settings grouped into email, writing, discovery, learning, preferences and system sections.
+- Keyboard-friendly mobile navigation and deep links that reveal collapsed sections.
+- Existing worker, credentials, sender approval gates and database schema remain compatible.
+
 ## 0.19.0 — 2026-11-09
 
 - Bundled Windows installer and red/white desktop worker controls.

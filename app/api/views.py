@@ -43,6 +43,8 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
             or 0
         )
         latest_job = session.scalar(select(Job).order_by(Job.created_at.desc()).limit(1))
+    runtime = worker.runtime_config or {} if worker else {}
+    delivery = runtime.get("live_send_enabled") if worker_online else None
     from app.operations.hosted import dashboard_status
 
     hosted = (
@@ -74,6 +76,11 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         "settings_version": version,
         "mode": app.settings.app_mode,
         "worker_online": worker_online,
+        "worker_delivery_label": "On · approval required"
+        if delivery is True
+        else "Off"
+        if delivery is False
+        else "Not reported",
         "worker_seen": worker.heartbeat_at if worker is not None else None,
         "queued_jobs": queued,
         "completed_jobs": completed,

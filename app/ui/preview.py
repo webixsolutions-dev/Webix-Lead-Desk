@@ -65,7 +65,7 @@ NAVIGATION = [
     ("today", "/", "Today", "grid"),
     ("leads", "/leads", "Leads", "search"),
     ("outbox", "/outbox", "Outbox", "send"),
-    ("pipeline", "/pipeline", "Replies & Pipeline", "chat"),
+    ("pipeline", "/pipeline", "Pipeline", "chat"),
     ("demos", "/demos", "Demos", "window"),
-    ("settings", "/settings", "Playbook & Settings", "sliders"),
+    ("settings", "/settings", "Settings", "sliders"),
 ]

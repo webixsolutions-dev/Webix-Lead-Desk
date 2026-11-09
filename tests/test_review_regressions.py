@@ -105,7 +105,7 @@ def test_gmail_profile_and_six_main_tabs(client: TestClient, owner: Account, db:
         box = session.scalar(select(Mailbox).where(Mailbox.email == "synthetic@gmail.com"))
         assert box and box.provider == "gmail" and not box.enabled
     assert len(NAVIGATION) == 6
-    assert all(path in page.text for path in ["/settings#learning", "/settings#operations"])
+    assert all(path in page.text for path in ['href="#learning"', 'href="#operations"'])
 
 
 def test_four_followups_remain_in_same_thread_then_reply_stops(

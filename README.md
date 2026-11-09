@@ -235,3 +235,12 @@ This release does not provision accounts, configure production secrets or enable
 ## Windows desktop setup
 
 Use the v0.19.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
+
+### Dashboard navigation
+
+Start on **Today** for your next action. Use **Leads** to find/import businesses,
+**Outbox** to review messages, and **Pipeline** to track replies and next steps.
+**Settings** groups Email setup, Writing & offers, Discovery & AI, Learning, Preferences
+and System & backups into expandable sections. See [the layout guide](docs/branding.md).
+The v0.20 web layout works with the installed v0.19 PC worker; no reinstall or key change
+is needed. Sending still requires the existing worker settings and exact approvals.

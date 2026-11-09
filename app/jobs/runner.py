@@ -15,6 +15,7 @@ from app.db.session import Database
 from app.integrations.openai import ModelUnavailable
 from app.jobs.heartbeat import keep_alive
 from app.jobs.queue import acquire_worker, claim_next, finish_job, release_worker
+from app.operations.awake import keep_awake
 
 logger = logging.getLogger(__name__)
 
@@ -114,10 +115,18 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     if not acquire_worker(db, settings, owner, utc_now()):
         raise RuntimeError("Another worker is active. Stop it or wait for its lease to expire.")
     logger.info("Worker started")
+    next_linkedin_plan = utc_now()
     try:
         while True:
+            from app.linkedin.planner import plan_day
             from app.sending.schedule import plan_jobs
 
+            keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
+            if utc_now() >= next_linkedin_plan:
+                plan_day(db, utc_now())
+                next_linkedin_plan = utc_now() + timedelta(
+                    seconds=settings.linkedin_plan_interval_seconds
+                )
             plan_jobs(db, settings, utc_now())
             run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
             if once:
@@ -126,6 +135,7 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     except KeyboardInterrupt:
         logger.info("Worker stopping")
     finally:
+        keep_awake(utc_now(), enabled=False)
         release_worker(db, owner, utc_now())
 
 

@@ -177,3 +177,7 @@ People & LinkedIn on each business opens proposed and confirmed people. Register
 staff profiles in Playbook & Settings → LinkedIn team profiles. No password, cookie,
 OAuth or LinkedIn developer credential is needed for L1. Owner search uses the existing
 funded web-search quotas and leaves every result unconfirmed. See [LinkedIn setup](docs/linkedin.md).
+
+LinkedIn L2 adds a persistent weekday planner under Today → LinkedIn, owner-lowered
+profile quotas and a shared named-person/day email fence. Human action execution remains
+pending L3. Windows startup installation and recovery details are in [docs/linkedin.md](docs/linkedin.md).

@@ -73,3 +73,12 @@ cancellation, immutable touches, permanent stops, expired cooldown review, and
 owner/reviewer HTTP authorization. Search proposals are tested with a fake Responses
 provider; no LinkedIn or email network requests occur. Visual review uses fictional
 people and member identities. Live team identity verification remains an owner task.
+
+## LinkedIn L2
+
+Offline tests cover concurrent quota/person-day reservations, warmup ceilings, weekly
+and pending caps, current owner limits, three-batch catch-up, DST, five-day stale holds,
+expired action claims, member isolation, and the actual SMTP dispatch deferral using
+fake transports. PowerShell CI validates startup script syntax without installing tasks;
+actual Windows sign-out/reboot acceptance remains an owner-PC check. No live provider
+calls are made and no real LinkedIn action is performed.

@@ -105,6 +105,14 @@ class LinkedInTask(Base):
     reason: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
+    generation: Mapped[int] = mapped_column(Integer, default=1)
+    planned_day: Mapped[str | None] = mapped_column(String(10))
+    release_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    approval_digest: Mapped[str | None] = mapped_column(String(64))
+    lease_token: Mapped[str | None] = mapped_column(String(36))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
 
 class Touch(Base):
     """One attributable cross-channel action or reply, never interpreted as instructions."""

@@ -86,6 +86,9 @@ def reserve(
     with db.sessions.begin() as session:
         if not claim_valid(session, job, now):
             return None
+        from app.linkedin.coordination import lock_company
+
+        lock_company(session, company_id)
         # This conditional write serializes capacity decisions even on SQLite.
         gate = session.scalar(
             update(MailboxState)
@@ -173,6 +176,12 @@ def reserve(
             return None
         draft = session.get(Draft, current.draft_id)
         assert draft
+        from app.linkedin.day_fence import reserve_email
+
+        if not reserve_email(session, conversation.contact_id, current.id, now):
+            current.due_at = next_window(end_of_day(now))
+            current.hold_reason = "person_already_contacted_today"
+            return None
         changed = session.scalar(
             update(Draft)
             .where(

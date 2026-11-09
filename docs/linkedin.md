@@ -57,3 +57,51 @@ L4 adds scoped official member posting; L5 adds reports and reviewed learning.
 The app's internal quotas are conservative policy, not a claim about LinkedIn's
 published safe limits. Commercial direct messages need an appropriate reviewed
 contact basis, identification and a working opt-out; relevance alone is not consent.
+
+## L2 planner and PC startup
+
+Migration 0016 adds per-profile policy locks, quota reservations, sequence progress,
+leased human tasks and person-day reservations. Fresh migrated databases remain empty,
+so backup/restore and SQLite-to-PostgreSQL transfer retain their existing checks.
+The worker plans every LINKEDIN_PLAN_INTERVAL_SECONDS (default 60) after 07:30 on
+Calgary weekdays. Slots are 09:00, 11:30 and 14:30; late startup spreads work through
+remaining slots, with five-minute spacing after the last batch and a 17:00 cutoff.
+Tasks more than five days overdue at a message step require review. An expired human
+action lease becomes needs_check, never a queued replay. Read Today → LinkedIn for
+plans; only the owner sees other members' plans. L2 does not release invitations or
+messages: L3 supplies exact draft approval and manual action cards.
+
+The first fourteen Calgary calendar days cap invites at 10/day, first messages at
+5/day, views at 20/day, comments at 5/day and posts at 2/week. Later hard ceilings
+are 20 invites/day, 80/week, 300 pending, 15 first messages/day, 30 total messages/day,
+40 views/day, 10 comments/day and 4 posts/week with at most one/day. InMail stays zero.
+Settings → LinkedIn profiles lets the owner lower limits. Already reserved slots
+remain counted after cancellation; this is intentionally conservative. Replanning
+the same task/day never consumes another slot. A new day gets its own allowance;
+unused quota never carries forward. A pending invite older than 21 days creates a
+human withdrawal task. No LinkedIn API or browser operation is performed by planning.
+
+A named personal email matches a Person through contact_id or exact normalized
+personal_email, including contacts imported later. Email and LinkedIn use one durable
+person/day fence before SMTP DATA or a human action start. The same uncertain action
+keeps its reservation; a second channel cannot reuse it. Generic company inboxes keep
+the existing email/form exclusivity. Logging an actual reply still cancels all pending
+company outreach, independently of these quotas.
+
+On the actual Windows PC, finish local setup and migration, then run PowerShell as
+Administrator: `powershell -NoProfile -File scripts/install-autostart.ps1`. Enter the
+Windows task account credential only in Windows' credential prompt. The script creates
+two AtStartup tasks, runs while signed out, retries process failure every minute, starts
+missed tasks when available and rejects overlapping instances. Task Scheduler stores
+its logon credential; no password is written into the repo or task command line. The
+worker singleton lease also prevents two active workers. `-ValidateOnly` checks script
+syntax without creating tasks; `-Uninstall` stops and removes only these two named tasks.
+
+PC_KEEP_AWAKE=true keeps the Windows worker thread awake on Calgary weekdays 07:30–17:00,
+then releases its request. It does not change the user's power plan or keep the display
+on. Shutdown, lid policies and a stopped worker still stop work; reconnect and inspect
+needs_check items rather than assuming an action completed. Set false to disable it.
+VPS supervision continues to use the existing systemd services; Vercel has no worker.
+
+Windows references: https://learn.microsoft.com/powershell/module/scheduledtasks/new-scheduledtasksettingsset
+and https://learn.microsoft.com/powershell/module/scheduledtasks/new-scheduledtaskprincipal

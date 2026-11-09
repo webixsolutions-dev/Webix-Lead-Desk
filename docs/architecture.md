@@ -188,3 +188,9 @@ IntegrationSecret stores optional Places keys. See
 [ADR 0013](decisions/0013-acquisition-workflow.md) and [setup](acquisition.md).
 The single leased PC/VPS worker handles discovery and its continuation; Vercel's
 web entrypoint does not create a persistent background loop.
+
+
+LinkedIn L1 introduces verified professional identities and one serialized company
+coordination record shared by manual LinkedIn, email, calls and forms. See
+[ADR 0014](decisions/0014-linkedin-channel.md) for the L1–L5 build boundary and
+[LinkedIn setup](linkedin.md) for review and stop semantics.

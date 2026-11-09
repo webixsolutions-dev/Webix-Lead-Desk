@@ -63,3 +63,13 @@ call rejection suppression, future callbacks, reviewer restrictions, journey
 filters, read-only event triggers and populated v0.11 migration/backfill.
 UI review uses synthetic static renderings; no real prospects, mailboxes or API
 credentials are included in captures. Live provider acceptance remains separate.
+
+
+## LinkedIn L1
+
+Offline regression: normalized identity aliases, conflicting matches, concurrent
+member assignment, one member/two active people per company, four-channel reply
+cancellation, immutable touches, permanent stops, expired cooldown review, and
+owner/reviewer HTTP authorization. Search proposals are tested with a fake Responses
+provider; no LinkedIn or email network requests occur. Visual review uses fictional
+people and member identities. Live team identity verification remains an owner task.

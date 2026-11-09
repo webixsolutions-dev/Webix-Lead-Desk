@@ -91,10 +91,16 @@ jobs:
           archive="gitleaks_${version}_linux_x64.tar.gz"
           base="https://github.com/gitleaks/gitleaks/releases/download/v${version}"
           cd "$RUNNER_TEMP"
-          curl --fail --silent --show-error --location "$base/$archive" --output "$archive"
-          curl --fail --silent --show-error --location "$base/gitleaks_${version}_checksums.txt" --output checksums.txt
-          awk -v archive="$archive" '$2 == archive {print}' checksums.txt | sha256sum --check --strict
-          tar -xzf "$archive" gitleaks
+          if curl --fail --silent --show-error --location --retry 2 --retry-delay 2 --retry-max-time 30 "$base/$archive" --output "$archive" &&
+             curl --fail --silent --show-error --location --retry 2 --retry-delay 2 --retry-max-time 30 "$base/gitleaks_${version}_checksums.txt" --output checksums.txt; then
+            awk -v archive="$archive" '$2 == archive {print}' checksums.txt | sha256sum --check --strict
+            tar -xzf "$archive" gitleaks
+          else
+            # The release CDN can be unavailable. Build the same pinned version
+            # through Go's checksum-verified public module proxy; never skip scanning.
+            GOBIN="$RUNNER_TEMP" GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
+              go install "github.com/zricethezav/gitleaks/v8@v${version}"
+          fi
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: gitleaks git --redact --log-opts="--all"
 

@@ -39,6 +39,7 @@ EVENT_STAGE = {
     "sent": "Sent",
     "followup_sent": "Follow-ups",
     "replied": "Replied",
+    "outreach_paused": "Replied",
     "call": "Call",
     "meeting": "Meeting",
 }
@@ -88,10 +89,13 @@ def derive(events: list[LeadEvent]) -> dict[str, Any]:
             channel = str(data["channel"])
         if data.get("mailbox_id"):
             mailbox = str(data["mailbox_id"])
-        if kind in {"stopped", "unsubscribed", "bounced"}:
+        if kind in {"stopped", "unsubscribed", "bounced", "outreach_paused"}:
             stop = str(data.get("reason") or kind.replace("_", " "))
             pending.clear()
             next_action, due = "No outreach: " + stop, None
+        if kind == "outreach_resumed":
+            stop = ""
+            next_action, due = "Review the new angle before planning fresh outreach", None
         if kind == "scheduled":
             pending[str(data["intent_id"])] = data
         elif kind in {

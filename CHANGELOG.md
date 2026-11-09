@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13.0 — LinkedIn L1
+
+- Add human-confirmed people, source-backed owner proposals and normalized identity aliases.
+- Lock people and companies to one real staff member, with two active people per company.
+- Record immutable cross-channel touches and cancel pending email, form and LinkedIn work on replies.
+- Distinguish a new 12-month rejection cooldown from permanent opt-outs; retain legacy suppression.
+- Add owner profile/people review screens and a budgeted, cached open-web owner finder.
+- Preserve separately approved requested responses and agreed human callbacks after sequence cancellation.
+- LinkedIn scheduling, message approvals and posting remain later L2–L5 phases.
+
+
 ## 0.12.0 — Discovery, human calls and lead journeys
 
 - Add budgeted OpenAI Responses web-search discovery for any campaign city,

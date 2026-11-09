@@ -133,6 +133,12 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
     """Run an explicitly registered handler; imports are idempotent by source key."""
     if job.kind == "health":
         return health_handler(job)
+    if settings is not None and job.kind == "find_owner":
+        from app.linkedin.finder import find_owners
+
+        return find_owners(
+            db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id
+        )
     if job.kind == "score":
         from app.scoring.service import score
 

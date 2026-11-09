@@ -15,6 +15,8 @@ from app.db.session import Database
 from app.demos.service import concept_attachment
 from app.drafting.content import check_copy, fingerprint, footer, links
 from app.learning.capture import capture_edit
+from app.linkedin.coordination import outreach_block
+from app.linkedin.response_policy import requested_response
 from app.partners.service import partner_block, reserve_slot
 from app.playbook.partner import meeting_block
 from app.playbook.service import current_guidance
@@ -286,6 +288,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
     with db.sessions() as session:
         conversation = session.get(Conversation, draft.conversation_id)
         company = session.get(Company, snapshot["company_id"])
+        if block := outreach_block(
+            session, snapshot["company_id"], response=requested_response(session, draft)
+        ):
+            reasons.append(block)
         contact = session.get(Contact, snapshot["contact_id"])
         mailbox = session.get(Mailbox, snapshot["mailbox_id"])
         campaign = session.get(Campaign, snapshot["campaign_id"])

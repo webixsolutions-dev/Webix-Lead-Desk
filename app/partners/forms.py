@@ -22,6 +22,7 @@ from app.db.outreach_models import Mailbox
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.drafting.content import check_copy, fingerprint, footer
+from app.linkedin.coordination import outreach_block, record_touch
 from app.partners.service import partner_block, reserve_slot
 from app.sources.validation import domain_of, website_url
 
@@ -51,6 +52,8 @@ def _eligible(session: Session, snapshot: Mapping[str, object]) -> None:
         raise ValueError("Use the reviewed business sender profile")
     if footer(mailbox) != snapshot["footer"] or mailbox.email != snapshot["from_email"]:
         raise ValueError("Sender identity changed; prepare a new form revision")
+    if reason := outreach_block(session, company.id):
+        raise ValueError(reason)
     domain = domain_of(company.website) if company.website else ""
     if (
         not domain
@@ -198,6 +201,16 @@ def record_form(db: Database, form_id: str, state: str, note: str, actor_id: str
         # Preserve truthful history even if an opt-out arrived after a manual submission.
         item.state, item.outcome_note, item.recorded_at = state, note.strip(), utc_now()
         session.add(AuditEvent(actor_id=actor_id, action="form." + state, entity_id=item.id))
+        record_touch(
+            session,
+            item.company_id,
+            "form:" + item.id,
+            "form",
+            "outbound",
+            state,
+            actor=actor_id,
+            at=item.recorded_at,
+        )
 
 
 def form_block(db: Database, item: FormDraft) -> str | None:

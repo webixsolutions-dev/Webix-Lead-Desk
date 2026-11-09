@@ -12,10 +12,12 @@ from app.core.config import Settings
 from app.core.vault import read_secret
 from app.db.delivery_models import InboxCursor, InboxMessage, MailboxDay, MailboxState, SendIntent
 from app.db.lead_models import Contact, SuppressionEntry
+from app.db.linkedin_models import Person
 from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.session import Database
 from app.inbox.parse import classify, parse_reply
 from app.integrations.imap import IMAPUnavailable, InboxBatch, read_inbox
+from app.linkedin.coordination import record_touch, stop_company
 from app.pipeline.service import capture_reply
 from app.sending.providers import mailbox_settings
 from app.sending.window import CALGARY, end_of_day
@@ -85,6 +87,20 @@ def record_reply(
                     )
                 )
                 return True
+            person = session.scalar(
+                select(Person).where(Person.contact_id == conversation.contact_id)
+            )
+            record_touch(
+                session,
+                conversation.company_id,
+                "email_reply:" + reply.dedupe_key,
+                "email",
+                "inbound",
+                label,
+                person_id=person.id if person else None,
+                at=now,
+            )
+            stop_company(session, conversation.company_id, label, "email", reply.dedupe_key, at=now)
             conversation.state = "replied"
             pending = list(
                 session.scalars(
@@ -111,7 +127,7 @@ def record_reply(
             if label in {"automatic", "needs_review", "bounce"}:
                 conversation.state = "held"
             contact = session.get(Contact, conversation.contact_id)
-            if label in {"unsubscribe", "not_interested"} and contact:
+            if label == "unsubscribe" and contact:
                 key = "email:" + contact.email
                 if not session.scalar(
                     select(SuppressionEntry.id).where(SuppressionEntry.key == key)

@@ -169,3 +169,11 @@ Every lead has an event-derived stage bar, next action, score history and a link
 timeline in Calgary/Pakistan time. Migrations 0013/0014 backfill existing records and
 enforce append-only event storage. Read [the acquisition guide](docs/acquisition.md)
 for setup, provider retention rules, limitations and acceptance checks.
+
+
+### LinkedIn L1
+
+People & LinkedIn on each business opens proposed and confirmed people. Register real
+staff profiles in Playbook & Settings → LinkedIn team profiles. No password, cookie,
+OAuth or LinkedIn developer credential is needed for L1. Owner search uses the existing
+funded web-search quotas and leaves every result unconfirmed. See [LinkedIn setup](docs/linkedin.md).

@@ -19,6 +19,7 @@ from app.db.lead_models import (
 from app.db.outreach_models import Offer
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.linkedin.coordination import outreach_block
 from app.policy.contacts import company_suppressed
 from app.sources.enrichment.config import get_config
 
@@ -71,6 +72,8 @@ def call_list(db: Database) -> list[dict[str, Any]]:
                 .order_by(CallRecord.created_at.desc())
                 .limit(1)
             )
+            if outreach_block(session, company.id) and not (last and last.outcome == "callback"):
+                continue
             if last and (
                 last.outcome in {"interested", "meeting_booked", "not_interested"}
                 or (last.due_at and last.due_at > now)

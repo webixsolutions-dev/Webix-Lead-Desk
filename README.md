@@ -207,3 +207,10 @@ rates remain required; a ChatGPT subscription or promotional balance is not infe
 
 Run `lead-desk migrate` before restarting the dashboard/worker after this release.
 L4 official posting/OAuth and L5 channel reporting are subsequent phases.
+
+### LinkedIn public posting (v0.16)
+
+The Outbox → LinkedIn queue → Post calendar contains two staggered weekly image
+slots per real member, optional text/video slots, immutable caption/media approval,
+and member-only native fallback. Official OAuth and publication are disabled until
+configured. [Posting setup and limitations](docs/linkedin-posting.md).

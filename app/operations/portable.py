@@ -13,7 +13,7 @@ from app.db.migrate import migration_head
 from app.db.models import Base, UTCDateTime
 from app.db.session import Database
 
-OMIT_SESSION_TABLES = {"sessions", "login_throttles"}
+OMIT_SESSION_TABLES = {"sessions", "login_throttles", "linkedin_oauth_states"}
 
 
 def canonical(value: Any) -> bytes:

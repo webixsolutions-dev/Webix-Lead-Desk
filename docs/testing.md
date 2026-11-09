@@ -96,3 +96,10 @@ caps, uncertain completion, replay prevention, requested response separation and
 90-day/12-month cooldowns are covered. Synthetic desktop/mobile browser review checked
 readable copy, identity/opt-out retention and manual-copy fallback when clipboard access
 is unavailable. Real LinkedIn execution was not performed.
+
+## L4 public posting
+
+Local full suite: 376 passed, two PostgreSQL-only tests skipped locally; CI runs them.
+Offline post/media/OAuth cases and synthetic desktop/mobile review are included.
+Coverage: overall 85.17%, jobs 80.74%, sending 91.77%, inbox 94.85%.
+Real OAuth, codec processing and native LinkedIn posting remain owner acceptance tests.

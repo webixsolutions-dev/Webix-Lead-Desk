@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.16.0 — LinkedIn L4: reviewed member posting
+
+- Staggered calendar, distinct copy, warm-up post caps and immutable exact approvals.
+- Encrypted session-bound OAuth, explicit member confirmation and seven-day expiry warning.
+- Private 1 MB media chunks, SHA-256 verification, bounded PNG/JPEG/MP4 containers.
+- Official Images/Videos/Posts adapter; durable submission marker and uncertain-result hold.
+- Native copy/download fallback; video is upload plus caption only. No live provider calls.
+
 ## v0.15.0 — LinkedIn L3: exact review and manual member queue
 
 - Immutable LinkedIn copy revisions and append-only owner approvals bind the recipient,

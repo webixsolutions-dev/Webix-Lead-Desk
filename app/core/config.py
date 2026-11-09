@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     openai_max_output_tokens: int = Field(default=1500, ge=500, le=4000)
     worker_poll_seconds: float = Field(default=2, ge=0.1, le=30)
     pc_keep_awake: bool = True
+    linkedin_posting_enabled: bool = False
+    linkedin_client_id: str = Field(default="", max_length=200)
+    linkedin_client_secret: SecretStr | None = None
+    linkedin_api_version: str = Field(default="202610", pattern=r"^20[0-9]{2}(0[1-9]|1[0-2])$")
+    linkedin_media_max_bytes: int = Field(default=25_000_000, ge=100_000, le=25_000_000)
+    linkedin_media_workspace_bytes: int = Field(default=45_000_000, ge=1_000_000, le=60_000_000)
     linkedin_plan_interval_seconds: int = Field(default=60, ge=30, le=300)
     worker_lease_seconds: int = Field(default=30, ge=5, le=300)
     job_lease_seconds: int = Field(default=60, ge=5, le=600)
@@ -130,6 +136,14 @@ class Settings(BaseSettings):
             raise ValueError(
                 "Use provider-specific settings; the legacy integration switch is unavailable"
             )
+        if self.linkedin_posting_enabled and not (
+            self.linkedin_client_id
+            and self.linkedin_client_secret
+            and self.encryption_key
+            and self.public_base_url
+            and self.cookie_secure
+        ):
+            raise ValueError("LinkedIn posting needs OAuth credentials, HTTPS and encryption")
         if self.live_send_enabled and not self.encryption_key:
             raise ValueError("Live sending requires a dedicated ENCRYPTION_KEY")
         if not self.allowed_hosts or "*" in self.allowed_hosts:

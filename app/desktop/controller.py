@@ -63,7 +63,7 @@ class WorkerController:
             try:
 
                 def started() -> None:
-                    self.messages.put("Running — connected to your dashboard.")
+                    self.messages.put("Running — worker is active.")
 
                 run_worker(db, settings, stop_event=self.stop_event, on_started=started)
             finally:

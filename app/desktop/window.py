@@ -24,8 +24,8 @@ class DesktopWindow:
         self.closing = False
         self.widgets: list[ttk.Entry | ttk.Button | ttk.Checkbutton] = []
         root.title("Webix Lead Desk · PC Worker")
-        root.geometry("860x730")
-        root.minsize(760, 690)
+        root.geometry("860x650")
+        root.minsize(760, 560)
         root.configure(bg="#F4F5F7")
         style = ttk.Style(root)
         style.theme_use("clam")
@@ -36,13 +36,13 @@ class DesktopWindow:
         style.map("Accent.TButton", background=[("active", "#C9151D"), ("disabled", "#D7D7DC")])
         style.configure("TEntry", padding=7, font=("Segoe UI", 10))
         style.configure("TCheckbutton", background="white", font=("Segoe UI", 10))
-        header = tk.Frame(root, bg="white", padx=28, pady=16)
+        header = tk.Frame(root, bg="white", padx=24, pady=10)
         header.pack(fill="x")
         logo_path = Path(__file__).parents[1] / "ui" / "static" / "webix-logo.png"
         self.logo: tk.PhotoImage | None = None
         if logo_path.exists():
             original = tk.PhotoImage(file=str(logo_path))
-            self.logo = original.subsample(max(1, original.width() // 180))
+            self.logo = original.subsample(max(1, original.width() // 150))
             tk.Label(header, image=self.logo, bg="white").pack(side="left", padx=(0, 22))
         tk.Label(header, text="LEAD DESK", font=("Segoe UI", 22, "bold"), bg="white", fg=DARK).pack(
             anchor="w"
@@ -55,8 +55,20 @@ class DesktopWindow:
             fg="#666671",
         ).pack(anchor="w")
         tk.Frame(root, bg=RED, height=3).pack(fill="x")
-        card = ttk.Frame(root, padding=24)
-        card.pack(fill="both", expand=True, padx=24, pady=20)
+        viewport = tk.Frame(root, bg="#F4F5F7")
+        viewport.pack(fill="both", expand=True, padx=16, pady=10)
+        canvas = tk.Canvas(viewport, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(viewport, orient="vertical", command=canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        card = ttk.Frame(canvas, padding=18)
+        content = canvas.create_window((0, 0), window=card, anchor="nw")
+        card.bind("<Configure>", lambda _: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda event: canvas.itemconfigure(content, width=event.width))
+        root.bind(
+            "<MouseWheel>", lambda event: canvas.yview_scroll(-int(event.delta / 120), "units")
+        )
         card.columnconfigure(0, weight=1)
         ttk.Label(
             card, text="Connect once. Work from your dashboard.", font=("Segoe UI", 15, "bold")
@@ -77,19 +89,22 @@ class DesktopWindow:
             (8, "Encrypted backup folder · weekly, latest 8 kept", self.backup, False),
         ):
             ttk.Label(card, text=label).grid(row=row, column=0, sticky="w", pady=(7, 3))
-            entry = ttk.Entry(card, textvariable=variable, show="•" if hidden else "")
-            entry.grid(row=row + 1, column=0, sticky="ew")
+            line = ttk.Frame(card)
+            line.grid(row=row + 1, column=0, sticky="ew")
+            entry = ttk.Entry(line, textvariable=variable, show="•" if hidden else "")
+            entry.pack(side="left", fill="x", expand=True)
             self.widgets.append(entry)
-        folder = ttk.Button(card, text="Choose backup folder", command=self.choose_folder)
-        folder.grid(row=10, column=0, sticky="w", pady=(8, 8))
-        self.widgets.append(folder)
+            if row == 8:
+                folder = ttk.Button(line, text="Browse…", command=self.choose_folder)
+                folder.pack(side="right", padx=(8, 0))
+                self.widgets.append(folder)
         startup = ttk.Checkbutton(
             card, text="Start worker when I sign in to Windows", variable=self.startup
         )
-        startup.grid(row=11, column=0, sticky="w")
+        startup.grid(row=11, column=0, sticky="w", pady=(10, 0))
         self.widgets.append(startup)
         actions = ttk.Frame(card)
-        actions.grid(row=12, column=0, sticky="ew", pady=(18, 14))
+        actions.grid(row=12, column=0, sticky="ew", pady=(12, 10))
         for label, callback in (("Save settings", self.save), ("Test connection", self.check)):
             button = ttk.Button(actions, text=label, command=callback)
             button.pack(side="left", padx=(0, 8))

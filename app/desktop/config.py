@@ -34,6 +34,8 @@ class DesktopConfig(BaseModel):
             raise ValueError("Use a PostgreSQL psycopg connection")
         if url.query.get("sslmode") not in {"require", "verify-ca", "verify-full"}:
             raise ValueError("Encrypted PostgreSQL connection required")
+        if not self.encryption_key.get_secret_value() or not self.backup_key.get_secret_value():
+            raise ValueError("Encryption and backup keys are required")
         if not Path(self.backup_directory).is_absolute():
             raise ValueError("Select an absolute backup folder")
         return Settings(
@@ -54,6 +56,7 @@ class DesktopConfig(BaseModel):
             pc_keep_awake=True,
             cookie_secure=True,
             allowed_hosts=["127.0.0.1", "localhost"],
+            database_prepare_statements=True,
             backup_keep=8,
             backup_interval_days=7,
         )

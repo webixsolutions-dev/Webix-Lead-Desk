@@ -163,3 +163,47 @@ def test_windows_dpapi_and_mutex() -> None:
             acquire_instance()
     finally:
         release_instance(handle)
+
+
+def test_empty_key_is_rejected(tmp_path: Path) -> None:
+    """A blank field must not silently disable credential encryption."""
+    config = desktop_config(tmp_path)
+    config.encryption_key = SecretStr("")
+    with pytest.raises(ValueError, match="keys are required"):
+        config.settings(tmp_path)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows desktop UI")
+def test_setup_window_preserves_keys_and_wires_controls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exercise form saves and controls without connecting to a provider."""
+    import tkinter as tk
+
+    from app.desktop.window import DesktopWindow
+
+    startup = Mock()
+    monkeypatch.setattr("app.desktop.window.set_startup", startup)
+    root = tk.Tk()
+    try:
+        window = DesktopWindow(root, tmp_path)
+        synthetic = desktop_config(tmp_path)
+        window.database.set(synthetic.database_url.get_secret_value())
+        window.encryption.set(synthetic.encryption_key.get_secret_value())
+        assert window.save()
+        first = storage.load_config(tmp_path)
+        assert first is not None
+        window.startup.set(True)
+        assert window.save()
+        startup.assert_called_with(True)
+        second = storage.load_config(tmp_path)
+        assert second is not None and first.backup_key == second.backup_key
+        start = Mock()
+        monkeypatch.setattr(window.controller, "start", start)
+        window.check()
+        assert start.call_args.kwargs == {"check_only": True}
+        window.start()
+        assert not start.call_args.args[0].live_send_enabled
+        root.update()
+    finally:
+        root.destroy()

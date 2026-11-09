@@ -254,7 +254,11 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
     assert checks["Single worker"]["ready"] and not checks["Worker delivery switch"]["ready"]
     with db.sessions() as session:
         worker = session.get(WorkerInstance, "primary")
-        assert worker and worker.runtime_config == {"app_mode": "PC", "live_send_enabled": False}
+        assert worker and worker.runtime_config == {
+            "app_mode": "PC",
+            "live_send_enabled": False,
+            "mailbox_tests": False,
+        }
 
 
 def test_draft_cohort_removal_and_paused_review_refresh(

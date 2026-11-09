@@ -21,6 +21,25 @@ Use Settings to create the Camzio Tech Titan profile for `sales@camziotech.com` 
 
 Verify the actual domain's SPF, DKIM and DMARC, privacy/identification details and provider sending limits. Confirm the specific test recipient and exact test content before any real send. Record actual test acceptance only after it happens. Keep `LIVE_SEND_ENABLED=false` on Vercel permanently; enable it only on the separate worker after these checks and approval. The application also requires current contact-basis evidence, suppression clearance, exact-message approval, a fresh inbox and the pilot gate.
 
+### Send one mailbox connection test
+
+1. Save the mailbox credential under Settings → Email setup → Mailbox connections.
+2. Stop and update the Windows companion to v0.21 or newer, then Start Worker. Existing
+   connection details stay encrypted in the same Windows account. No database migration is needed.
+   For a terminal PC/VPS worker only, set `MAILBOX_TESTS_ENABLED=true` privately and restart it.
+3. In the mailbox's **Send a test email** section, enter one inbox you own or have permission to
+   contact. Review the displayed sender, fixed subject and body, tick the approval and press
+   **Send one test email**. This action explicitly authorizes that one real diagnostic email.
+4. Refresh Settings for the result. **Accepted by the mail server** is not proof of inbox delivery.
+   Check the recipient inbox and spam folder, then press **I received this test email** only if true.
+5. The diagnostic does not enable the sender profile, change readiness checkboxes, create leads,
+   start follow-ups or turn on outreach. Complete the other readiness checks separately.
+
+The web process never sends. Each signed request expires after 24 hours; there are at most three
+requests per mailbox per UTC day. Double-clicks reuse the same request. There are no automatic SMTP
+retries. A pending or uncertain test blocks another test to the same inbox until the result is
+reviewed. Keep `MAILBOX_TESTS_ENABLED=false` on Vercel; that setting only enables execution on a worker.
+
 A separate Webix partner profile uses its own approved business identity and Hostinger business mailbox. Do not invent this address or reuse a different brand's sender identity.
 
 ## 3. Review targeting, offers and writing guidance

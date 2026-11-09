@@ -17,7 +17,7 @@ from app.db.delivery_models import (
     MailboxState,
     SendIntent,
 )
-from app.db.models import AuditEvent
+from app.db.models import AuditEvent, new_id
 from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.jobs.queue import enqueue
 from app.policy.contacts import suppress
@@ -29,8 +29,15 @@ router = APIRouter()
 
 def connection_data(request: Request) -> dict[str, Any]:
     """Expose credential presence and health only, never encrypted or plaintext values."""
+    from app.sending.diagnostics import diagnostic_context
+
+    tests = diagnostic_context(services(request).db, utc_now())
     with services(request).db.sessions() as session:
         return {
+            **tests,
+            "mailbox_test_request_ids": {
+                mailbox_id: new_id() for mailbox_id in session.scalars(select(Mailbox.id))
+            },
             "sender_states": {
                 item.mailbox_id: item for item in session.scalars(select(MailboxState))
             },

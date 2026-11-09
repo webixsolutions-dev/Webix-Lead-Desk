@@ -1,0 +1,33 @@
+<section class="work-panel" id="test-mailbox-{{ box.id }}">
+  <h3>Send a test email</h3>
+  <p class="small muted">Send one fixed test message to an inbox you own or have permission to contact. Your PC worker sends it. This keeps outreach paused and does not enable follow-ups.</p>
+  {% if not mailbox_test_ready %}
+  <div class="notice neutral">Update and start the PC worker (v0.21 or newer) to send a test. Your saved connection details stay in place. <a href="https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases/latest" target="_blank" rel="noopener">Get the worker update</a></div>
+  {% endif %}
+  <form method="post" action="/settings/mailboxes/{{ box.id }}/test" class="work-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="request_id" value="{{ mailbox_test_request_ids[box.id] }}">
+    <label>Test recipient<input type="email" name="recipient" value="{{ user.email }}" maxlength="254" required autocomplete="email"></label>
+    <div class="notice neutral">
+      <p><strong>From:</strong> {{ box.sender_name }} &lt;{{ box.email }}&gt;</p>
+      <p><strong>Subject:</strong> {{ mailbox_test_subject }}</p>
+      <p style="white-space: pre-line">{{ mailbox_test_body }}
+
+{{ box.sender_name }}
+{{ box.brand }}</p>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" name="approve_test" value="true" required>I approve this exact test email to the address above and have permission to contact that inbox.</label>
+    <button class="button secondary" {% if not mailbox_test_ready or 'mailbox:' ~ box.id not in connected_keys %}disabled{% endif %}>Send one test email</button>
+    <p class="small muted">Maximum three tests per mailbox per UTC day. A repeated click does not send twice. Check the recipient inbox and spam folder before requesting another test.</p>
+  </form>
+  {% for test in mailbox_tests.get(box.id, []) %}
+  <p class="small"><strong>{{ test.recipient }}</strong> · {{ test.status }}<br><span class="muted">{{ test.created_at }}</span></p>
+  {% if test.can_confirm %}
+  <form method="post" action="/settings/mailboxes/{{ box.id }}/test/{{ test.id }}/received">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <button class="button secondary small">I received this test email</button>
+  </form>
+  {% endif %}
+  {% endfor %}
+  <p class="small muted">Refresh this page to see the worker's latest result. Confirm receipt only after checking that recipient's inbox.</p>
+</section>

@@ -120,9 +120,9 @@ class DesktopWindow:
         ttk.Label(
             card, textvariable=self.status, wraplength=710, font=("Segoe UI", 11, "bold")
         ).grid(row=13, column=0, sticky="w", pady=(0, 8))
-        ttk.Label(card, text="Live sending is OFF. Keep this app open while jobs run.").grid(
-            row=14, column=0, sticky="w"
-        )
+        ttk.Label(
+            card, text="Outreach is OFF. Only explicitly approved test emails can send."
+        ).grid(row=14, column=0, sticky="w")
         links = ttk.Frame(card)
         links.grid(row=15, column=0, sticky="w", pady=(14, 0))
         ttk.Button(links, text="Open Dashboard ↗", command=self.open_dashboard).pack(side="left")

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.21.0 — 2026-11-09
+
+- Settings now previews and queues a fixed test email to an owner-approved test inbox.
+- Updated Windows worker advertises a separate diagnostic capability while outreach stays off.
+- Encrypted exact-message approval, durable attempt markers, three daily slots and duplicate protection.
+- Uncertain results never retry; the owner can record actual receipt after checking the test inbox.
+- Existing database schema and encrypted desktop settings remain compatible; no migration required.
+
 ## 0.20.0 — 2026-11-09
 
 - Focused Today page with a next action, real counts and concise worker/sending/backup status.

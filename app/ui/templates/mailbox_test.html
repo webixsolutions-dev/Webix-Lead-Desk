@@ -1,23 +1,28 @@
 <section class="work-panel" id="test-mailbox-{{ box.id }}">
   <h3>Send a test email</h3>
   <p class="small muted">Send one fixed test message to an inbox you own or have permission to contact. Your PC worker sends it. This keeps outreach paused and does not enable follow-ups.</p>
-  {% if not mailbox_test_ready %}
+  {% set signature = mailbox_signatures[box.id] %}
+  {% if signature.html and not mailbox_signature_ready %}
+  <div class="notice neutral">Update and start the PC worker (v0.22 or newer) to send the saved signature. <a href="https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases/latest" target="_blank" rel="noopener">Get the worker update</a></div>
+  {% elif not mailbox_test_ready %}
   <div class="notice neutral">Update and start the PC worker (v0.21 or newer) to send a test. Your saved connection details stay in place. <a href="https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases/latest" target="_blank" rel="noopener">Get the worker update</a></div>
   {% endif %}
   <form method="post" action="/settings/mailboxes/{{ box.id }}/test" class="work-form">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <input type="hidden" name="request_id" value="{{ mailbox_test_request_ids[box.id] }}">
+    <input type="hidden" name="signature_version" value="{{ signature.version }}">
     <label>Test recipient<input type="email" name="recipient" value="{{ user.email }}" maxlength="254" required autocomplete="email"></label>
     <div class="notice neutral">
       <p><strong>From:</strong> {{ box.sender_name }} &lt;{{ box.email }}&gt;</p>
       <p><strong>Subject:</strong> {{ mailbox_test_subject }}</p>
-      <p style="white-space: pre-line">{{ mailbox_test_body }}
+      {% if not signature.html %}<p style="white-space: pre-line">{{ mailbox_test_body }}
 
 {{ box.sender_name }}
-{{ box.brand }}</p>
+{{ box.brand }}</p>{% endif %}
     </div>
+    {% if signature.html %}<iframe class="email-preview" title="Exact test email with signature" src="/settings/mailboxes/{{ box.id }}/signature-preview?version={{ signature.version }}&amp;test=true" sandbox="" referrerpolicy="no-referrer" loading="lazy"></iframe>{% endif %}
     <label class="checkbox-row"><input type="checkbox" name="approve_test" value="true" required>I approve this exact test email to the address above and have permission to contact that inbox.</label>
-    <button class="button secondary" {% if not mailbox_test_ready or 'mailbox:' ~ box.id not in connected_keys %}disabled{% endif %}>Send one test email</button>
+    <button class="button secondary" {% if not mailbox_test_ready or (signature.html and not mailbox_signature_ready) or 'mailbox:' ~ box.id not in connected_keys %}disabled{% endif %}>Send one test email</button>
     <p class="small muted">Maximum three tests per mailbox per UTC day. A repeated click does not send twice. Check the recipient inbox and spam folder before requesting another test.</p>
   </form>
   {% for test in mailbox_tests.get(box.id, []) %}

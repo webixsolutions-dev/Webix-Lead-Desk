@@ -23,6 +23,7 @@ from app.jobs.queue import enqueue
 from app.policy.contacts import suppress
 from app.sending.providers import PRESETS, connection, readiness_fields
 from app.sending.schedule import schedule
+from app.sending.signatures import get_signature
 
 router = APIRouter()
 
@@ -35,6 +36,10 @@ def connection_data(request: Request) -> dict[str, Any]:
     with services(request).db.sessions() as session:
         return {
             **tests,
+            "mailbox_signatures": {
+                mailbox_id: get_signature(session, mailbox_id)
+                for mailbox_id in session.scalars(select(Mailbox.id))
+            },
             "mailbox_test_request_ids": {
                 mailbox_id: new_id() for mailbox_id in session.scalars(select(Mailbox.id))
             },

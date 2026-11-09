@@ -19,6 +19,8 @@ from app.integrations.dns_mail import check_mail_route
 from app.integrations.smtp import SMTPResult, transmit
 from app.sending.diagnostics import STARTED, approved_snapshot
 from app.sending.providers import connection, mailbox_settings
+from app.sending.signature_html import set_message_content
+from app.sending.signatures import get_signature
 
 
 def valid_claim(db: Database, job: Job, snapshot: dict[str, Any], now: datetime) -> bool:
@@ -45,6 +47,12 @@ def valid_claim(db: Database, job: Job, snapshot: dict[str, Any], now: datetime)
             and actor.active
             and actor.role == "owner"
             and box
+            and get_signature(session, box.id)
+            == snapshot.get("signature", {"html": "", "text": "", "version": 0})
+            and (
+                not snapshot.get("signature", {}).get("html")
+                or (worker.runtime_config or {}).get("email_signatures") == 1
+            )
             and box.email == snapshot["from_email"]
             and box.sender_name == snapshot["from_name"]
             and box.brand == snapshot["brand"]
@@ -63,7 +71,10 @@ def wire_message(snapshot: dict[str, Any], now: datetime) -> bytes:
     message["Message-ID"] = (
         f"<mailbox-test-{snapshot['job_id']}@{snapshot['from_email'].split('@')[1]}>"
     )
-    message.set_content(f"{snapshot['body']}\n\n{snapshot['from_name']}\n{snapshot['brand']}\n")
+    content = dict(snapshot)
+    if not (snapshot.get("signature") or {}).get("html"):
+        content["footer"] = f"{snapshot['from_name']}\n{snapshot['brand']}"
+    set_message_content(message, content)
     return message.as_bytes()
 
 

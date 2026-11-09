@@ -157,3 +157,17 @@ only after reviewing the caption and the exact uploaded asset.
 6. Run the ten-business review pilot, approve exact messages individually and record real
    replies. Review [LinkedIn results](linkedin-results.md) and pending Playbook suggestions.
    No automated test has sent a real prospect email, form, DM or public post.
+
+## Sender signature
+
+Open **Settings → Email setup → your mailbox → Email signature**. Paste the exported HTML,
+save it and inspect the preview and text version. Clear the field and save to remove it.
+This setting is per mailbox; the app does not import Titan's webmail signature automatically.
+Only owners can edit it. Signature changes require saving and approving a new draft revision.
+
+Update the Windows worker to v0.22 or later before sending a test with a signature. Review the
+complete test preview and recipient before requesting a new test. This never enables outreach.
+The logo and social icons are external HTTPS images: recipients' mail clients may hide them until
+images are allowed, and some clients use the solid background instead of gradients. Phone,
+email and website details remain readable in the text alternative. A signature's city label does
+not replace the complete mailing address configured in the outreach sender footer.

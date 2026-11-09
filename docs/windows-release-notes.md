@@ -1,6 +1,7 @@
-v0.21 adds owner-approved connection tests under Settings → Email setup. Update the
-Windows companion to execute these tests. The fixed message and recipient are reviewed
-in the dashboard; outreach remains off. Saved desktop settings are preserved and no
+v0.22 adds saved HTML signatures to approved test emails and outreach messages. Update the
+Windows companion to send the signature shown in the dashboard preview. Existing test approvals
+remain one-time requests; no email is automatically sent by this update. Outreach remains off.
+Saved desktop settings are preserved and no
 database migration is required. Stop the worker before running the updated installer.
 
 Install the bundled Windows worker without Python, uv, Git or terminal setup.

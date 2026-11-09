@@ -1,11 +1,11 @@
 # Install the Windows worker
 
-Download `Webix-Lead-Desk-Setup-0.21.0.exe` from this repository's v0.21.0 release.
+Download `Webix-Lead-Desk-Setup-0.22.0.exe` from this repository's v0.22.0 release.
 
 Updating an existing installation: press **Stop**, wait for the worker to finish, close the
 companion, then run the new installer under the same Windows account. Saved connection details
-and backups stay in place. Start the worker again. v0.21 can execute individually approved
-test emails from Settings; normal outreach remains off.
+and backups stay in place. Start the worker again. v0.22 can execute individually approved
+test emails with saved HTML signatures from Settings; normal outreach remains off.
 The release includes SHA256SUMS.txt. The installer bundles Python and all runtime
 packages: no Python, uv, Git, PowerShell commands or PyPI download is needed on the
 owner's PC. Internet is still needed for the hosted database and research jobs.

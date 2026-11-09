@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.22.0 — 2026-11-09
+
+- Per-mailbox HTML signatures with a safe preview and a generated text alternative.
+- Signature revisions are included in exact draft approvals and fixed-message test approvals.
+- Changed signatures block old approvals; diagnostics require a signature-capable worker.
+- Multipart email preserves the outreach identity/unsubscribe footer and exact Sent reconciliation.
+- Isolated authenticated previews remove scripts, editor tracking attributes and unsafe URLs/CSS.
+- Existing settings storage and encrypted desktop configuration stay compatible; no schema migration.
+
 ## 0.21.0 — 2026-11-09
 
 - Settings now previews and queues a fixed test email to an owner-approved test inbox.

@@ -22,6 +22,7 @@ from app.integrations.imap import find_sent
 from app.integrations.smtp import SMTPResult, transmit
 from app.sending.providers import mailbox_settings
 from app.sending.reservations import before_data, reserve
+from app.sending.signature_html import html_alternatives
 from app.sending.window import next_window
 
 
@@ -191,6 +192,7 @@ def reconcile(
             )
             and str(found.get("Subject", "")) == str(expected["Subject"])
             and plain_text(found).strip() == plain_text(expected).strip()
+            and html_alternatives(found) == html_alternatives(expected)
         ):
             record_result(db, attempt.id, SMTPResult("accepted", "sent_copy_confirmed"), utc_now())
             # A human must review the held conversation before any further outreach.

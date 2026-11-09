@@ -15,6 +15,8 @@ from app.db.models import AuditEvent, Job, User, WorkerInstance
 from app.db.outreach_models import Mailbox
 from app.db.session import Database
 from app.sending.providers import connection
+from app.sending.signature_html import signature_parts
+from app.sending.signatures import get_signature
 from app.sources.validation import email_address
 
 SUBJECT = "Webix Lead Desk - email connection test"
@@ -44,6 +46,7 @@ def request_test(
     request_id: str,
     actor_id: str,
     now: datetime,
+    signature_version: int | None = None,
 ) -> Job:
     """Atomically approve one fixed message; repeated clicks share one immutable job."""
     request_id = str(UUID(request_id))
@@ -71,6 +74,14 @@ def request_test(
             return existing
         if not worker_ready(session.get(WorkerInstance, "primary"), now):
             raise ValueError("Start the updated PC worker (v0.21 or newer) before sending a test")
+        signature = get_signature(session, mailbox_id)
+        if signature_version is not None and signature["version"] != signature_version:
+            raise ValueError("Signature changed. Refresh Settings and review the test again")
+        worker = session.get(WorkerInstance, "primary")
+        if signature["html"] and (
+            not worker or (worker.runtime_config or {}).get("email_signatures") != 1
+        ):
+            raise ValueError("Update the PC worker to v0.22 or newer to send this signature")
         previous = session.scalars(
             select(Job).where(
                 Job.kind == "mailbox_test",
@@ -93,7 +104,7 @@ def request_test(
         if not session.get(IntegrationSecret, "mailbox:" + mailbox_id):
             raise ValueError("Save the mailbox connection first")
         snapshot = {
-            "version": 1,
+            "version": 2 if signature["html"] else 1,
             "job_id": request_id,
             "mailbox_id": mailbox_id,
             "recipient": recipient,
@@ -106,6 +117,7 @@ def request_test(
             "connection": connection(mailbox.provider, mailbox.connection),
             "subject": SUBJECT,
             "body": BODY,
+            "signature": signature,
         }
     approval = cipher(settings).encrypt(json.dumps(snapshot, sort_keys=True).encode()).decode()
     for slot in range(1, MAX_TESTS_PER_DAY + 1):
@@ -170,7 +182,8 @@ def approved_snapshot(settings: Settings, job: Job, now: datetime) -> dict[str, 
         issued = datetime.fromisoformat(data["issued_at"])
         if (
             not isinstance(data, dict)
-            or data["version"] != 1
+            or data["version"] not in {1, 2}
+            or (data["version"] == 1 and (data.get("signature") or {}).get("html"))
             or data["job_id"] != job.id
             or data["subject"] != SUBJECT
             or data["body"] != BODY
@@ -180,6 +193,7 @@ def approved_snapshot(settings: Settings, job: Job, now: datetime) -> dict[str, 
             or not data["recipient"]
         ):
             raise ValueError("Invalid test approval")
+        signature_parts(data)
         return dict(data)
     except (InvalidToken, KeyError, TypeError, ValueError, AttributeError) as error:
         raise ValueError("Test approval is invalid or older than 24 hours") from error
@@ -252,6 +266,11 @@ def diagnostic_context(db: Database, now: datetime) -> dict[str, Any]:
         return {
             "mailbox_tests": tests,
             "mailbox_test_ready": worker_ready(session.get(WorkerInstance, "primary"), now),
+            "mailbox_signature_ready": bool(
+                (worker := session.get(WorkerInstance, "primary"))
+                and worker_ready(worker, now)
+                and (worker.runtime_config or {}).get("email_signatures") == 1
+            ),
             "mailbox_test_subject": SUBJECT,
             "mailbox_test_body": BODY,
         }

@@ -62,6 +62,7 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         "app_mode": settings.app_mode,
         "live_send_enabled": settings.live_send_enabled,
         "mailbox_tests": settings.mailbox_tests_enabled and settings.app_mode != "VERCEL",
+        "email_signatures": 1,
     }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:

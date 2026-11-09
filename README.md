@@ -142,3 +142,30 @@ Stop the old worker, back up the database, deploy this version, run `uv run lead
 through `0012_outreach_spec`, and start one updated worker. Review per-mailbox limits and
 readiness before enabling it. Hosting remains Vercel plus a separate PC/VPS worker; this
 release does not provision Neon or turn the application into a Vercel-only background worker.
+
+
+## v0.12 acquisition workflow
+
+Choose a campaign industry and city, configure verified API funding/rates, and use
+**Leads → Find businesses**. OpenAI Responses web search is the selected provider;
+Google Places remains disabled until the owner explicitly enables its encrypted
+connection and separate caps. No provider calls occur with the global AI switch off
+or missing funding/prices. Start with one small batch, inspect the results, then
+choose up to ten batches. Discovery stops on empty/duplicate-only results or a cap.
+
+Official-site matching requires visible business identity and location. Ambiguous
+results require review. Confirmed sites continue through website audit, contact
+extraction, rule score and optional AI assessment/draft. An eligible sender must be
+configured; every message still needs exact owner approval.
+
+Rule scores work offline, show their sources and retain versioned history. Confirm
+no-website status and listing observations on the lead page. Select the website +
+Google Business Profile package from your Offer Library. **Today → Calls** provides
+a printable/mobile list, human outcomes and consent capture; there is no automated
+dialer. Reviewers can use Calls but cannot open Settings. AI note cleanup uses the
+draft model and produces suggestions or an unapproved email draft.
+
+Every lead has an event-derived stage bar, next action, score history and a linked
+timeline in Calgary/Pakistan time. Migrations 0013/0014 backfill existing records and
+enforce append-only event storage. Read [the acquisition guide](docs/acquisition.md)
+for setup, provider retention rules, limitations and acceptance checks.

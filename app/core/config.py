@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     openai_draft_output_usd_micro_per_million: int = Field(default=0, ge=0)
     openai_input_usd_micro_per_million: int = Field(default=0, ge=0)
     openai_output_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_search_max_output_tokens: int = Field(default=6000, ge=1000, le=10000)
     openai_max_output_tokens: int = Field(default=1500, ge=500, le=4000)
     worker_poll_seconds: float = Field(default=2, ge=0.1, le=30)
     worker_lease_seconds: int = Field(default=30, ge=5, le=300)

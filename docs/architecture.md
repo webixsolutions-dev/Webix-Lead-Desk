@@ -176,3 +176,15 @@ and versioned like owner guidance. Local meetings use owner data, never website 
 
 Hosting remains unchanged: Vercel handles bounded web requests, PostgreSQL is shared, and one
 PC/VPS worker handles SMTP, IMAP and queued audits. No Neon resource is provisioned by v0.11.
+
+
+## Acquisition workflow (v0.12)
+
+Sections 11–15 add `sources/enrichment/`, `scoring/`, `calls/` and `journey/`.
+Migrations 0013/0014 introduce search reservations/quota buckets, score policies and
+history, human calls/note suggestions and append-only lead events. Existing
+WorkspaceSetting/AuditEvent tables version search configuration; encrypted
+IntegrationSecret stores optional Places keys. See
+[ADR 0013](decisions/0013-acquisition-workflow.md) and [setup](acquisition.md).
+The single leased PC/VPS worker handles discovery and its continuation; Vercel's
+web entrypoint does not create a persistent background loop.

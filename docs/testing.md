@@ -50,3 +50,16 @@ Full tests use loopback provider fakes or mocks. CI separately checks PostgreSQL
 and populated SQLite-to-PostgreSQL recovery, with Windows setup smoke only for main/PRs.
 Real-provider credentials, DNS propagation, localized SPECIAL-USE flags and deliverability
 still require owner-controlled acceptance. Synthetic tests do not certify live account setup.
+
+
+## v0.12 acquisition regression coverage
+
+Mock Responses web search and public HTTP: official-site acceptance, directory and
+identity rejection, private redirects, source citation validation, cap-before-call,
+uncertain billing retention, concurrent cache reservations, any-city identity
+deduplication, empty-batch termination, Places opt-in/retention and worker chaining.
+Offline tests also cover rule score history, listing review, no-website consent,
+call rejection suppression, future callbacks, reviewer restrictions, journey
+filters, read-only event triggers and populated v0.11 migration/backfill.
+UI review uses synthetic static renderings; no real prospects, mailboxes or API
+credentials are included in captures. Live provider acceptance remains separate.

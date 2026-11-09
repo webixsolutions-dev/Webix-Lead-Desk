@@ -26,6 +26,9 @@ def today(request: Request, principal: CurrentUser) -> HTMLResponse:
 
     context = dashboard_context(request, principal, "today")
     context.update(metrics(services(request).db))
+    from app.calls.board import call_list
+
+    context["call_count"] = len(call_list(services(request).db))
     return render(request, "today.html", context)
 
 
@@ -84,12 +87,15 @@ def demos(request: Request, principal: CurrentUser) -> HTMLResponse:
 
 
 @router.get("/settings", response_class=HTMLResponse)
-def settings(request: Request, principal: CurrentUser) -> HTMLResponse:
+def settings(request: Request, principal: Owner) -> HTMLResponse:
     """Show safe persistent preferences and read-only connection status."""
     context = dashboard_context(request, principal, "settings")
     from app.api.playbook import settings_data
 
     context.update(settings_data(request))
+    from app.api.acquisition import settings_data as acquisition_data
+
+    context.update(acquisition_data(request))
     from app.api.learning import learning_data
     from app.api.operations import operations_data
 

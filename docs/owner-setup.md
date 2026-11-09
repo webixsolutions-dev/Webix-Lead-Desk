@@ -97,3 +97,14 @@ Sources checked 2026-11-09: [API credits](https://developers.openai.com/api/docs
 [Batch API](https://developers.openai.com/api/docs/guides/batch),
 [Google app passwords](https://support.google.com/mail/answer/185833),
 [Hostinger settings](https://www.hostinger.com/support/1575756-how-to-get-email-account-configuration-details-for-hostinger-email/).
+
+
+## v0.12 discovery and call setup
+
+Follow [the acquisition guide](acquisition.md). Apply migrations 0013/0014 after
+backup, configure search price/caps, then enable the existing AI switch only after
+funding is verified. `OPENAI_SEARCH_MAX_OUTPUT_TOKENS` defaults to 6000. Select the
+no-website package from Offer Library. No Google Places account is needed while
+that provider stays off. Start the existing PC/VPS worker using the shared database.
+Reviewers can use Today → Calls; Settings is now owner-only. No live sender or
+production Neon acceptance is implied by the offline test suite.

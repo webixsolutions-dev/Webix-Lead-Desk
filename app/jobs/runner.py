@@ -7,10 +7,12 @@ from datetime import datetime, timedelta
 from random import SystemRandom
 
 from app.audit.batch import BatchPending
+from app.audit.budget import BudgetBlocked
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.db.models import Job, new_id
 from app.db.session import Database
+from app.integrations.openai import ModelUnavailable
 from app.jobs.heartbeat import keep_alive
 from app.jobs.queue import acquire_worker, claim_next, finish_job, release_worker
 
@@ -66,6 +68,31 @@ def run_once(
             retry = clock() + timedelta(seconds=delay + SystemRandom().uniform(0, 1))
         finish_job(db, job, clock(), error_code="temporary_failure", retry_at=retry)
         logger.warning("Job temporary failure id=%s", job.id)
+    except (BudgetBlocked, ModelUnavailable, ValueError) as error:
+        from app.sources.enrichment.flow import hold
+
+        if job.payload.get("company_id"):
+            hold(
+                db,
+                job.payload["company_id"],
+                job.id,
+                str(error)[:300]
+                if isinstance(error, BudgetBlocked)
+                else "Research or configuration needs review; inspect the failed job",
+            )
+        code = (
+            "budget_or_cache_blocked"
+            if isinstance(error, BudgetBlocked)
+            else "provider_or_input_review"
+        )
+        finish_job(
+            db,
+            job,
+            clock(),
+            error_code=code,
+            result=str(error)[:300] if isinstance(error, BudgetBlocked) else None,
+        )
+        logger.warning("Job held id=%s code=%s", job.id, code)
     except PermanentJobError:
         finish_job(db, job, clock(), error_code="handler_unavailable")
         logger.error("Job unavailable id=%s", job.id)
@@ -106,6 +133,11 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
     """Run an explicitly registered handler; imports are idempotent by source key."""
     if job.kind == "health":
         return health_handler(job)
+    if job.kind == "score":
+        from app.scoring.service import score
+
+        item = score(db, job.payload["company_id"], job.payload["campaign_id"])
+        return f"Rule score updated: {item.points}/10 · {item.band}"
     if job.kind == "calgary":
         from app.integrations.http import FetchError
         from app.sources.calgary import discover
@@ -123,14 +155,38 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
             if error.temporary:
                 raise TemporaryJobError("Source temporarily unavailable") from error
             raise PermanentJobError("Source unavailable") from error
+    if settings is not None and job.kind in {"discover", "enrich_company", "advance_company"}:
+        from app.sources.enrichment.flow import advance, enrich_company
+        from app.sources.enrichment.flow import discover as discover_city
+
+        handler = {
+            "discover": discover_city,
+            "enrich_company": enrich_company,
+            "advance_company": advance,
+        }[job.kind]
+        return handler(db, settings, job)
+    if settings is not None and job.kind == "call_notes":
+        from app.calls.notes import clean_notes
+
+        return clean_notes(db, settings, job.payload["call_id"], job.id)
     if job.kind == "audit":
         from app.audit.service import research
 
-        return research(db, job)
+        result = research(db, job)
+        if job.payload.get("continue_flow"):
+            from app.jobs.queue import enqueue
+
+            enqueue(db, "audited:" + job.id, "advance_company", job.payload, utc_now())
+        return result
     if job.kind == "assess" and settings is not None:
         from app.audit.ai import assess
 
-        return assess(db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id)
+        result = assess(db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id)
+        if job.payload.get("continue_flow"):
+            from app.jobs.queue import enqueue
+
+            enqueue(db, "assessed:" + job.id, "draft", job.payload, utc_now())
+        return result
     if job.kind == "draft" and settings is not None:
         from app.drafting.ai import generate
 

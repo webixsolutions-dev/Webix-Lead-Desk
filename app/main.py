@@ -12,7 +12,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.responses import JSONResponse, Response
 
 from app.api import (
+    acquisition,
     auth,
+    calls,
     dashboard,
     delivery,
     demos,
@@ -115,6 +117,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"status": "ready"})
 
     app.include_router(auth.router)
+    app.include_router(acquisition.router)
+    app.include_router(calls.router)
     app.include_router(dashboard.router)
     app.include_router(sources.router)
     app.include_router(research.router)

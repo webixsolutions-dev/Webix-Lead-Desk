@@ -3,7 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.db.lead_models import ChannelReservation, SuppressionEntry
+from app.db.lead_models import ChannelReservation, Company, Contact, SuppressionEntry
 from app.db.session import Database
 from app.sources.validation import domain_of, email_address
 
@@ -55,7 +55,7 @@ def is_suppressed(db: Database, email: str, website: str = "") -> bool:
 
 def reserve_channel(db: Database, company_id: str, channel: str) -> bool:
     """Atomically reserve email or manual form first touch, never both."""
-    if channel not in {"email", "form"}:
+    if channel not in {"email", "form", "call", "dm"}:
         raise ValueError("Unknown first-touch channel")
     try:
         with db.sessions.begin() as session:
@@ -68,3 +68,28 @@ def reserve_channel(db: Database, company_id: str, channel: str) -> bool:
         with db.sessions() as session:
             existing = session.get(ChannelReservation, company_id)
             return existing is not None and existing.channel == channel
+
+
+def company_suppressed(db: Database, company_id: str) -> bool:
+    """Apply global stops to a business even before it has a usable email address."""
+    import re
+
+    with db.sessions() as session:
+        company = session.get(Company, company_id)
+        if not company:
+            return True
+        keys = {"company:" + company_id}
+        if company.phone:
+            keys.add("phone:" + re.sub(r"\D", "", company.phone))
+        if company.website:
+            keys.add("domain:" + domain_of(company.website))
+        for address in session.scalars(
+            select(Contact.email).where(Contact.company_id == company_id)
+        ):
+            keys.update({"email:" + address, "domain:" + address.rsplit("@", 1)[1]})
+        return (
+            session.scalar(
+                select(SuppressionEntry.id).where(SuppressionEntry.key.in_(keys)).limit(1)
+            )
+            is not None
+        )

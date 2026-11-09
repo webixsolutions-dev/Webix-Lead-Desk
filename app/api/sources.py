@@ -2,15 +2,17 @@
 
 from datetime import timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, Principal, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
+from app.db.acquisition_models import LeadScore
 from app.db.lead_models import (
     Campaign,
     CampaignLead,
@@ -25,6 +27,7 @@ from app.db.lead_models import (
 from app.db.models import AuditEvent
 from app.db.research_models import Assessment, Evidence, WebsiteAudit
 from app.jobs.queue import enqueue
+from app.journey.project import summary
 from app.policy.contacts import suppress
 from app.sources.importing import import_candidates, parse_csv
 from app.sources.validation import domain_of, website_url
@@ -36,7 +39,18 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
     """Read a bounded page of actual records and associated campaign choices."""
     context = dashboard_context(request, principal, "leads")
     with services(request).db.sessions() as session:
-        query = select(Company).order_by(Company.created_at.desc())
+        latest_score = (
+            select(LeadScore.points)
+            .where(LeadScore.company_id == Company.id)
+            .order_by(LeadScore.created_at.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
+        query = select(Company).order_by(
+            latest_score.desc().nulls_last(), Company.created_at.desc()
+        )
+        if request.query_params.get("website") == "none":
+            query = query.where(Company.has_website == "false")
         campaign_id = request.query_params.get("campaign", "")
         search = request.query_params.get("q", "").strip()[:120]
         if campaign_id:
@@ -50,8 +64,42 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
             )
         if search:
             query = query.where(Company.name.icontains(search, autoescape=True))
+        companies = []
+        journeys = {}
+        for business in session.scalars(query.execution_options(yield_per=50)):
+            journey = summary(session, business.id)
+            if (
+                request.query_params.get("stage")
+                and journey["stage"] != request.query_params["stage"]
+            ):
+                continue
+            if request.query_params.get("band") and (
+                not journey["score"] or journey["score"].band != request.query_params["band"]
+            ):
+                continue
+            if request.query_params.get("today") == "1" and not journey["needs_today"]:
+                continue
+            if request.query_params.get("since") and (
+                not journey["last"]
+                or journey["last"]
+                .occurred_at.astimezone(ZoneInfo("America/Edmonton"))
+                .date()
+                .isoformat()
+                < request.query_params["since"]
+            ):
+                continue
+            companies.append(business)
+            journeys[business.id] = journey
+            if len(companies) == 100:
+                break
         context.update(
-            companies=list(session.scalars(query.limit(100))),
+            companies=companies,
+            journeys=journeys,
+            no_website_count=session.scalar(
+                select(func.count()).select_from(Company).where(Company.has_website == "false")
+            )
+            or 0,
+            lead_filters=dict(request.query_params),
             campaigns=list(
                 session.scalars(select(Campaign).order_by(Campaign.created_at.desc()).limit(100))
             ),
@@ -204,6 +252,9 @@ def company_detail(request: Request, principal: CurrentUser, company_id: str) ->
                 session.scalars(select(SourceRecord).where(SourceRecord.company_id == company_id))
             ),
         )
+    from app.api.acquisition import company_data
+
+    context.update(company_data(request, company_id))
     return render(request, "company.html", context)
 
 
@@ -232,6 +283,7 @@ async def review_website(
                 domain = CompanyDomain(company_id=company_id, domain=domain_of(url))
                 session.add(domain)
             company.website = url
+            company.has_website = "true"
             domain.status, domain.review_note = "verified", note
             domain.reviewed_by, domain.reviewed_at = principal.user.id, utc_now()
             session.add(

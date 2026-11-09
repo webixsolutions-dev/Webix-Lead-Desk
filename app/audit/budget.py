@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.db.research_models import AICall, BudgetAccount
 from app.db.session import Database
@@ -21,27 +22,36 @@ def reserve(
         raise BudgetBlocked("Invalid model rate or maximum cost")
     try:
         with db.sessions.begin() as session:
-            if session.scalar(select(AICall).where(AICall.request_key == key)):
-                raise BudgetBlocked("Request already reserved; reconcile it before any retry")
-            limit = BudgetAccount.allowance * (0.9 if audit else 1)
-            changed = session.scalar(
-                update(BudgetAccount)
-                .where(
-                    BudgetAccount.key == "primary",
-                    BudgetAccount.expires_at > now,
-                    BudgetAccount.committed + maximum <= limit,
-                )
-                .values(committed=BudgetAccount.committed + maximum)
-                .returning(BudgetAccount.key)
-            )
-            if not changed:
-                raise BudgetBlocked("Verified funding is missing, expired or at its spending limit")
-            call = AICall(request_key=key, model=model, reserved=maximum, state="reserved")
-            session.add(call)
-            session.flush()
-            return call
+            return reserve_in_session(session, key, model, maximum, now, audit=audit)
     except IntegrityError as error:
         raise BudgetBlocked("Request was already reserved") from error
+
+
+def reserve_in_session(
+    session: Session, key: str, model: str, maximum: int, now: datetime, *, audit: bool = True
+) -> AICall:
+    """Reserve within a caller transaction so provider quotas and funds commit together."""
+    if not 0 < maximum <= 1_000_000_000 or not model or len(key) > 128:
+        raise BudgetBlocked("Invalid model rate or maximum cost")
+    if session.scalar(select(AICall).where(AICall.request_key == key)):
+        raise BudgetBlocked("Request already reserved; reconcile it before any retry")
+    limit = BudgetAccount.allowance * (0.9 if audit else 1)
+    changed = session.scalar(
+        update(BudgetAccount)
+        .where(
+            BudgetAccount.key == "primary",
+            BudgetAccount.expires_at > now,
+            BudgetAccount.committed + maximum <= limit,
+        )
+        .values(committed=BudgetAccount.committed + maximum)
+        .returning(BudgetAccount.key)
+    )
+    if not changed:
+        raise BudgetBlocked("Verified funding is missing, expired or at its spending limit")
+    call = AICall(request_key=key, model=model, reserved=maximum, state="reserved")
+    session.add(call)
+    session.flush()
+    return call
 
 
 def settle(db: Database, call_id: str, actual: int | None, result: str | None = None) -> None:

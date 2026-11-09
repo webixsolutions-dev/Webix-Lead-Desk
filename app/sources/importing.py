@@ -49,7 +49,10 @@ def import_candidates(
     db: Database, campaign_id: str, rows: list[Candidate], source: str, actor: str
 ) -> CampaignRun:
     """Import a validated batch atomically; shared domains stay separate and need review."""
-    if source not in {"csv", "open_calgary"} or not 1 <= len(rows) <= 500:
+    if (
+        source not in {"csv", "open_calgary", "openai_web_search", "google_places"}
+        or not 1 <= len(rows) <= 500
+    ):
         raise ValueError("Invalid import source or row count")
     with db.sessions.begin() as session:
         campaign = session.get(Campaign, campaign_id)
@@ -157,4 +160,7 @@ def import_candidates(
                 created_at=utc_now(),
             )
         )
-        return run
+    from app.sources.enrichment.flow import plan_import
+
+    plan_import(db, run.id, campaign_id, actor)
+    return run

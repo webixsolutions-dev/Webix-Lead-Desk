@@ -31,6 +31,9 @@ def configure_sqlite(connection: sqlite3.Connection, record: ConnectionPoolEntry
 
 def create_database(settings: Settings) -> Database:
     """Construct an engine without creating or modifying the schema."""
+    from app.journey.capture import install_capture
+
+    install_capture()
     url = make_url(settings.database_url)
     options: dict[str, object] = {}
     if url.get_backend_name() == "sqlite":

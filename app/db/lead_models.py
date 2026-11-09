@@ -53,6 +53,7 @@ class Company(Base):
     address: Mapped[str] = mapped_column(String(300), default="")
     website: Mapped[str] = mapped_column(String(2000), default="")
     phone: Mapped[str] = mapped_column(String(60), default="")
+    has_website: Mapped[str] = mapped_column(String(8), default="unknown", server_default="unknown")
     status: Mapped[str] = mapped_column(String(32), default="new")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 

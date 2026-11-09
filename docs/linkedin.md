@@ -151,3 +151,10 @@ setup remain owner acceptance tasks; no live LinkedIn action occurs in automated
 Every task that opens a prospect profile also consumes the conservative view allowance;
 combined invitations/messages/comments cannot bypass it. Activity performed outside
 Lead Desk is not observable and must be accounted for by lowering owner limits.
+
+## Completed L4–L5
+
+[Public posting](linkedin-posting.md) and [observed results](linkedin-results.md)
+are implemented behind the existing owner/member boundaries. Official posting remains
+disabled until real OAuth setup. Analytics are confirmed actions plus manually entered
+post/SSI observations; no LinkedIn scraping, automated invitations or DMs are used.

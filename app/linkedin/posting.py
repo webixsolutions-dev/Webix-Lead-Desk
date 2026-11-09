@@ -158,6 +158,8 @@ def dispatch(db: Database, settings: Settings, post_id: str) -> str:
         lock_policy(session, post.profile_id, utc_now())
         session.refresh(post)
         if post.state == ("uploading" if uploading else "submitting"):
+            if state == "published":
+                post.published_at = utc_now()
             post.state, post.reason, post.published_url, post.media_urn = (
                 state,
                 reason,

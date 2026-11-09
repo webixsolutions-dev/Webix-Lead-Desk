@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
+from app.db.lead_models import Company
 from app.db.linkedin_draft_models import LinkedInApproval, LinkedInDraft
 from app.db.linkedin_models import (
     CompanyCoordination,
@@ -155,7 +156,13 @@ def save(
             raise ValueError("Choose up to ten reviewed facts belonging to this business")
         if not 3 <= len(angle.strip()) <= 120:
             raise ValueError("Name the angle so results can be compared later")
+        company = session.get(Company, task.company_id)
+        ownership = session.get(PersonOwnership, task.person_id)
         data = {
+            "measurement": {
+                "segment": company.industry if company else "unknown",
+                "warm": ownership.warm if ownership else None,
+            },
             "task_id": task.id,
             "company_id": task.company_id,
             "sender_user_id": profile.user_id,

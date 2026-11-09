@@ -20,6 +20,10 @@ def plan_profile(db: Database, profile_id: str, now: datetime) -> int:
         if maintenance_enabled(session):
             return 0
         policy = lock_policy(session, profile_id, now)
+        from app.linkedin.learning import evaluate_pause
+
+        if evaluate_pause(session, profile_id, now):
+            return 0
         profile = session.get(LinkedInProfile, profile_id, populate_existing=True)
         user = session.get(User, profile.user_id) if profile else None
         if not profile or profile.status != "active" or not user or not user.active:

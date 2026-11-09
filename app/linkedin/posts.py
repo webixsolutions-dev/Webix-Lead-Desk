@@ -298,6 +298,7 @@ def native_action(db: Database, post_id: str, actor: str, action: str, url: str 
                 url,
             ):
                 raise ValueError("Confirm the actual published LinkedIn post URL after checking")
+            post.published_at = utc_now()
             post.state, post.published_url, post.reason = (
                 "published",
                 url,

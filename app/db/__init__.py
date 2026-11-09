@@ -6,6 +6,7 @@ from app.db import form_models as form_models
 from app.db import lead_models as lead_models
 from app.db import learning_models as learning_models
 from app.db import linkedin_draft_models as linkedin_draft_models
+from app.db import linkedin_metric_models as linkedin_metric_models
 from app.db import linkedin_models as linkedin_models
 from app.db import linkedin_post_models as linkedin_post_models
 from app.db import linkedin_queue_models as linkedin_queue_models

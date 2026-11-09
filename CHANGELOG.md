@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.17.0 — LinkedIn L5: observed results and reviewed learning
+
+- Scoped weekly profile cohorts with distinct people, explicit denominators and 30-day reply attribution.
+- First-message angle/context comparisons; no candidate leader below 50 contacts per comparable variant.
+- Automatic profile hold below 20% acceptance after 50+ invitations, with attributable owner resume.
+- Immutable manual SSI, restriction and cumulative post snapshots; provider analytics are not assumed.
+- Fortnightly inert Playbook proposals and approved guidance in future creative briefs.
+- Publication-confirmation timestamps, batched provenance queries and offline regression tests.
+- Original phases and LinkedIn L1–L5 code are complete; real owner/provider launch checks remain separate.
+
 ## v0.16.0 — LinkedIn L4: reviewed member posting
 
 - Staggered calendar, distinct copy, warm-up post caps and immutable exact approvals.

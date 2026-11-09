@@ -216,3 +216,10 @@ short worker jobs; no work runs after a Vercel request finishes. Media uses priv
 1 MB base64 database chunks shared by PC/VPS/Vercel, retaining portable JSON backups.
 OAuth state is excluded from backups; encrypted tokens use the existing credential
 vault and key fingerprint. Maintenance turns in-flight posts into checked holds.
+
+L5 adds immutable profile/post observation tables and a mutable owner risk-review
+baseline. Recorded touch cohorts drive scoped weekly reports; task quotas are not
+performance data. Automatic profile holds run in the worker and action-start fences.
+Fortnight summaries enter the existing pending LearningProposal workflow and cannot
+publish guidance. Publication-confirmation timestamps are nullable for legacy posts;
+no historical timestamps or metrics are invented.

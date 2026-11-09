@@ -121,6 +121,14 @@ def post_page(request: Request, principal: CurrentUser, post_id: str) -> HTMLRes
                 )
             ),
         )
+    if post.kind != "video":
+        from app.playbook.service import current_guidance
+
+        guidance = current_guidance(services(request).db)
+        if guidance:
+            context["prompt"] += "\nOwner-approved Playbook guidance:\n" + "\n".join(
+                item.guidance for item in guidance
+            )
     return render(request, "linkedin_post.html", context)
 
 

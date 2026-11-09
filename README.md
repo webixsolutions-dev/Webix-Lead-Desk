@@ -214,3 +214,11 @@ The Outbox → LinkedIn queue → Post calendar contains two staggered weekly im
 slots per real member, optional text/video slots, immutable caption/media approval,
 and member-only native fallback. Official OAuth and publication are disabled until
 configured. [Posting setup and limitations](docs/linkedin-posting.md).
+
+### LinkedIn results and learning (v0.17)
+
+Results & learning shows scoped weekly cohorts, manually observed post totals/SSI,
+comparable angle tests and profile holds. Closed-fortnight proposals remain pending
+until the owner applies a reviewed Playbook rule. [Metric definitions](docs/linkedin-results.md)
+and [the remaining owner launch sequence](docs/owner-setup.md#final-launch-sequence).
+Code completion is separate from real provider connection, PC startup and live acceptance.

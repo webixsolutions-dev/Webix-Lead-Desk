@@ -90,6 +90,12 @@ def settings(request: Request, principal: CurrentUser) -> HTMLResponse:
     from app.api.playbook import settings_data
 
     context.update(settings_data(request))
+    from app.api.learning import learning_data
+    from app.api.operations import operations_data
+
+    context.update(learning_data(request))
+    if principal.user.role == "owner":
+        context.update(operations_data(request))
     context["saved"] = request.query_params.get("saved") == "1"
     return render(request, "settings.html", context)
 

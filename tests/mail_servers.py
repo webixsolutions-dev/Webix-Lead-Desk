@@ -23,6 +23,7 @@ class MailServer(socketserver.ThreadingTCPServer):
         self.drop = drop
         self.search_ids = b"1"
         self.uidvalidity = b"19"
+        self.sent_folder = b"Provider Sent"
 
 
 class SMTPHandler(socketserver.StreamRequestHandler):
@@ -65,6 +66,8 @@ class IMAPHandler(socketserver.StreamRequestHandler):
             server.requests.append(rest.decode().strip())
             if command == b"CAPABILITY":
                 self.wfile.write(b"* CAPABILITY IMAP4rev1\r\n")
+            elif command == b"LIST":
+                self.wfile.write(b'* LIST (\\Sent) "/" "' + server.sent_folder + b'"\r\n')
             elif command in {b"SELECT", b"EXAMINE"}:
                 self.wfile.write(
                     b"* 1 EXISTS\r\n* OK [UIDVALIDITY " + server.uidvalidity + b"] stable\r\n"

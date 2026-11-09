@@ -9,10 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from starlette.responses import RedirectResponse
 
 from app.api.dependencies import Owner, check_csrf, read_form, services
+from app.core.clock import utc_now
 from app.db.lead_models import Campaign
-from app.db.outreach_models import Mailbox, Offer, PlaybookVersion, ProofCard
+from app.db.outreach_models import LocalTeamMember, Mailbox, Offer, PlaybookVersion, ProofCard
 from app.db.research_models import AICall, BudgetAccount
 from app.playbook.service import publish
+from app.sending.providers import PERSONAL_DOMAINS, PRESETS, connection
 from app.sources.validation import email_address, website_url
 
 router = APIRouter()
@@ -39,6 +41,7 @@ def settings_data(request: Request) -> dict[str, Any]:
             "current_playbook": versions[0] if versions else None,
             "campaigns": list(session.scalars(select(Campaign).limit(100))),
             "mailboxes": list(session.scalars(select(Mailbox))),
+            "local_team_members": list(session.scalars(select(LocalTeamMember))),
             "offers": list(session.scalars(select(Offer))),
             "proofs": list(session.scalars(select(ProofCard))),
             "ai_budget": session.get(BudgetAccount, "primary"),
@@ -46,6 +49,11 @@ def settings_data(request: Request) -> dict[str, Any]:
                 session.scalars(select(AICall).order_by(AICall.created_at.desc()).limit(10))
             ),
             "ai_enabled": services(request).settings.openai_enabled,
+            "ai_audit_model": services(request).settings.openai_audit_model
+            or services(request).settings.openai_model,
+            "ai_draft_model": services(request).settings.openai_draft_model
+            or services(request).settings.openai_model,
+            "ai_processing": services(request).settings.openai_processing,
         }
 
 
@@ -70,19 +78,22 @@ async def publish_playbook(request: Request, principal: Owner) -> RedirectRespon
 
 @router.post("/settings/mailboxes")
 async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse:
-    """Save a disabled Titan sender identity with a complete, owner-provided footer."""
+    """Save a disabled Titan or Gmail sender identity with a complete, owner-provided footer."""
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         email = email_address(fields.get("email", ""))
         lane = fields.get("lane", "client")
+        provider = fields.get("provider", "titan")
         profile = {
             key: fields.get(key, "").strip()
             for key in ("brand", "sender_name", "mailing_address", "contact_details")
         }
         if (
             not email
-            or email.split("@")[-1] in {"gmail.com", "googlemail.com"}
+            or provider not in PRESETS
+            or (provider == "titan" and email.split("@")[-1] in {"gmail.com", "googlemail.com"})
+            or (lane == "partner" and email.split("@")[-1] in PERSONAL_DOMAINS)
             or lane not in {"client", "partner"}
             or any(
                 not 2 <= len(value) <= (120 if key in {"brand", "sender_name"} else 500)
@@ -91,10 +102,18 @@ async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse
             )
         ):
             raise ValueError(
-                "Provide the actual Titan sender identity and complete mailing/contact details"
+                "Provide the actual sender identity and complete mailing/contact details"
             )
         with services(request).db.sessions.begin() as session:
-            session.add(Mailbox(email=email, provider="titan", lane=lane, **profile))
+            session.add(
+                Mailbox(
+                    email=email,
+                    provider=provider,
+                    lane=lane,
+                    connection=connection(provider),
+                    **profile,
+                )
+            )
     except (ValueError, IntegrityError) as error:
         raise HTTPException(
             422, "Check sender details; this address may already have a profile"
@@ -168,3 +187,30 @@ async def add_proof(request: Request, principal: Owner) -> RedirectResponse:
     except ValueError as error:
         raise HTTPException(422, "Provide a verified fact, title and source URL") from error
     return RedirectResponse("/settings", 303)
+
+
+@router.post("/settings/local-team")
+async def save_local_member(request: Request, principal: Owner) -> RedirectResponse:
+    """Record or disable a real local team member with explicit owner confirmation."""
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    name, city, country = (fields.get(k, "").strip() for k in ("name", "city", "country"))
+    if (
+        not 2 <= len(name) <= 120
+        or len(city) > 120
+        or country not in {"CA", "US"}
+        or fields.get("confirmed") != "true"
+    ):
+        raise HTTPException(422, "Confirm a real person's name and city/country")
+    with services(request).db.sessions.begin() as session:
+        member = session.get(LocalTeamMember, fields.get("member_id", ""))
+        if member is None:
+            member = LocalTeamMember(
+                name=name, city=city, country=country, reviewed_by=principal.user.id
+            )
+            session.add(member)
+        member.name, member.city, member.country = name, city, country
+        member.active = fields.get("active") == "true"
+        member.reviewed_by = principal.user.id
+        member.reviewed_at = utc_now()
+    return RedirectResponse("/settings#local-team", 303)

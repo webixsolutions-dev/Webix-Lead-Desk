@@ -8,7 +8,7 @@
   color: var(--ink); font-size: 14px; line-height: 1.55; font-synthesis: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--canvas); }
+body { margin: 0; background: linear-gradient(to right, white 244px, var(--canvas) 244px); }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
@@ -27,7 +27,7 @@ strong { font-weight: 600; }
 .eyebrow { font-size: 12px; letter-spacing: 1.6px; font-weight: 650; color: var(--muted); }
 .skip-link { position: fixed; top: -100px; left: 12px; z-index: 50; padding: 10px; background: white; }
 .skip-link:focus { top: 12px; }
-.sidebar { position: fixed; inset: 0 auto 0 0; width: 244px; color: #65656b; background: var(--sidebar); border-right: 1px solid var(--line); padding: 32px 18px 0; display: flex; flex-direction: column; z-index: 30; }
+.sidebar { height: 100dvh; overflow-y: auto; position: fixed; inset: 0 auto 0 0; width: 244px; color: #65656b; background: var(--sidebar); border-right: 1px solid var(--line); padding: 32px 18px 0; display: flex; flex-direction: column; z-index: 30; }
 .brand { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 0 10px; line-height: 1; }
 .brand-logo { display: block; width: 100%; max-width: 205px; height: auto; }
 .brand-sub { display: block; padding-left: 8px; font-size: 10px; letter-spacing: 3.4px; font-weight: 500; color: #85858c; }
@@ -132,6 +132,7 @@ main { max-width: 1600px; margin: 0 auto; padding: 37px 39px 20px; }
 
 @media (min-width: 1600px) { main { padding-top: 45px; } .today-grid { grid-template-columns: 1.8fr 1fr; } }
 @media (max-width: 1190px) {
+  body { background: linear-gradient(to right, white 218px, var(--canvas) 218px); }
   .sidebar { width: 218px; padding-left: 14px; padding-right: 14px; }
   .app-shell { margin-left: 218px; }
   main { padding: 28px; } .topbar { padding: 0 28px; }
@@ -150,6 +151,7 @@ main { max-width: 1600px; margin: 0 auto; padding: 37px 39px 20px; }
   .timezone-clock { display: none; }
 }
 @media (max-width: 720px) {
+  body { background: var(--canvas); }
   .sidebar { visibility: hidden; transform: translateX(-100%); width: 244px; transition: transform .2s; }
   .sidebar.is-open { visibility: visible; transform: translateX(0); box-shadow: 15px 0 40px #12182730; }
   .app-shell { margin-left: 0; }

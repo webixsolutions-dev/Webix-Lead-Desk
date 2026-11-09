@@ -17,6 +17,7 @@ class Mailbox(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     provider: Mapped[str] = mapped_column(String(24), default="titan")
+    connection: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     lane: Mapped[str] = mapped_column(String(16))
     brand: Mapped[str] = mapped_column(String(120))
     sender_name: Mapped[str] = mapped_column(String(120))
@@ -49,6 +50,10 @@ class Draft(Base):
     __table_args__ = (UniqueConstraint("conversation_id", "step", "revision"),)
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True)
+    kind: Mapped[str] = mapped_column(
+        String(20), default="first_touch", server_default="first_touch"
+    )
+    sequence_step: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     step: Mapped[int] = mapped_column(Integer, default=0)
     revision: Mapped[int] = mapped_column(Integer)
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
@@ -104,3 +109,16 @@ class ProofCard(Base):
     source_url: Mapped[str] = mapped_column(String(2000))
     approved_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
     approved_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
+class LocalTeamMember(Base):
+    """An owner-recorded person available locally; never inferred from a website."""
+
+    __tablename__ = "local_team_members"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(120))
+    city: Mapped[str] = mapped_column(String(120), default="")
+    country: Mapped[str] = mapped_column(String(2))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    reviewed_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)

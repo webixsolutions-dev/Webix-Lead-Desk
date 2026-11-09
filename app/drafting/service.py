@@ -3,7 +3,7 @@
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.clock import utc_now
@@ -13,11 +13,14 @@ from app.db.outreach_models import Conversation, Draft, DraftApproval, Mailbox
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.demos.service import concept_attachment
-from app.drafting.content import check_copy, fingerprint, footer
+from app.drafting.content import check_copy, fingerprint, footer, links
 from app.learning.capture import capture_edit
 from app.partners.service import partner_block, reserve_slot
+from app.playbook.partner import meeting_block
 from app.playbook.service import current_guidance
 from app.policy.contacts import is_suppressed
+from app.policy.verification import verification_block, verify_address
+from app.sending.sequences import days_for
 from app.sources.validation import domain_of
 
 
@@ -35,12 +38,26 @@ def save_draft(
     previous_id: str | None = None,
     step: int = 0,
     concept_id: str | None = None,
+    kind: str | None = None,
 ) -> Draft:
     """Create a revision; supersede the expected predecessor atomically without reusing approval."""
     check_copy(subject, body, first_touch=step == 0)
     if not 0 <= step <= 20 or not 1 <= len(evidence_ids) <= 10:
         raise ValueError("Use a supported message step with 1–10 evidence references")
     guidance = current_guidance(db, campaign_id)
+    if previous_id and not concept_id:
+        with db.sessions() as session:
+            old_draft = session.get(Draft, previous_id)
+            if old_draft and old_draft.snapshot.get("attachments"):
+                concept_id = old_draft.snapshot["attachments"][0]["id"]
+    kind = kind or ("concept" if concept_id else "follow_up" if step else "first_touch")
+    if kind not in {"first_touch", "follow_up", "concept", "reply"}:
+        raise ValueError("Invalid message kind")
+    if (kind == "concept") != bool(concept_id) or (kind == "first_touch") != (step == 0):
+        raise ValueError("Message kind does not match its sequence or concept")
+    if step > 4 and kind == "follow_up":
+        raise ValueError("Only four follow-ups are supported")
+    sequence_step = step if kind == "follow_up" else 0
     try:
         with db.sessions.begin() as session:
             campaign = session.get(Campaign, campaign_id)
@@ -61,6 +78,26 @@ def save_draft(
                 or not member
             ):
                 raise ValueError("Choose a contact and sender matching this business and campaign")
+            company = session.get(Company, company_id)
+            assert company
+            if reason := meeting_block(session, company, campaign, body):
+                raise ValueError(reason)
+            if campaign.lane == "partner" and (
+                mailbox.provider != "hostinger" or mailbox.brand.casefold() != "webix solutions"
+            ):
+                raise ValueError(
+                    "Partner outreach requires the Webix Solutions Hostinger business identity"
+                )
+            if kind == "follow_up" and step > len(days_for(campaign)):
+                raise ValueError("Follow-up is not enabled for this campaign")
+            if kind == "reply" and (
+                not session.scalar(
+                    select(Conversation.id).where(
+                        Conversation.company_id == company_id, Conversation.state == "replied"
+                    )
+                )
+            ):
+                raise ValueError("A manual reply requires a recipient reply")
             if step == 0:
                 reserve_slot(session, company_id, campaign, utc_now())
             found = set(
@@ -97,7 +134,7 @@ def save_draft(
                     mailbox_id,
                 )
             if conversation.state in {"held", "stopped"} or (
-                conversation.state == "replied" and step < 2
+                conversation.state == "replied" and kind not in {"concept", "reply"}
             ):
                 raise ValueError("This conversation is stopped or requires a human response")
             if step and not conversation.first_message_id:
@@ -114,7 +151,13 @@ def save_draft(
                     raise ValueError("Keep the original subject for this same-thread follow-up")
             previous = session.scalar(
                 select(Draft)
-                .where(Draft.conversation_id == conversation.id, Draft.step == step)
+                .where(
+                    Draft.conversation_id == conversation.id,
+                    Draft.kind == kind,
+                    Draft.sequence_step == sequence_step
+                    if kind == "follow_up"
+                    else Draft.step == step,
+                )
                 .order_by(Draft.revision.desc())
                 .limit(1)
             )
@@ -135,8 +178,24 @@ def save_draft(
                     raise ValueError("Another editor changed this draft")
             elif previous_id:
                 raise ValueError("Previous draft not found")
+            # Delivery slots are monotonic and unique; sequence numbers belong to follow-ups.
+            # A concept/reply can therefore never occupy a follow-up's sequence position.
+            if kind == "follow_up":
+                step = (
+                    previous.step
+                    if previous
+                    else (
+                        session.scalar(
+                            select(func.max(Draft.step)).where(
+                                Draft.conversation_id == conversation.id
+                            )
+                        )
+                        or 0
+                    )
+                    + 1
+                )
             attachments: list[dict[str, str]] = []
-            if step >= 2:
+            if concept_id:
                 actor = session.get(User, actor_id)
                 if not actor or not actor.active or actor.role != "owner":
                     raise ValueError("Only the owner can prepare a concept response")
@@ -148,13 +207,27 @@ def save_draft(
                 attachment = concept_attachment(session, concept_id, conversation)
                 if attachment["url"] not in body:
                     raise ValueError("Keep the exact approved concept link in the message")
+                if set(links(body)) != {attachment["url"]}:
+                    raise ValueError("Concept messages may include only the approved concept link")
                 attachments = [attachment]
+            if kind == "follow_up":
+                earlier = session.scalars(
+                    select(Draft).where(
+                        Draft.conversation_id == conversation.id, Draft.state == "sent"
+                    )
+                )
+                if any(
+                    " ".join(d.snapshot["body"].lower().split()) == " ".join(body.lower().split())
+                    for d in earlier
+                ):
+                    raise ValueError("Each follow-up needs its own angle, not the previous copy")
             snapshot: dict[str, Any] = {
                 "company_id": company_id,
                 "campaign_id": campaign_id,
                 "contact_id": contact_id,
                 "mailbox_id": mailbox_id,
                 "from_email": mailbox.email,
+                "provider": mailbox.provider,
                 "from_name": mailbox.sender_name,
                 "recipient": contact.email,
                 "subject": subject.strip(),
@@ -164,6 +237,17 @@ def save_draft(
                 "playbook_ids": [item.id for item in guidance],
                 "attachments": attachments,
                 "step": step,
+                "kind": kind,
+                "angle": (
+                    (
+                        ["proof", "close the loop"]
+                        if campaign.lane == "partner"
+                        else ["problem", "proof", "different question or tip", "close the loop"]
+                    )[sequence_step - 1]
+                    if kind == "follow_up"
+                    else kind
+                ),
+                "sequence_step": sequence_step,
                 "conversation_id": conversation.id,
                 "in_reply_to": conversation.last_message_id if step else None,
                 "references": [conversation.first_message_id] if step else [],
@@ -171,6 +255,8 @@ def save_draft(
             item = Draft(
                 conversation_id=conversation.id,
                 step=step,
+                kind=kind,
+                sequence_step=sequence_step,
                 revision=previous.revision + 1 if previous else 1,
                 snapshot=snapshot,
                 digest=fingerprint(snapshot),
@@ -191,6 +277,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
     """Recheck identity, contact evidence, suppression and current sender against the snapshot."""
     snapshot = draft.snapshot
     reasons: list[str] = []
+    try:
+        check_copy(snapshot["subject"], snapshot["body"], first_touch=draft.step == 0)
+    except ValueError as error:
+        reasons.append(str(error))
     if fingerprint(snapshot) != draft.digest:
         reasons.append("Content fingerprint changed")
     with db.sessions() as session:
@@ -202,10 +292,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
         if (
             not conversation
             or conversation.state in {"held", "stopped"}
-            or (conversation.state == "replied" and draft.step < 2)
+            or (conversation.state == "replied" and draft.kind not in {"concept", "reply"})
         ):
             reasons.append("Conversation is held or has a reply")
-        if draft.step >= 2 and conversation:
+        if snapshot.get("attachments") and conversation:
             try:
                 attachments = snapshot.get("attachments", [])
                 if len(attachments) != 1:
@@ -216,10 +306,23 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
                     conversation,
                     transmitting=draft.state == "sending",
                 )
-                if current != attachments[0] or current["url"] not in snapshot["body"]:
+                if current != attachments[0] or set(links(snapshot["body"])) != {current["url"]}:
                     raise ValueError("Concept binding changed")
             except (ValueError, KeyError, TypeError):
                 reasons.append("Concept approval, share link or qualification changed")
+        if (
+            company
+            and campaign
+            and (reason := meeting_block(session, company, campaign, snapshot["body"]))
+        ):
+            reasons.append(reason)
+        if (
+            campaign
+            and campaign.lane == "partner"
+            and mailbox
+            and (mailbox.provider != "hostinger" or mailbox.brand.casefold() != "webix solutions")
+        ):
+            reasons.append("Partner sender must be Webix Solutions on Hostinger")
         if not campaign or not campaign.active:
             reasons.append("Campaign is inactive")
         elif block := partner_block(session, snapshot["company_id"], campaign):
@@ -234,14 +337,15 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append("Sender lane does not match the campaign")
         if (
             not mailbox
-            or mailbox.provider != "titan"
+            or mailbox.provider not in {"titan", "hostinger", "gmail"}
             or (
-                mailbox.email != snapshot["from_email"]
+                mailbox.provider != snapshot.get("provider", "titan")
+                or mailbox.email != snapshot["from_email"]
                 or footer(mailbox) != snapshot["footer"]
                 or mailbox.sender_name != snapshot["from_name"]
             )
         ):
-            reasons.append("Sender identity changed or is not an eligible Titan profile")
+            reasons.append("Sender identity changed or is not an eligible sender profile")
         if (
             not company
             or not company.website
@@ -262,6 +366,8 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             or contact.verified_at < utc_now() - timedelta(days=30)
         ):
             reasons.append("Contact address needs recent verification")
+        if contact and (reason := verification_block(contact)):
+            reasons.append(reason)
         basis = session.scalar(
             select(ContactBasis)
             .where(ContactBasis.contact_id == snapshot["contact_id"])
@@ -284,6 +390,7 @@ def approve(db: Database, draft_id: str, digest: str, actor_id: str) -> None:
             raise ValueError("Only the owner can approve a message")
         if item is None or item.state != "draft" or digest != item.digest:
             raise ValueError("Draft changed. Reload before approving.")
+    verify_address(db, item.snapshot["contact_id"])
     reasons = approval_blocks(db, item)
     if reasons:
         raise ValueError("; ".join(reasons))

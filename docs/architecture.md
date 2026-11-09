@@ -151,3 +151,28 @@ paid generation is involved in this memory workflow.
 ## Phase 10 operations
 
 `runtime_control` provides a shared maintenance gate. `app/operations/` fences work, takes a consistent portable snapshot, verifies credential recovery and restores only empty current-schema databases in a transaction. A separate backup key protects files; environment secrets never enter the payload. Restored login sessions are omitted, all delivery identities and approval hashes remain intact, and maintenance stays on. The operator must stop web/workers and confirm the offline window; maintenance alone cannot cancel an in-flight write. See operations.md and move-to-vps.md.
+
+## Outreach review corrections
+
+Mailbox provider is selected explicitly and bound into new approval snapshots. Fixed provider hosts prevent arbitrary SMTP/IMAP routing. DNS routing is checked at the worker transport boundary before SMTP reservation, and is mockable.
+
+Follow-up steps 1–4 are sequential, separately approved and spaced at least three days from previous acceptance. Concept responses are identified by their reviewed attachment binding rather than by numeric step; existing concept IDs remain compatible. Human replies stop all pending outreach; delayed/success DSNs are recorded without becoming prospect replies.
+
+Optional audit Batch API adds nullable `ai_calls.batch` metadata in migration 0011. Reserve
+budget, persist submission intent, submit once, persist the provider ID, then release the
+worker job until the next poll. Ambiguous creates remain held; polling does not consume
+transient-error retries. Drafting always remains synchronous. Both tasks validate output and
+never approve messages.
+
+Migration 0012 adds per-mailbox connection JSON, campaign follow-up offsets, automatic contact
+routing evidence, explicit Draft.kind/sequence_step and owner-recorded local team members.
+`Draft.step` remains the unique monotonic delivery slot for compatibility with SendIntent.
+A follow-up's sequence position is separate: concepts/replies cannot occupy or replace it.
+Historical snapshots/digests remain unchanged; new snapshots bind kind and sequence position.
+
+Six primary navigation items expose partner/client filters and Results under Leads, with
+Learning and owner-only Operations sections in Settings. The partner Playbook is seeded once
+and versioned like owner guidance. Local meetings use owner data, never website inferences.
+
+Hosting remains unchanged: Vercel handles bounded web requests, PostgreSQL is shared, and one
+PC/VPS worker handles SMTP, IMAP and queued audits. No Neon resource is provisioned by v0.11.

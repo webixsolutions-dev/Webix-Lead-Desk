@@ -3,7 +3,7 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, Principal, check_csrf, read_form, services
@@ -17,6 +17,9 @@ from app.db.research_models import Evidence
 from app.drafting.brief import build_brief
 from app.drafting.service import approval_blocks, approve, save_draft
 from app.learning.capture import capture
+from app.playbook.partner import local_members
+from app.policy.verification import verify_address
+from app.sending.sequences import days_for
 
 router = APIRouter()
 
@@ -64,10 +67,24 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
             raise HTTPException(422, "Invalid message step") from error
         if not 0 <= step <= 20:
             raise HTTPException(422, "Invalid message step")
+        kind = request.query_params.get("kind", "follow_up" if step else "first_touch")
+        if kind not in {"first_touch", "follow_up", "concept", "reply"}:
+            raise HTTPException(422, "Invalid message kind")
+        if kind == "reply" and "step" not in request.query_params and conversation:
+            step = (
+                session.scalar(
+                    select(func.max(Draft.step)).where(Draft.conversation_id == conversation.id)
+                )
+                or 0
+            ) + 1
         item = (
             session.scalar(
                 select(Draft)
-                .where(Draft.conversation_id == conversation.id, Draft.step == step)
+                .where(
+                    Draft.conversation_id == conversation.id,
+                    Draft.kind == kind,
+                    Draft.sequence_step == step if kind == "follow_up" else Draft.step == step,
+                )
                 .order_by(Draft.revision.desc())
                 .limit(1)
             )
@@ -97,6 +114,11 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
             ),
             draft=item,
             step=step,
+            message_kind=kind,
+            can_reply=bool(conversation and conversation.state == "replied"),
+            followup_count=len(days_for(campaign)) if campaign else 4,
+            local_meeting_available=bool(campaign and local_members(session, company, campaign)),
+            partner_lane=bool(campaign and campaign.lane == "partner"),
             blocks=approval_blocks(db, item) if item else [],
         )
     context["brief"] = (
@@ -112,7 +134,7 @@ async def edit_draft(request: Request, principal: CurrentUser, company_id: str) 
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         step = int(fields.get("step", "0"))
-        save_draft(
+        draft = save_draft(
             services(request).db,
             company_id,
             fields.get("campaign_id", ""),
@@ -124,10 +146,11 @@ async def edit_draft(request: Request, principal: CurrentUser, company_id: str) 
             principal.user.id,
             previous_id=fields.get("previous_id") or None,
             step=step,
+            kind=fields.get("kind") or None,
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse(f"/leads/{company_id}/draft?step={step}", 303)
+    return RedirectResponse(f"/leads/{company_id}/draft?step={step}&kind={draft.kind}", 303)
 
 
 @router.post("/drafts/{draft_id}/approve")
@@ -196,6 +219,7 @@ async def verify_contact(request: Request, principal: Owner, contact_id: str) ->
         contact = session.get(Contact, contact_id)
         if not contact:
             raise HTTPException(404, "Contact not found")
+        contact.allow_role = fields.get("allow_role") == "true"
         contact.verification, contact.verified_at = "verified", utc_now()
         session.add(
             AuditEvent(
@@ -206,6 +230,10 @@ async def verify_contact(request: Request, principal: Owner, contact_id: str) ->
             )
         )
         company_id = contact.company_id
+    try:
+        verify_address(services(request).db, contact_id)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
     return RedirectResponse(f"/leads/{company_id}", 303)
 
 

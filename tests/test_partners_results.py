@@ -41,6 +41,8 @@ def partner_mode(db: Database, setup: dict[str, str]) -> None:
         campaign.lane = "partner"
         campaign.daily_limit = 5
         mailbox.lane = "partner"
+        mailbox.provider = "hostinger"
+        mailbox.brand = "Webix Solutions"
 
 
 def review(db: Database, company: str, actor: str, country: str = "CA") -> None:

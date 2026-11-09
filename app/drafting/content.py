@@ -23,12 +23,30 @@ def fingerprint(snapshot: dict[str, Any]) -> str:
 
 
 def check_copy(subject: str, body: str, *, first_touch: bool = True) -> None:
-    """Reject header injection, empty or oversized copy and first-touch price promises."""
+    """Reject header injection, empty or oversized copy and outreach price promises."""
     if not 3 <= len(subject.strip()) <= 150 or any(c in subject for c in "\r\n\x00"):
         raise ValueError("Use a single-line subject of 3–150 characters")
     if not 10 <= len(body.strip()) <= 5000 or "\x00" in body or len(body.split()) > 120:
         raise ValueError("Keep the message body between 10 characters and 120 words")
     if re.search(r"<\s*(html|img|script|iframe|a\b)", body, re.I):
         raise ValueError("Use plain text without HTML or images")
-    if first_touch and re.search(r"[$€£]|\b(?:CAD|USD)\s*\d|\bguarantee(?:d)?\b", body, re.I):
-        raise ValueError("First-touch copy must omit prices and guarantees")
+    if re.search(
+        r"[$€£]|\b(?:CAD|USD)\s*\d|\b\d[\d,.]*\s*(?:CAD|USD|dollars?)\b|\bguarantee(?:d)?\b",
+        subject + " " + body,
+        re.I,
+    ):
+        raise ValueError("All outreach copy must omit prices and guarantees")
+    if first_touch and links(subject + " " + body):
+        raise ValueError("First-touch subject and body must omit links")
+
+
+def links(text: str) -> list[str]:
+    """Find explicit and plain-domain links for copy validation."""
+    return [
+        m.rstrip(".,;!?)")
+        for m in re.findall(
+            r"(?:https?://|www\.)[^\s<>]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,63}(?:/[^\s<>]*)?",
+            text,
+            re.I,
+        )
+    ]

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from random import SystemRandom
 
+from app.audit.batch import BatchPending
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.db.models import Job, new_id
@@ -49,6 +50,15 @@ def run_once(
     try:
         with keep_alive(db, settings, owner, job, clock):
             result = handler(job)
+    except BatchPending:
+        finish_job(
+            db,
+            job,
+            clock(),
+            result="Batch waiting",
+            retry_at=clock() + timedelta(minutes=5),
+            polling=True,
+        )
     except TemporaryJobError:
         retry = None
         if job.attempts < settings.job_max_attempts:

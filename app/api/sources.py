@@ -41,6 +41,13 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
         search = request.query_params.get("q", "").strip()[:120]
         if campaign_id:
             query = query.join(CampaignLead).where(CampaignLead.campaign_id == campaign_id)
+        lane = request.query_params.get("lane", "")
+        if lane in {"partner", "client"}:
+            query = query.where(
+                Company.id.in_(
+                    select(CampaignLead.company_id).join(Campaign).where(Campaign.lane == lane)
+                )
+            )
         if search:
             query = query.where(Company.name.icontains(search, autoescape=True))
         context.update(
@@ -59,6 +66,7 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
                 )
             ),
             selected_campaign=campaign_id,
+            selected_lane=lane,
             search=search,
         )
     return context

@@ -1,6 +1,6 @@
 """Owner-reviewed scheduling and bounded worker planning, without email side effects."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -13,6 +13,7 @@ from app.db.outreach_models import Draft, DraftApproval, Mailbox
 from app.db.session import Database
 from app.drafting.service import approval_blocks
 from app.jobs.queue import enqueue
+from app.sending.sequences import earliest_followup
 from app.sending.window import next_window
 
 
@@ -37,6 +38,7 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
         raise ValueError("; ".join(reasons))
     try:
         with db.sessions.begin() as session:
+            due = max(now, earliest_followup(session, draft)) if draft.kind == "follow_up" else now
             existing = session.scalar(
                 select(SendIntent).where(
                     SendIntent.conversation_id == draft.conversation_id,
@@ -48,7 +50,7 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
                     if existing.state == "held" and existing.attempts == 0:
                         existing.state, existing.due_at, existing.hold_reason = (
                             "scheduled",
-                            next_window(now),
+                            next_window(due),
                             "",
                         )
                     return existing
@@ -60,20 +62,9 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
                 existing.mailbox_id = draft.snapshot["mailbox_id"]
                 existing.message_id = f"<{new_id()}@{draft.snapshot['from_email'].split('@')[1]}>"
                 existing.state, existing.hold_reason = "scheduled", ""
+                existing.due_at = next_window(due)
                 existing.wire_message = None
                 return existing
-            due = now
-            if draft.step == 1:
-                first = session.scalar(
-                    select(SendIntent).where(
-                        SendIntent.conversation_id == draft.conversation_id,
-                        SendIntent.step == 0,
-                        SendIntent.state == "accepted",
-                    )
-                )
-                if not first or not first.accepted_at:
-                    raise ValueError("Follow-up requires confirmed first-touch delivery")
-                due = max(now, first.accepted_at + timedelta(days=3))
             item = SendIntent(
                 conversation_id=draft.conversation_id,
                 draft_id=draft_id,

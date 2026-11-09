@@ -30,13 +30,25 @@ class Settings(BaseSettings):
     encryption_key: SecretStr | None = None
     backup_key: SecretStr | None = None
     backup_max_bytes: int = Field(default=100_000_000, ge=100_000, le=1_000_000_000)
+    mail_provider: Literal["titan", "hostinger", "gmail"] = "titan"
+    mail_smtp_host: str = "smtp.titan.email"
+    mail_smtp_port: int = 465
+    mail_imap_host: str = "imap.titan.email"
+    mail_imap_port: int = 993
     titan_smtp_host: Literal["smtp.titan.email"] = "smtp.titan.email"
     titan_imap_host: Literal["imap.titan.email"] = "imap.titan.email"
     mail_timeout_seconds: int = Field(default=30, ge=5, le=60)
     external_integrations_enabled: bool = False
     openai_enabled: bool = False
+    openai_processing: Literal["standard", "batch"] = "standard"
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="", max_length=120)
+    openai_audit_model: str = Field(default="gpt-6-luna", max_length=120)
+    openai_draft_model: str = Field(default="gpt-6.1-sol", max_length=120)
+    openai_audit_input_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_audit_output_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_draft_input_usd_micro_per_million: int = Field(default=0, ge=0)
+    openai_draft_output_usd_micro_per_million: int = Field(default=0, ge=0)
     openai_input_usd_micro_per_million: int = Field(default=0, ge=0)
     openai_output_usd_micro_per_million: int = Field(default=0, ge=0)
     openai_max_output_tokens: int = Field(default=1500, ge=500, le=4000)

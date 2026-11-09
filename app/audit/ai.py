@@ -7,9 +7,11 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.audit.budget import BudgetBlocked, reserve, settle
+from app.audit.batch import BatchPending, reserve_call
+from app.audit.batch import response as batch_response
+from app.audit.budget import BudgetBlocked, settle
 from app.audit.classify import Recommendation, validate_recommendation
-from app.core.clock import utc_now
+from app.core.ai_config import task_settings
 from app.core.config import Settings
 from app.core.vault import openai_key
 from app.db.lead_models import Campaign, CampaignLead
@@ -37,6 +39,7 @@ def assess(
     provider: Callable[[str, dict[str, Any]], dict[str, Any]] = create_response,
 ) -> str:
     """Classify bounded evidence once, retaining reservations after uncertain failures."""
+    settings = task_settings(settings, "audit")
     if (
         not settings.openai_enabled
         or not settings.openai_model
@@ -96,9 +99,20 @@ def assess(
         )
         / 1_000_000
     )
-    call = reserve(db, key, settings.openai_model, maximum, utc_now())
+    call = reserve_call(
+        db,
+        key,
+        settings.openai_model,
+        maximum,
+        audit=True,
+        batch=settings.openai_processing == "batch",
+    )
     try:
-        response = provider(api_key, payload)
+        response = (
+            batch_response(db, call, api_key, payload)
+            if settings.openai_processing == "batch"
+            else provider(api_key, payload)
+        )
         usage = response.get("usage", {})
         inputs, outputs = usage.get("input_tokens"), usage.get("output_tokens")
         actual = None
@@ -134,6 +148,8 @@ def assess(
                     result=result.model_dump(),
                 )
             )
+    except BatchPending:
+        raise
     except Exception:
         settle(db, call.id, None)
         raise

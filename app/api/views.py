@@ -46,7 +46,7 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
     return {
         "user": principal.user,
         "csrf": principal.csrf_token,
-        "page": page,
+        "page": "settings" if page in {"learning", "partners", "operations"} else page,
         "navigation": [
             item for item in NAVIGATION if item[0] != "operations" or principal.user.role == "owner"
         ],

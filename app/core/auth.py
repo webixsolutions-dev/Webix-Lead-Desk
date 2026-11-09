@@ -27,6 +27,10 @@ def create_user(db: Database, email: str, name: str, password: str, role: str) -
         session.add(user)
         session.flush()
         session.add(AuditEvent(actor_id=user.id, action="user.created", entity_id=user.id))
+        if role == "owner":
+            from app.playbook.partner import seed_partner
+
+            seed_partner(session, user.id)
     return user
 
 

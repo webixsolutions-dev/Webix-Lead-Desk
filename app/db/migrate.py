@@ -19,6 +19,18 @@ def migrate(settings: Settings, revision: str = "head") -> None:
         with db.engine.begin() as connection:
             config.attributes["connection"] = connection
             command.upgrade(config, revision)
+        if revision == "head":
+            from sqlalchemy import select
+
+            from app.db.models import User
+            from app.playbook.partner import seed_partner
+
+            with db.sessions.begin() as session:
+                owner = session.scalar(
+                    select(User).where(User.role == "owner", User.active.is_(True))
+                )
+                if owner:
+                    seed_partner(session, owner.id)
     finally:
         db.engine.dispose()
 

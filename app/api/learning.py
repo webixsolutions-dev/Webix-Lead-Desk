@@ -1,5 +1,7 @@
 """Private suggestion review and append-only Playbook restoration."""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -14,10 +16,9 @@ from app.learning.service import apply_proposal, dismiss_proposal, rollback
 router = APIRouter()
 
 
-@router.get("/learning", response_class=HTMLResponse)
-def learning_page(request: Request, principal: CurrentUser) -> HTMLResponse:
-    """Show attributable suggestions and the precise current version for each guidance scope."""
-    context = dashboard_context(request, principal, "learning")
+def learning_data(request: Request) -> dict[str, Any]:
+    """Read data shared by the settings section and legacy direct route."""
+    context: dict[str, Any] = {}
     with services(request).db.sessions() as session:
         latest = (
             select(PlaybookVersion.scope, func.max(PlaybookVersion.version).label("version"))
@@ -49,9 +50,18 @@ def learning_page(request: Request, principal: CurrentUser) -> HTMLResponse:
             history=history[:100],
             scope_names={
                 "global": "Global guidance",
+                "partner": "Partner guidance",
                 **{item.id: item.name for item in session.scalars(select(Campaign))},
             },
         )
+    return context
+
+
+@router.get("/learning", response_class=HTMLResponse)
+def learning_page(request: Request, principal: CurrentUser) -> HTMLResponse:
+    """Render the compatibility view; primary navigation uses the Settings section."""
+    context = dashboard_context(request, principal, "learning")
+    context.update(learning_data(request))
     return render(request, "learning.html", context)
 
 

@@ -37,3 +37,16 @@ The offline fake SMTP/IMAP tests cover same-sender/thread follow-ups, cancellati
 
 
 Phase 10 adds authenticated backup/restore, wrong-key/tampering rejection, empty-target protection, maintenance before DATA, crash holds and local CLI recovery. PostgreSQL CI also transfers populated synthetic SQLite data and compares every restored table, then cleans only its isolated test database.
+
+## v0.11 regression coverage
+
+The offline suite covers all three providers' SMTP outcomes, read-only IMAP and different
+SPECIAL-USE Sent names; sender lock and reply cancellation at all four follow-up positions;
+plain and structured DSNs; negative/positive/uncertain reply phrasings; exact-address DNS cache
+expiry, allowed roles and blocked no-reply; campaign offsets, delayed actual acceptance and
+Hostinger rolling limits; concept/follow-up slot separation; partner guidance/local meetings;
+six-tab Settings sections; audit Batch identity/expiry/partial rows and synchronous drafting.
+Full tests use loopback provider fakes or mocks. CI separately checks PostgreSQL migrations
+and populated SQLite-to-PostgreSQL recovery, with Windows setup smoke only for main/PRs.
+Real-provider credentials, DNS propagation, localized SPECIAL-USE flags and deliverability
+still require owner-controlled acceptance. Synthetic tests do not certify live account setup.

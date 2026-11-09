@@ -54,6 +54,9 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
             services=[v.strip() for v in fields.get("services", "").split(",") if v.strip()],
             daily_limit=int(fields.get("daily_limit", "0")),
             active=fields.get("active") == "true",
+            followup_days=[int(v.strip()) for v in fields["followup_days"].split(",") if v.strip()]
+            if "followup_days" in fields
+            else None,
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error

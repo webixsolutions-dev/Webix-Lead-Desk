@@ -73,7 +73,14 @@ def test_stale_learning_review_rolls_back_both_changes(
     with db.sessions() as session:
         saved = session.get(LearningProposal, proposal.id)
         assert saved and saved.state == "pending"
-        assert session.scalar(select(func.count()).select_from(PlaybookVersion)) == 1
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PlaybookVersion)
+                .where(PlaybookVersion.scope != "partner")
+            )
+            == 1
+        )
     dismiss_proposal(db, proposal.id, drafting_setup["actor_id"])
     assert len(current_guidance(db, proposal.scope)) == 1
 
@@ -101,7 +108,14 @@ def test_concurrent_application_publishes_once(
     with ThreadPoolExecutor(max_workers=2) as pool:
         assert sum(pool.map(apply_once, range(2))) == 1
     with db.sessions() as session:
-        assert session.scalar(select(func.count()).select_from(PlaybookVersion)) == 1
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PlaybookVersion)
+                .where(PlaybookVersion.scope != "partner")
+            )
+            == 1
+        )
 
 
 def test_rollback_appends_history_and_preserves_approved_draft(
@@ -125,7 +139,14 @@ def test_rollback_appends_history_and_preserves_approved_draft(
         saved = session.get(Draft, draft.id)
         assert saved and saved.state == "approved"
         assert saved.digest == draft.digest and saved.snapshot["playbook_ids"] == [second.id]
-        assert session.scalar(select(func.count()).select_from(PlaybookVersion)) == 3
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PlaybookVersion)
+                .where(PlaybookVersion.scope != "partner")
+            )
+            == 3
+        )
 
 
 def test_raw_reply_does_not_write_guidance_but_human_outcome_proposes_review(
@@ -150,7 +171,14 @@ def test_raw_reply_does_not_write_guidance_but_human_outcome_proposes_review(
         proposal = session.scalar(select(LearningProposal))
         assert proposal
         assert proposal.source_kind == "outcome" and proposal.state == "pending"
-        assert session.scalar(select(func.count()).select_from(PlaybookVersion)) == 0
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PlaybookVersion)
+                .where(PlaybookVersion.scope != "partner")
+            )
+            == 0
+        )
 
 
 def test_rejection_route_and_learning_confirmation(

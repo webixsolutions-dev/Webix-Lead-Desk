@@ -1,10 +1,13 @@
 """Owner-maintained targeting while historical import snapshots remain unchanged."""
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
+from app.db.delivery_models import SendIntent
 from app.db.lead_models import Campaign
 from app.db.models import AuditEvent, User
+from app.db.outreach_models import Conversation, Draft
 from app.db.session import Database
+from app.sending.sequences import validate_days
 
 
 def edit_campaign(
@@ -20,6 +23,7 @@ def edit_campaign(
     services: list[str],
     daily_limit: int,
     active: bool,
+    followup_days: list[int] | None = None,
 ) -> None:
     """Apply a version-checked targeting edit without changing existing conversation routing."""
     if (
@@ -35,6 +39,8 @@ def edit_campaign(
             raise ValueError("An active owner must edit an existing campaign")
         if not 1 <= daily_limit <= (5 if campaign.lane == "partner" else 50):
             raise ValueError("Use a daily limit of 1–5 for partners or 1–50 for clients")
+        if followup_days is not None:
+            validate_days(followup_days, campaign.lane)
         changed = session.scalar(
             update(Campaign)
             .where(Campaign.id == campaign_id, Campaign.version == expected_version)
@@ -46,10 +52,31 @@ def edit_campaign(
                 services=[v.strip() for v in services],
                 daily_limit=daily_limit,
                 active=active,
+                followup_days=followup_days
+                if followup_days is not None
+                else campaign.followup_days,
                 version=Campaign.version + 1,
             )
             .returning(Campaign.id)
         )
         if not changed:
             raise ValueError("Campaign changed in another tab; reload before saving")
+        if not active:
+            conversations = select(Conversation.id).where(Conversation.campaign_id == campaign_id)
+            session.execute(
+                update(SendIntent)
+                .where(
+                    SendIntent.conversation_id.in_(conversations),
+                    SendIntent.state.in_(["scheduled", "held"]),
+                )
+                .values(state="cancelled", hold_reason="owner_paused_campaign")
+            )
+            session.execute(
+                update(Draft)
+                .where(
+                    Draft.conversation_id.in_(conversations),
+                    Draft.state.in_(["draft", "approved"]),
+                )
+                .values(state="cancelled")
+            )
         session.add(AuditEvent(actor_id=actor_id, action="campaign.updated", entity_id=campaign_id))

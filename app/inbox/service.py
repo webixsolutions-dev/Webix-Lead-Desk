@@ -17,6 +17,7 @@ from app.db.session import Database
 from app.inbox.parse import classify, parse_reply
 from app.integrations.imap import IMAPUnavailable, InboxBatch, read_inbox
 from app.pipeline.service import capture_reply
+from app.sending.providers import mailbox_settings
 from app.sending.window import CALGARY, end_of_day
 
 InboxReader = Callable[[Settings, str, str, str, int], InboxBatch]
@@ -59,6 +60,16 @@ def record_reply(
             if conversation is None:
                 return False
             label = classify(reply)
+            if label == "delivery_delayed":
+                conversation.state = "held"
+                session.execute(
+                    update(SendIntent)
+                    .where(
+                        SendIntent.conversation_id == conversation.id,
+                        SendIntent.state == "scheduled",
+                    )
+                    .values(state="held", hold_reason="delivery_delayed_owner_review")
+                )
             if label in {"delivery_delayed", "delivery_notice"}:
                 session.add(
                     InboxMessage(
@@ -79,7 +90,7 @@ def record_reply(
                 session.scalars(
                     select(SendIntent).where(
                         SendIntent.conversation_id == conversation.id,
-                        SendIntent.state.in_(["scheduled", "transmitting"]),
+                        SendIntent.state.in_(["scheduled", "held", "transmitting"]),
                     )
                 )
             )
@@ -162,8 +173,8 @@ def sync_inbox(
     """Invalidate freshness first; only a complete successful read can restore it."""
     with db.sessions.begin() as session:
         mailbox = session.get(Mailbox, mailbox_id)
-        if mailbox is None or mailbox.provider not in {"titan", "gmail"}:
-            raise ValueError("Choose an existing Titan or Gmail mailbox")
+        if mailbox is None or mailbox.provider not in {"titan", "hostinger", "gmail"}:
+            raise ValueError("Choose an existing Titan, Hostinger or Gmail mailbox")
         cursor = session.get(InboxCursor, mailbox_id)
         if cursor is None:
             cursor = InboxCursor(mailbox_id=mailbox_id, uidvalidity="", last_uid=0)
@@ -172,7 +183,7 @@ def sync_inbox(
         cursor.synced_at, cursor.error_code = None, "sync_in_progress"
     try:
         password = read_secret(db, settings, "mailbox:" + mailbox_id)
-        provider_settings = settings.model_copy(update={"mail_provider": mailbox.provider})
+        provider_settings = mailbox_settings(settings, mailbox)
         batch = reader(provider_settings, email, password, validity, checkpoint)
         for incoming in batch.messages:
             record_reply(

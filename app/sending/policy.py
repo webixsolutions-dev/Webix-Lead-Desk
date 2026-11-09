@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -13,6 +12,8 @@ from app.db.session import Database
 from app.drafting.service import approval_blocks
 from app.operations.control import maintenance_enabled
 from app.pilot.service import gate
+from app.sending.providers import readiness_fields
+from app.sending.sequences import earliest_followup
 from app.sending.window import within_window
 
 READINESS = ("spf", "dkim", "dmarc", "privacy", "provider_limits", "test_accepted")
@@ -68,26 +69,24 @@ def delivery_blocks(
             item.mailbox_id != draft.snapshot["mailbox_id"]
             or item.conversation_id != draft.snapshot["conversation_id"]
             or item.step != draft.snapshot["step"]
+            or draft.kind != draft.snapshot.get("kind", draft.kind)
+            or draft.sequence_step != draft.snapshot.get("sequence_step", draft.sequence_step)
         ):
             reasons.append("scheduled_routing_changed")
-        if draft and item.step and not draft.snapshot.get("attachments"):
-            prior = session.scalar(
-                select(SendIntent).where(
-                    SendIntent.conversation_id == item.conversation_id,
-                    SendIntent.step == item.step - 1,
-                    SendIntent.state == "accepted",
-                )
-            )
-            if not prior or not prior.accepted_at or now < prior.accepted_at + timedelta(days=3):
+        if draft and draft.kind == "follow_up":
+            try:
+                if now < earliest_followup(session, draft):
+                    reasons.append("followup_interval_or_predecessor")
+            except ValueError:
                 reasons.append("followup_interval_or_predecessor")
         if draft:
             reasons.extend(approval_blocks(db, draft))
         if (
             not mailbox
             or not mailbox.enabled
-            or mailbox.provider not in {"titan", "gmail"}
+            or mailbox.provider not in {"titan", "hostinger", "gmail"}
             or not state
-            or not all(state.readiness.get(key) is True for key in READINESS)
+            or not all(state.readiness.get(key) is True for key in readiness_fields(mailbox))
         ):
             reasons.append("mailbox_not_ready")
         if state and state.paused_until and state.paused_until > now:

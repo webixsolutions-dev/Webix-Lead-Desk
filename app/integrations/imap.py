@@ -1,4 +1,4 @@
-"""Read-only Titan IMAP adapter with bounded batches and explicit UID checkpoints."""
+"""Read-only provider IMAP adapter with bounded batches and explicit UID checkpoints."""
 
 import imaplib
 import ssl
@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import Settings
+from app.integrations.public_http import PublicFetchError, public_addresses
 
 MAX_MESSAGE_BYTES = 262_144
 
@@ -41,9 +42,13 @@ def _raw_messages(data: list[Any]) -> bytes:
 
 
 def _client(settings: Settings) -> imaplib.IMAP4:
+    try:
+        public_addresses(settings.mail_imap_host, settings.mail_imap_port)
+    except PublicFetchError as error:
+        raise IMAPUnavailable("Mail host unavailable") from error
     return imaplib.IMAP4_SSL(
-        "imap.gmail.com" if settings.mail_provider == "gmail" else settings.titan_imap_host,
-        993,
+        settings.mail_imap_host,
+        settings.mail_imap_port,
         ssl_context=ssl.create_default_context(),
         timeout=settings.mail_timeout_seconds,
     )
@@ -112,9 +117,7 @@ def find_sent(
     try:
         client = factory() if factory else _client(settings)
         client.login(username, password)
-        status, _ = client.select(
-            '"[Gmail]/Sent Mail"' if settings.mail_provider == "gmail" else '"Sent"', readonly=True
-        )
+        status, _ = client.select(sent_folder(client), readonly=True)
         if status != "OK":
             raise IMAPUnavailable("Provider Sent folder unavailable")
         status, ids = client.uid(
@@ -136,3 +139,22 @@ def find_sent(
         if client is not None:
             with suppress(OSError, imaplib.IMAP4.error):
                 client.logout()
+
+
+def sent_folder(client: imaplib.IMAP4) -> str:
+    """Find the server-advertised SPECIAL-USE Sent mailbox without guessing a name."""
+    import re
+
+    status, folders = client.list()
+    if status != "OK":
+        raise IMAPUnavailable("Cannot discover Sent mailbox")
+    for raw in folders or []:
+        if not isinstance(raw, bytes):
+            continue
+        match = re.match(rb'\(([^)]*)\)\s+(?:"[^"\r\n]*"|NIL)\s+(.+)$', raw)
+        if match and b"\\sent" in match[1].lower().split():
+            name = match[2].decode("ascii")
+            if any(c in name for c in "\r\n"):
+                raise IMAPUnavailable("Invalid Sent mailbox")
+            return name if name.startswith('"') else '"' + name.replace('"', '\\"') + '"'
+    raise IMAPUnavailable("Provider did not advertise a SPECIAL-USE Sent mailbox")

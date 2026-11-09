@@ -12,7 +12,7 @@ from app.core.config import Settings
 from app.db.delivery_models import MailboxDay, MailboxState, SendAttempt, SendIntent
 from app.db.lead_models import Campaign
 from app.db.models import Job
-from app.db.outreach_models import Conversation, Draft
+from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.session import Database
 from app.pilot.service import reserve_pilot
 from app.policy.contacts import reserve_channel
@@ -146,6 +146,22 @@ def reserve(
             )
             or 0
         )
+        mailbox = session.get(Mailbox, item.mailbox_id)
+        rolling = (
+            session.scalar(
+                select(func.count())
+                .select_from(SendAttempt)
+                .where(
+                    SendAttempt.mailbox_id == item.mailbox_id,
+                    SendAttempt.started_at > now - timedelta(hours=24),
+                )
+            )
+            or 0
+        )
+        if mailbox and mailbox.provider == "hostinger" and rolling >= state.daily_limit:
+            current.due_at = next_window(now + timedelta(hours=1))
+            current.hold_reason = "rolling_24h_limit"
+            return None
         if day.reserved >= ramp_limit(state, now) or campaign_count >= campaign.daily_limit:
             current.due_at, current.hold_reason = next_window(end_of_day(now)), "daily_limit"
             return None
@@ -170,7 +186,7 @@ def reserve(
         if (
             not changed
             or conversation.state in {"held", "stopped"}
-            or (conversation.state == "replied" and not draft.snapshot.get("attachments"))
+            or (conversation.state == "replied" and draft.kind not in {"concept", "reply"})
         ):
             current.state, current.hold_reason = "held", "approval_or_conversation_changed"
             if changed:

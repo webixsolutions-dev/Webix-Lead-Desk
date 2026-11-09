@@ -8,7 +8,9 @@ from app.core.config import Settings
 def task_settings(settings: Settings, task: Literal["audit", "draft"]) -> Settings:
     """Use an explicit model and its own rates, or the full legacy configuration."""
     model = getattr(settings, f"openai_{task}_model")
-    if not model:
+    if not model or (
+        settings.openai_model and f"openai_{task}_model" not in settings.model_fields_set
+    ):
         return settings
     return settings.model_copy(
         update={

@@ -43,6 +43,10 @@ def add_candidates(db: Database, setup: dict[str, str]) -> list[dict[str, str]]:
                 email=f"service@example{index}.com",
                 verification="verified",
                 verified_at=utc_now(),
+                dns_checked_at=utc_now(),
+                allow_role=True,
+                dns_result="mx",
+                dns_address=f"service@example{index}.com",
             )
             evidence = Evidence(
                 company_id=company.id,

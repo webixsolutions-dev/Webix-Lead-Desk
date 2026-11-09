@@ -47,7 +47,7 @@ def test_negative_reply_never_becomes_interested(body: str) -> None:
 def test_delay_is_not_a_bounce_or_prospect_reply(
     db: Database, delivery_setup: Settings, drafting_setup: dict[str, str]
 ) -> None:
-    """Repeated delayed DSNs preserve conversation state and don't consume the bounce budget."""
+    """Repeated delayed DSNs hold follow-ups without consuming the bounce budget."""
     item = approved_intent(db, drafting_setup)
     for n in range(3):
         raw = (
@@ -59,8 +59,8 @@ def test_delay_is_not_a_bounce_or_prospect_reply(
         ).encode()
         assert record_reply(db, item.mailbox_id, raw, str(n), NOW)
     with db.sessions() as session:
-        assert session.get(Conversation, item.conversation_id).state == "draft"  # type: ignore[union-attr]
-        assert session.get(SendIntent, item.id).state == "scheduled"  # type: ignore[union-attr]
+        assert session.get(Conversation, item.conversation_id).state == "held"  # type: ignore[union-attr]
+        assert session.get(SendIntent, item.id).state == "held"  # type: ignore[union-attr]
         assert session.scalar(select(MailboxDay)) is None
         assert {m.classification for m in session.scalars(select(InboxMessage))} == {
             "delivery_delayed"
@@ -105,7 +105,7 @@ def test_gmail_profile_and_six_main_tabs(client: TestClient, owner: Account, db:
         box = session.scalar(select(Mailbox).where(Mailbox.email == "synthetic@gmail.com"))
         assert box and box.provider == "gmail" and not box.enabled
     assert len(NAVIGATION) == 6
-    assert all(path in page.text for path in ["/learning", "/partners", "/operations"])
+    assert all(path in page.text for path in ["/settings#learning", "/settings#operations"])
 
 
 def test_four_followups_remain_in_same_thread_then_reply_stops(

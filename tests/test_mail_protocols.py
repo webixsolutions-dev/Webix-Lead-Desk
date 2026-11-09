@@ -7,15 +7,21 @@ from typing import Any
 import pytest
 
 from app.core.config import Settings
+from app.db.outreach_models import Mailbox
 from app.integrations.imap import IMAPUnavailable, find_sent, read_inbox
 from app.integrations.smtp import transmit
+from app.sending.providers import mailbox_settings
 from tests.delivery_helpers import reply_bytes
 from tests.mail_servers import IMAPHandler, SMTPHandler, fake_server
 
 
+@pytest.mark.parametrize("provider", ["titan", "hostinger", "gmail"])
 @pytest.mark.parametrize("drop,expected", [(False, "accepted"), (True, "uncertain")])
-def test_smtp_data_acceptance_and_lost_ack(settings: Settings, drop: bool, expected: str) -> None:
+def test_smtp_data_acceptance_and_lost_ack(
+    settings: Settings, drop: bool, expected: str, provider: str
+) -> None:
     """Lost SMTP acknowledgement is ambiguous even when the fake server has the message."""
+    settings = mailbox_settings(settings, Mailbox(provider=provider))
     with fake_server(SMTPHandler, drop=drop) as server:
         result = transmit(
             settings,
@@ -49,9 +55,17 @@ def test_guard_prevents_data_even_after_authentication(settings: Settings) -> No
         assert "AUTH" in server.requests and "DATA" not in server.requests
 
 
-def test_imap_read_only_checkpoint_and_sent_lookup(settings: Settings) -> None:
+@pytest.mark.parametrize(
+    "provider,folder",
+    [("titan", "Sent Items"), ("hostinger", "INBOX.Sent"), ("gmail", "[Gmail]/Sent Mail")],
+)
+def test_imap_read_only_checkpoint_and_sent_lookup(
+    settings: Settings, provider: str, folder: str
+) -> None:
     """Provider reads use EXAMINE and BODY.PEEK without marking mail read or deleting it."""
+    settings = mailbox_settings(settings, Mailbox(provider=provider))
     with fake_server(IMAPHandler) as server:
+        server.sent_folder = folder.encode()
         server.messages = [reply_bytes("Synthetic reply", "<stable@example.org>")]
 
         def factory() -> imaplib.IMAP4:
@@ -71,6 +85,7 @@ def test_imap_read_only_checkpoint_and_sent_lookup(settings: Settings) -> None:
             settings, "sales@example.org", "synthetic", "<stable@example.org>", factory=factory
         )
         assert found == server.messages
+        assert f'EXAMINE "{folder}"' in server.requests
         assert not any("STORE" in command or "DELETE" in command for command in server.requests)
 
 

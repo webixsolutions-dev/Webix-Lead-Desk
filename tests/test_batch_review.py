@@ -107,3 +107,26 @@ def test_batch_adapter_matches_identity_and_rejects_failed_rows() -> None:
         pytest.raises(ModelUnavailable),
     ):
         batch_result("synthetic", "batch_test", "request-1")
+
+
+@pytest.mark.parametrize("state", ["expired", "cancelled"])
+def test_batch_partial_output_survives_terminal_status(state: str) -> None:
+    """Completed rows can settle even if the surrounding batch expired or was cancelled."""
+    status = json.dumps({"status": state, "output_file_id": "file_partial"}).encode()
+    rows = b"\n".join(
+        [
+            json.dumps({"custom_id": "other", "error": {"code": "expired"}}).encode(),
+            json.dumps(
+                {
+                    "custom_id": "ours",
+                    "response": {
+                        "status_code": 200,
+                        "body": {"status": "completed", "usage": {"input_tokens": 20}},
+                    },
+                }
+            ).encode(),
+        ]
+    )
+    with patch("app.integrations.openai._batch_request", side_effect=[status, rows]):
+        result = batch_result("fake", "batch_partial", "ours")
+        assert result and result["status"] == "completed"

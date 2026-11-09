@@ -14,7 +14,9 @@ def current_guidance(db: Database, campaign_id: str | None = None) -> list[Playb
     """Return global guidance and the current campaign-specific override, if present."""
     result: list[PlaybookVersion] = []
     with db.sessions() as session:
-        for scope in ["global"] + ([campaign_id] if campaign_id else []):
+        campaign = session.get(Campaign, campaign_id) if campaign_id else None
+        scopes = ["global"] + (["partner"] if campaign and campaign.lane == "partner" else [])
+        for scope in scopes + ([campaign_id] if campaign_id else []):
             item = session.scalar(
                 select(PlaybookVersion)
                 .where(PlaybookVersion.scope == scope)
@@ -35,7 +37,7 @@ def append_version(
     actor = session.get(User, actor_id)
     if not actor or actor.role != "owner" or not actor.active:
         raise ValueError("Only the owner can publish guidance")
-    if scope != "global" and session.get(Campaign, scope) is None:
+    if scope not in {"global", "partner"} and session.get(Campaign, scope) is None:
         raise ValueError("Choose global guidance or an existing campaign")
     current = session.scalar(
         select(PlaybookVersion)

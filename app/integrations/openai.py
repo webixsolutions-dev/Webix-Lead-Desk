@@ -104,7 +104,9 @@ def batch_result(api_key: str, batch_id: str, custom_id: str) -> dict[str, Any] 
         status = json.loads(_batch_request(api_key, "/batches/" + batch_id))
         if status["status"] in {"validating", "in_progress", "finalizing", "cancelling"}:
             return None
-        if status["status"] != "completed" or not status.get("output_file_id"):
+        if status["status"] not in {"completed", "expired", "cancelled"} or not status.get(
+            "output_file_id"
+        ):
             raise ModelUnavailable("Batch failed, expired or was cancelled")
         raw = _batch_request(api_key, "/files/" + status["output_file_id"] + "/content")
         matches = [json.loads(line) for line in raw.splitlines() if line.strip()]

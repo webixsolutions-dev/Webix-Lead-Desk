@@ -74,13 +74,33 @@ def parse_reply(raw: bytes) -> ParsedReply:
                         "expanded",
                     }:
                         delivery_recipient = recipient.split(";")[-1].strip().casefold()[:254]
-                        delivery_action = action
-                        if action == "failed":
+                        delivery_action = (
+                            action
+                            if action != "failed" or str(block.get("Status", "")).startswith("5.")
+                            else "unknown"
+                        )
+                        if action == "failed" and str(block.get("Status", "")).startswith("5."):
                             bounce = delivery_recipient
+    text = plain_text(message)
+    daemon = any(token in sender for token in ("mailer-daemon", "postmaster"))
+    if daemon and not delivery_action:
+        references.extend(re.findall(r"<[^<>\s]{1,250}>", text)[:30])
+        if re.search(r"\b(?:5\.\d\.\d|550|551|552|553|554)\b", text) and re.search(
+            r"undeliver|delivery fail|permanent|recipient.*reject|user unknown", text, re.I
+        ):
+            delivery_action = "failed"
+            found = re.search(
+                r"(?:Final-Recipient:\s*rfc822;|failed recipient:)\s*([^\s<>]+@[^\s<>]+)",
+                text,
+                re.I,
+            )
+            bounce = found[1].lower() if found else ""
+        elif re.search(r"delivery delayed|temporarily delayed|will retry", text, re.I):
+            delivery_action = "delayed"
     return ParsedReply(
         sender,
         str(message.get("Subject", ""))[:500],
-        plain_text(message),
+        text,
         references,
         bounce,
         str(message.get("Auto-Submitted", "no")).lower() != "no",
@@ -92,7 +112,7 @@ def parse_reply(raw: bytes) -> ParsedReply:
 
 def classify(reply: ParsedReply) -> str:
     """Label a reply for human review after all pending follow-ups have already stopped."""
-    if reply.bounce_recipient:
+    if reply.bounce_recipient or reply.delivery_action == "failed":
         return "bounce"
     if reply.delivery_action:
         return "delivery_delayed" if reply.delivery_action == "delayed" else "delivery_notice"
@@ -109,7 +129,8 @@ def classify(reply: ParsedReply) -> str:
         return "unsubscribe"
     if re.search(
         r"\b(not(?:\W+\w+){0,4}\W+interested|no thanks|no thank you|"
-        r"not (?:now|right now)|no interest|isn't interested|aren't interested)\b",
+        r"not (?:now|right now)|no need|we're all set|already have someone|"
+        r"no interest|isn't interested|aren't interested)\b",
         first,
     ):
         return "not_interested"

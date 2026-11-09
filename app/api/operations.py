@@ -1,5 +1,7 @@
 """Owner-only operating status with no environment values, mail content or backup downloads."""
 
+from typing import Any
+
 from fastapi import APIRouter, Request
 from sqlalchemy import func, select
 from starlette.responses import HTMLResponse
@@ -14,11 +16,10 @@ from app.db.operations_models import RuntimeControl
 router = APIRouter()
 
 
-@router.get("/operations", response_class=HTMLResponse)
-def operations_page(request: Request, principal: Owner) -> HTMLResponse:
-    """Show the actual deployment profile and pending recovery work without claiming a live test."""
+def operations_data(request: Request) -> dict[str, Any]:
+    """Read data shared by the settings section and legacy direct route."""
     app = services(request)
-    context = dashboard_context(request, principal, "operations")
+    context: dict[str, Any] = {}
     with app.db.sessions() as session:
         context.update(
             control=session.get(RuntimeControl, "primary"),
@@ -37,4 +38,12 @@ def operations_page(request: Request, principal: Owner) -> HTMLResponse:
             credential_key_ready=bool(app.settings.encryption_key),
             process_delivery=app.settings.live_send_enabled and app.settings.app_mode != "VERCEL",
         )
+    return context
+
+
+@router.get("/operations", response_class=HTMLResponse)
+def operations_page(request: Request, principal: Owner) -> HTMLResponse:
+    """Render the compatibility view; primary navigation uses the Settings section."""
+    context = dashboard_context(request, principal, "operations")
+    context.update(operations_data(request))
     return render(request, "operations.html", context)

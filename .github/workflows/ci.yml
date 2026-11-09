@@ -58,6 +58,7 @@ jobs:
           TEST_DATABASE_URL: postgresql+psycopg://postgres@127.0.0.1:5432/lead_desk_test
 
   windows:
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     name: Windows setup smoke test
     runs-on: windows-latest
     timeout-minutes: 10

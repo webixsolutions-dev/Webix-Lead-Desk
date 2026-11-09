@@ -8,8 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
-from app.audit.batch import BatchPending, reserve_call
-from app.audit.batch import response as batch_response
+from app.audit.batch import reserve_call
 from app.audit.budget import BudgetBlocked, settle
 from app.core.ai_config import task_settings
 from app.core.clock import utc_now
@@ -42,7 +41,7 @@ def generate(
     provider: Callable[[str, dict[str, Any]], dict[str, Any]] = create_response,
 ) -> str:
     """Reserve cost, request one structured draft and save it without any approval."""
-    settings = task_settings(settings, "draft")
+    settings = task_settings(settings, "draft").model_copy(update={"openai_processing": "standard"})
     if (
         not settings.openai_enabled
         or not settings.openai_model
@@ -126,14 +125,10 @@ def generate(
         settings.openai_model,
         maximum,
         audit=False,
-        batch=settings.openai_processing == "batch",
+        batch=False,
     )
     try:
-        response = (
-            batch_response(db, call, api_key, request)
-            if settings.openai_processing == "batch"
-            else provider(api_key, request)
-        )
+        response = provider(api_key, request)
         if response.get("status") != "completed":
             raise ModelUnavailable("Draft was incomplete or refused")
         texts = [
@@ -170,8 +165,6 @@ def generate(
                 / 1_000_000
             )
         settle(db, call.id, actual, item.id)
-    except BatchPending:
-        raise
     except Exception:
         settle(db, call.id, None)
         raise

@@ -158,6 +158,21 @@ Mailbox provider is selected explicitly and bound into new approval snapshots. F
 
 Follow-up steps 1–4 are sequential, separately approved and spaced at least three days from previous acceptance. Concept responses are identified by their reviewed attachment binding rather than by numeric step; existing concept IDs remain compatible. Human replies stop all pending outreach; delayed/success DSNs are recorded without becoming prospect replies.
 
-Optional Batch API adds a nullable `ai_calls.batch` JSON field via migration 0011. Reserve budget, atomically persist submission intent, submit once, persist provider ID, then release the worker job until the next poll. Ambiguous creates remain held. Expected polling does not consume temporary-error retry attempts. Both AI tasks retain their output validation and never approve messages. Six main navigation items expose Learning, Partners and Operations under Settings.
+Optional audit Batch API adds nullable `ai_calls.batch` metadata in migration 0011. Reserve
+budget, persist submission intent, submit once, persist the provider ID, then release the
+worker job until the next poll. Ambiguous creates remain held; polling does not consume
+transient-error retries. Drafting always remains synchronous. Both tasks validate output and
+never approve messages.
 
-Deployment profiles describe capabilities, not configured infrastructure. Hosted Vercel dashboard and separate PC/VPS worker are the implemented architecture; a Vercel-only scheduler/worker has not been implemented or verified. Neon connectivity is a setup item, not implied by the PostgreSQL adapter.
+Migration 0012 adds per-mailbox connection JSON, campaign follow-up offsets, automatic contact
+routing evidence, explicit Draft.kind/sequence_step and owner-recorded local team members.
+`Draft.step` remains the unique monotonic delivery slot for compatibility with SendIntent.
+A follow-up's sequence position is separate: concepts/replies cannot occupy or replace it.
+Historical snapshots/digests remain unchanged; new snapshots bind kind and sequence position.
+
+Six primary navigation items expose partner/client filters and Results under Leads, with
+Learning and owner-only Operations sections in Settings. The partner Playbook is seeded once
+and versioned like owner guidance. Local meetings use owner data, never website inferences.
+
+Hosting remains unchanged: Vercel handles bounded web requests, PostgreSQL is shared, and one
+PC/VPS worker handles SMTP, IMAP and queued audits. No Neon resource is provisioned by v0.11.

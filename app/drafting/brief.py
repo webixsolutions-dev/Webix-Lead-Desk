@@ -8,6 +8,7 @@ from app.db.lead_models import Campaign, Company
 from app.db.outreach_models import Offer, ProofCard
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.playbook.partner import local_members
 from app.playbook.service import current_guidance
 
 
@@ -34,6 +35,7 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
             )
         )
         proofs = list(session.scalars(select(ProofCard).limit(5)))
+        members = local_members(session, company, campaign)
     guidance = current_guidance(db, campaign_id)
     return (
         "Write one personalized first-contact email. Return Subject and Body only. "
@@ -51,6 +53,12 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
             {
                 "business": company.name,
                 "city": company.city,
+                "local_team_members": [
+                    {"name": m.name, "city": m.city, "country": m.country} for m in members
+                ],
+                "meeting_guidance": "Name the recorded member for an in-person meeting"
+                if members
+                else "Offer a video call; owner should add a local team member if available",
                 "services": campaign.services,
                 "offer_scope_without_prices": [
                     {"service": item.service, "scope": item.description} for item in offers

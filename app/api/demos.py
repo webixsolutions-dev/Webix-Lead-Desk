@@ -113,7 +113,9 @@ async def prepare_concept_message(
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse(f"/leads/{draft.snapshot['company_id']}/draft?step={draft.step}", 303)
+    return RedirectResponse(
+        f"/leads/{draft.snapshot['company_id']}/draft?step={draft.step}&kind=concept", 303
+    )
 
 
 @router.post("/demos/{demo_id}/revoke")

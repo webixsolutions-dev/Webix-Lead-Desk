@@ -2,7 +2,7 @@
 
 A workspace for researching businesses, reviewing personalized outreach and following up on real conversations. Python 3.12, FastAPI, Jinja/HTMX, SQLAlchemy and Alembic; Webix red branding and the supplied logo.
 
-**Phases 1–10 are implemented. Hosted account setup and live Titan acceptance remain pending.** Neon is supported but not connected. No prospect has been contacted by the development workflow. Start locally without buying API access, or configure Vercel with a dedicated PostgreSQL database and a separate PC worker.
+**Phases 1–10 are implemented. Hosted account setup and live Titan/Hostinger/Gmail acceptance remain pending.** Neon is supported but not connected. No prospect has been contacted by the development workflow. Start locally without buying API access, or configure Vercel with a dedicated PostgreSQL database and a separate PC worker.
 
 The repository is public temporarily at the owner's direction. The application requires private accounts. Real records, credentials, databases, screenshots, exports and backups must stay outside Git.
 
@@ -13,7 +13,7 @@ The repository is public temporarily at the owner's direction. The application r
 | Leads and campaigns | Editable targeting; bounded CSV/Open Calgary imports; deduplication, provenance, website/contact review and global suppression |
 | Research | Bounded public website fetching; evidence, assessments, manual visual/social/ads observations and optional budgeted AI |
 | Drafts and Playbook | Manual writing or copyable ChatGPT brief; optional API drafting; versioned guidance, editable offers/proofs and exact owner approval |
-| Sending and inbox | Titan and Gmail SMTP/IMAP adapters, sender/thread locks, fresh-inbox checks, ramp/window limits, reply cancellation and uncertain-send holds |
+| Sending and inbox | Titan, Hostinger and Gmail SMTP/IMAP adapters, sender/thread locks, fresh-inbox checks, ramp/window limits, reply cancellation and uncertain-send holds |
 | Pilot | Reviewed ten-business cohort, five-first-touch cap and explicit live readiness/acceptance gates |
 | Pipeline and concepts | Assigned call cards, meetings, outcomes, approved concept links and separately approved same-thread messages |
 | Partners and results | Separate sender lane, five-new-business daily cap, country review, manually submitted form records and actual activity reports |
@@ -86,7 +86,7 @@ Password reset revokes that account's sessions. Local administrative commands as
 
 `APP_MODE` changes validation/runtime behavior; it does not transfer data or provision infrastructure. Vercel uses `app.vercel:app`, requires PostgreSQL/secure cookies/exact allowed hosts and never runs a worker. Keep `LIVE_SEND_ENABLED=false` there. The separate PC/VPS worker can enable delivery only after sender setup and actual approved test acceptance. The legacy `EXTERNAL_INTEGRATIONS_ENABLED` switch remains unsupported and false.
 
-Optional OpenAI access needs separately verified API funding/model rates and a budget. Eligible ChatGPT Pro/Business subscriptions can claim API credits in a linked API organization. Record the actual available allowance and expiry; this app cannot infer a billing balance from a ChatGPT login. The manual brief remains a fallback. No automatic provider purchases occur. Stored integration credentials are encrypted using the environment-held key; keep its recovery copy privately.
+Optional OpenAI access needs separately verified API funding/model rates and a budget. Eligible ChatGPT Pro/Business subscriptions can claim API credits in a linked API organization. Record the actual available allowance and expiry; this app cannot infer a billing balance from a ChatGPT login. Set the linked organization/project spend controls and verify which are hard caps versus alert budgets; disable automatic recharge. The app allowance is a second, enforced reservation limit. The manual brief remains a fallback. No automatic provider purchases occur. Stored integration credentials are encrypted using the environment-held key; keep its recovery copy privately.
 
 Use [Vercel setup](docs/deploy-to-vercel.md) for hosted configuration. A green build alone does not prove the database, login or worker works. Use [operations](docs/operations.md) for encrypted backup/restore and [cutover](docs/move-to-vps.md) to move data. Do not copy a live SQLite file or resume both sides of a database transfer.
 
@@ -117,3 +117,28 @@ One coding agent, one phase branch and one reviewed PR at a time. The owner auth
 - [Operations](docs/operations.md), [owner setup](docs/owner-setup.md)
 
 HTMX is vendored with its license; assets are served locally. No analytics or tracking scripts are included.
+
+## v0.11 review update
+
+Per-mailbox provider presets, STARTTLS/SSL and IMAP SPECIAL-USE Sent discovery preserve
+sender/thread locks. Client follow-ups use days 3/7/12/20 from accepted first contact; remove
+20 for a three-follow-up sequence. Partner follow-ups use days 4/10. Edit offsets per campaign,
+with at least two days after actual prior acceptance. Every step has its own exact approval;
+concept and reply messages are separate kinds, not follow-up positions.
+
+Automatic address syntax, role and MX/A-fallback checks run before approval and expire after
+30 days. They establish domain routing, not inbox existence or contact permission. Negative
+replies stop outreach; delayed delivery pauses that lead for owner review without a bounce.
+Prices/guarantees are blocked across all steps; first contact has no URLs; concepts allow only
+the approved concept link.
+
+Settings includes versioned partner guidance, owner-recorded local team members, Learning
+and owner-only Operations. Leads holds client/partner filters and Results. Six main tabs
+remain. Defaults are `OPENAI_AUDIT_MODEL=gpt-6-luna` and
+`OPENAI_DRAFT_MODEL=gpt-6.1-sol`; enter each model's current rates. Batch is optional for
+audits only; drafts remain synchronous and unapproved. `OPENAI_ENABLED=false` stays default.
+
+Stop the old worker, back up the database, deploy this version, run `uv run lead-desk migrate`
+through `0012_outreach_spec`, and start one updated worker. Review per-mailbox limits and
+readiness before enabling it. Hosting remains Vercel plus a separate PC/VPS worker; this
+release does not provision Neon or turn the application into a Vercel-only background worker.

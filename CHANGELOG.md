@@ -1,15 +1,23 @@
 # Changelog
 
-## Unreleased — Outreach review corrections
+## 0.11.0 — Outreach review fixes
 
-- Add Gmail provider selection, four individually approved follow-ups and DNS mail-route preflight.
-- Fix negative reply labels and distinguish delayed DSNs from permanent bounces.
-- Apply price checks to every message and reject first-touch links during editing and approval.
-- Add independent assessment/drafting models and optional durable Batch API submission/polling (migration 0011).
-- Correct claimed subscription-credit guidance; retain explicit budget and credential gates.
-- Consolidate navigation into six main tabs with secondary settings links; extend white sidebar background.
-- Live hosting/provider acceptance remains pending; no prospect outreach was performed.
-
+- Add Titan, Hostinger and Gmail per-mailbox settings, SSL/STARTTLS, provider readiness/limits,
+  Hostinger rolling-24-hour counts and SPECIAL-USE Sent discovery.
+- Separate message kinds and sequence positions; client days 3/7/12/20 and partner days 4/10
+  are editable with two-day actual spacing. Preserve exact approval, sender/thread and stop guards.
+- Add independent Luna audit/Sol drafting settings and optional durable audit Batch jobs;
+  correct claimed subscription-credit guidance while keeping AI disabled by default.
+- Classify negative/uncertain replies conservatively; separate delivery delays from permanent
+  bounces, including plain daemon notices with body Message-ID correlation.
+- Check syntax, role and DNS before approval with a 30-day address-bound cache; preserve
+  permission evidence and recheck transport routing. No SMTP probes.
+- Enforce prices/guarantees on all messages, no first-touch URLs and approved-only concept links.
+- Consolidate six main tabs, full white sidebar, provider badges, Learning/Operations sections
+  and partner/client filters with Results under Leads.
+- Seed versioned partner guidance and owner-recorded local team members; guard in-person claims.
+- Add Alembic migrations 0011/0012; restrict Windows CI to main pushes and PRs into main.
+- No live sending, real prospect contact, provider purchase or hosting provisioning.
 
 ## 0.10.0 — Operations and cutover
 

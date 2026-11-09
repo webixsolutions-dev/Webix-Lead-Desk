@@ -20,6 +20,7 @@ from app.inbox.service import sync_inbox
 from app.integrations.dns_mail import MailRoute, check_mail_route
 from app.integrations.imap import find_sent
 from app.integrations.smtp import SMTPResult, transmit
+from app.sending.providers import mailbox_settings
 from app.sending.reservations import before_data, reserve
 from app.sending.window import next_window
 
@@ -68,7 +69,7 @@ def dispatch(
         mailbox_id = item.mailbox_id
         mailbox = session.get(Mailbox, mailbox_id)
         assert mailbox
-        settings = settings.model_copy(update={"mail_provider": mailbox.provider})
+        settings = mailbox_settings(settings, mailbox)
     if not transport.sync(db, settings, mailbox_id):
         from app.sending.reservations import postpone
 
@@ -176,7 +177,7 @@ def reconcile(
             .limit(1)
         )
         assert mailbox and attempt
-    settings = settings.model_copy(update={"mail_provider": mailbox.provider})
+    settings = mailbox_settings(settings, mailbox)
     password = read_secret(db, settings, "mailbox:" + mailbox.id)
     expected = BytesParser(policy=policy.default).parsebytes(item.wire_message.encode())
     for raw in finder(settings, mailbox.email, password, item.message_id):

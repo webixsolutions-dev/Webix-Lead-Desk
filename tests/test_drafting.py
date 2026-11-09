@@ -52,6 +52,10 @@ def drafting_setup(
             email="service@example.com",
             verification="verified",
             verified_at=utc_now(),
+            dns_result="mx",
+            dns_checked_at=utc_now(),
+            dns_address="service@example.com",
+            allow_role=True,
         )
         mailbox = Mailbox(
             email="sales@example.org",
@@ -97,6 +101,8 @@ def make_draft(db: Database, setup: dict[str, str], **overrides: Any) -> Draft:
     values.update(
         subject="A question about heating estimates", body=BODY, evidence_ids=[setup["evidence_id"]]
     )
+    if overrides.get("step") and "body" not in overrides:
+        values["body"] += f" A distinct step {overrides['step']} question for your team."
     values.update(overrides)
     return save_draft(db, **values)
 
@@ -246,6 +252,7 @@ def test_ai_draft_is_personalized_but_never_approved(
     config = settings.model_copy(
         update={
             "openai_enabled": True,
+            "openai_processing": "batch",
             "openai_api_key": SecretStr("synthetic"),
             "openai_model": "test-model",
             "openai_input_usd_micro_per_million": 1000,
@@ -332,6 +339,7 @@ def test_editor_and_approval_routes(
             data={
                 "csrf_token": csrf,
                 "note": "Checked the exact address on the source page and mail domain.",
+                "allow_role": "true",
                 "checked": "true",
             },
         ).status_code

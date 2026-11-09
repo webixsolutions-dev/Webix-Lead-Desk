@@ -1,4 +1,4 @@
-"""Titan SMTP boundary with explicit pre-acceptance and uncertain-outcome handling."""
+"""Provider SMTP boundary with explicit pre-acceptance and uncertain-outcome handling."""
 
 import smtplib
 import ssl
@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.core.config import Settings
+from app.integrations.public_http import PublicFetchError, public_addresses
 
 
 @dataclass(frozen=True)
@@ -32,17 +33,31 @@ def transmit(
     client: smtplib.SMTP | None = None
     data_started = False
     try:
+        if not factory:
+            public_addresses(settings.mail_smtp_host, settings.mail_smtp_port)
+        if not factory and settings.mail_smtp_port == 587:
+
+            def starttls_client() -> smtplib.SMTP:
+                """Connect without authentication until STARTTLS has succeeded."""
+                return smtplib.SMTP(
+                    settings.mail_smtp_host, 587, timeout=settings.mail_timeout_seconds
+                )
+
+            factory = starttls_client
         client = (
             factory()
             if factory
             else smtplib.SMTP_SSL(
-                "smtp.gmail.com" if settings.mail_provider == "gmail" else settings.titan_smtp_host,
-                465,
+                settings.mail_smtp_host,
+                settings.mail_smtp_port,
                 timeout=settings.mail_timeout_seconds,
                 context=ssl.create_default_context(),
             )
         )
         client.ehlo()
+        if settings.mail_smtp_port == 587:
+            client.starttls(context=ssl.create_default_context())
+            client.ehlo()
         client.login(username, password)
         code, _ = client.mail(username)
         if code != 250:
@@ -59,6 +74,8 @@ def transmit(
         if code == 250:
             return SMTPResult("accepted", "accepted")
         return SMTPResult("temporary" if 400 <= code < 500 else "permanent", "data_refused")
+    except PublicFetchError:
+        return SMTPResult("temporary", "mail_host_unavailable")
     except smtplib.SMTPResponseException as error:
         # An explicit negative server reply establishes non-acceptance for this transaction.
         return SMTPResult(

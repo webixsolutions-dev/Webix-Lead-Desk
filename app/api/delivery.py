@@ -21,7 +21,7 @@ from app.db.models import AuditEvent
 from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.jobs.queue import enqueue
 from app.policy.contacts import suppress
-from app.sending.policy import READINESS
+from app.sending.providers import PRESETS, connection, readiness_fields
 from app.sending.schedule import schedule
 
 router = APIRouter()
@@ -38,7 +38,8 @@ def connection_data(request: Request) -> dict[str, Any]:
                 item.mailbox_id: item for item in session.scalars(select(InboxCursor))
             },
             "connected_keys": set(session.scalars(select(IntegrationSecret.key))),
-            "readiness_fields": READINESS,
+            "readiness_for": readiness_fields,
+            "provider_presets": PRESETS,
             "vault_ready": bool(services(request).settings.encryption_key),
         }
 
@@ -71,20 +72,27 @@ async def mailbox_readiness(
     app = services(request)
     try:
         daily, hourly = int(fields.get("daily_limit", "10")), int(fields.get("hourly_limit", "10"))
-        if not 1 <= daily <= 50 or not 1 <= hourly <= 10:
-            raise ValueError("Use daily 1–50 and hourly 1–10; ramp limits still apply")
+        if not 1 <= daily <= 3000 or not 1 <= hourly <= 50:
+            raise ValueError("Use bounded provider limits; ramp limits still apply")
         evidence = fields.get("evidence", "").strip()
         if not 20 <= len(evidence) <= 1000:
             raise ValueError("Record dated evidence of the sender checks and test acceptance")
-        readiness: dict[str, Any] = {key: fields.get(key) == "true" for key in READINESS}
+        readiness: dict[str, Any] = {}
         readiness.update(evidence=evidence, reviewed_at=utc_now().isoformat())
         enabled = fields.get("enabled") == "true"
         with app.db.sessions.begin() as session:
             mailbox = session.get(Mailbox, mailbox_id)
-            if not mailbox or mailbox.provider not in {"titan", "gmail"}:
-                raise ValueError("Choose an existing Titan or Gmail sender")
+            if not mailbox or mailbox.provider not in {"titan", "hostinger", "gmail"}:
+                raise ValueError("Choose an existing Titan, Hostinger or Gmail sender")
+            required = readiness_fields(mailbox)
+            readiness.update({key: fields.get(key) == "true" for key in required})
+            caps = PRESETS[mailbox.provider]
+            if hourly > caps["hourly"] or daily > (
+                3000 if mailbox.provider == "hostinger" else caps["daily"]
+            ):
+                raise ValueError("Limits exceed this provider profile's conservative ceiling")
             if enabled and (
-                not all(readiness[key] for key in READINESS)
+                not all(readiness[key] for key in required)
                 or not app.settings.encryption_key
                 or not session.get(IntegrationSecret, "mailbox:" + mailbox_id)
             ):
@@ -99,7 +107,35 @@ async def mailbox_readiness(
             state.updated_by = principal.user.id
             if enabled and state.ramp_started_at is None:
                 state.ramp_started_at = utc_now()
+            changed_connection = connection(
+                mailbox.provider,
+                {
+                    key: fields[key]
+                    for key in ("smtp_host", "smtp_port", "imap_host", "imap_port")
+                    if key in fields
+                },
+            )
+            mailbox.connection = changed_connection
             mailbox.enabled = enabled
+            if not enabled:
+                session.execute(
+                    update(SendIntent)
+                    .where(
+                        SendIntent.mailbox_id == mailbox_id,
+                        SendIntent.state.in_(["scheduled", "held"]),
+                    )
+                    .values(state="cancelled", hold_reason="owner_paused_mailbox")
+                )
+                session.execute(
+                    update(Draft)
+                    .where(
+                        Draft.conversation_id.in_(
+                            select(Conversation.id).where(Conversation.mailbox_id == mailbox_id)
+                        ),
+                        Draft.state.in_(["draft", "approved"]),
+                    )
+                    .values(state="cancelled")
+                )
             session.add(
                 AuditEvent(
                     actor_id=principal.user.id, action="mailbox.readiness", entity_id=mailbox_id
@@ -173,7 +209,10 @@ async def stop_conversation(
         recipient = drafts[-1].snapshot["recipient"] if drafts else ""
         session.execute(
             update(SendIntent)
-            .where(SendIntent.conversation_id == conversation_id, SendIntent.state == "scheduled")
+            .where(
+                SendIntent.conversation_id == conversation_id,
+                SendIntent.state.in_(["scheduled", "held"]),
+            )
             .values(state="cancelled", hold_reason="owner_stop")
         )
         session.execute(
@@ -189,3 +228,42 @@ async def stop_conversation(
     if fields.get("suppress") == "true" and recipient:
         suppress(services(request).db, recipient, "Owner-confirmed recipient stop")
     return RedirectResponse("/inbox", 303)
+
+
+@router.post("/conversations/{conversation_id}/review-delay")
+async def review_delivery_delay(
+    request: Request, principal: Owner, conversation_id: str
+) -> RedirectResponse:
+    """Clear only a reviewed delay hold; existing sends still require manual rescheduling."""
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    note = fields.get("note", "").strip()
+    if fields.get("reviewed") != "true" or not 10 <= len(note) <= 500:
+        raise HTTPException(422, "Review delivery status in the sender mailbox and record evidence")
+    with services(request).db.sessions.begin() as session:
+        conversation = session.get(Conversation, conversation_id)
+        messages = list(
+            session.scalars(
+                select(InboxMessage).where(InboxMessage.conversation_id == conversation_id)
+            )
+        )
+        if (
+            not conversation
+            or conversation.state != "held"
+            or not messages
+            or not any(m.classification == "delivery_delayed" for m in messages)
+            or any(
+                m.classification not in {"delivery_delayed", "delivery_notice"} for m in messages
+            )
+        ):
+            raise HTTPException(409, "This hold includes a reply or another review requirement")
+        conversation.state = "active" if conversation.first_message_id else "draft"
+        session.add(
+            AuditEvent(
+                actor_id=principal.user.id,
+                action="delivery.delay_reviewed",
+                entity_id=conversation_id,
+                details={"note": note},
+            )
+        )
+    return RedirectResponse("/outbox", 303)

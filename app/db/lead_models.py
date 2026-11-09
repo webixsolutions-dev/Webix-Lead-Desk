@@ -22,6 +22,7 @@ class Campaign(Base):
     lane: Mapped[str] = mapped_column(String(16), default="client")
     country: Mapped[str] = mapped_column(String(2), default="CA", server_default="CA")
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    followup_days: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     daily_limit: Mapped[int] = mapped_column(Integer, default=10)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
@@ -105,6 +106,10 @@ class Contact(Base):
     role: Mapped[str] = mapped_column(String(120), default="")
     verification: Mapped[str] = mapped_column(String(24), default="unverified")
     verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    dns_result: Mapped[str | None] = mapped_column(String(24))
+    dns_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    dns_address: Mapped[str | None] = mapped_column(String(254))
+    allow_role: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
 class ContactBasis(Base):

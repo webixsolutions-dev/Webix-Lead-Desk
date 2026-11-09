@@ -220,7 +220,7 @@ def demo_message(db: Database, demo_id: str, body: str, actor_id: str) -> Draft:
             select(Draft)
             .where(
                 Draft.conversation_id == conversation.id,
-                Draft.step >= 2,
+                Draft.kind == "concept",
                 Draft.state != "superseded",
             )
             .order_by(Draft.created_at.desc())

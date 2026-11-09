@@ -23,6 +23,7 @@ from app.playbook.service import current_guidance
 from app.policy.contacts import company_suppressed, is_suppressed
 from app.policy.verification import verification_block, verify_address
 from app.sending.sequences import days_for
+from app.sending.signatures import get_signature
 from app.sources.validation import domain_of
 
 
@@ -235,6 +236,7 @@ def save_draft(
                 "subject": subject.strip(),
                 "body": body.strip(),
                 "footer": footer(mailbox),
+                "signature": get_signature(session, mailbox_id),
                 "evidence_ids": sorted(found),
                 "playbook_ids": [item.id for item in guidance],
                 "attachments": attachments,
@@ -294,6 +296,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append(block)
         contact = session.get(Contact, snapshot["contact_id"])
         mailbox = session.get(Mailbox, snapshot["mailbox_id"])
+        if get_signature(session, snapshot["mailbox_id"]) != snapshot.get(
+            "signature", {"html": "", "text": "", "version": 0}
+        ):
+            reasons.append("Sender signature changed; save and review a new revision")
         campaign = session.get(Campaign, snapshot["campaign_id"])
         if (
             not conversation

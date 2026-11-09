@@ -8,7 +8,7 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/app.css">
   <link rel="stylesheet" href="/static/concepts.css">
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=0.22">
   <link rel="stylesheet" href="/static/workspace.css?v=0.20">
   <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0}'>
   <script src="/static/vendor/htmx.min.js" defer></script>
@@ -38,7 +38,7 @@
     {% if preferences.preview_enabled %}<div class="preview-banner"><span>{{ icon('window', 17) }} <strong>Workspace preview</strong> <span class="banner-description">Sample cards are fictional. Real records require their own review and approval.</span></span>{% if user.role == 'owner' %}<a href="/settings#workspace">Manage preview {{ icon('arrow', 15) }}</a>{% endif %}</div>{% endif %}
     {% if hosted_status and hosted_status.warnings and page != 'settings' %}<details class="health-notice" open><summary>{{ icon('activity', 17) }} Workspace needs attention <span class="count-pill">{{ hosted_status.warnings|length }}</span></summary>{% for warning in hosted_status.warnings %}<p role="status">{{ warning }}</p>{% endfor %}<a class="text-link" href="/settings#operations">View system status {{ icon('arrow', 14) }}</a></details>{% endif %}
     {% block content %}{% endblock %}
-    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.21</span></footer>
+    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.22</span></footer>
   </main>
 </div>
 </body>

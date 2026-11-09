@@ -1,0 +1,16 @@
+{% set signature = mailbox_signatures[box.id] %}
+<details class="work-panel" id="signature-{{ box.id }}">
+  <summary>Email signature{% if signature.html %} · saved{% endif %}</summary>
+  <p class="small muted">Paste your signature HTML here. Save it, then review the preview. Signature changes require a fresh message review.</p>
+  <form method="post" action="/settings/mailboxes/{{ box.id }}/signature" class="work-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="version" value="{{ signature.version }}">
+    <label>Signature HTML<textarea name="html" rows="8" maxlength="10000" spellcheck="false">{{ signature.html }}</textarea></label>
+    <button class="button secondary">Save signature</button>
+    <p class="small muted">Clear this field and save to remove the signature. Your sender identity and unsubscribe footer remain part of outreach emails.</p>
+  </form>
+  {% if signature.html %}
+  <iframe class="email-preview" title="Saved email signature" src="/settings/mailboxes/{{ box.id }}/signature-preview?version={{ signature.version }}" sandbox="" referrerpolicy="no-referrer" loading="lazy"></iframe>
+  <details><summary>Text version</summary><pre class="message-copy">{{ signature.text }}</pre></details>
+  {% endif %}
+</details>

@@ -17,11 +17,12 @@ from app.db.session import Database
 from app.pilot.service import reserve_pilot
 from app.policy.contacts import reserve_channel
 from app.sending.policy import claim_valid, delivery_blocks
+from app.sending.signature_html import set_message_content
 from app.sending.window import CALGARY, end_of_day, next_window, ramp_limit
 
 
 def wire_message(draft: Draft, item: SendIntent, now: datetime) -> str:
-    """Construct one immutable plain-text RFC message from the exact approved snapshot."""
+    """Construct one immutable RFC message from the exact approved text and HTML snapshot."""
     snapshot = draft.snapshot
     message = EmailMessage(policy=policy.SMTP)
     message["From"] = formataddr((snapshot["from_name"], snapshot["from_email"]))
@@ -33,7 +34,7 @@ def wire_message(draft: Draft, item: SendIntent, now: datetime) -> str:
     if item.step:
         message["In-Reply-To"] = snapshot["in_reply_to"]
         message["References"] = " ".join(snapshot["references"])
-    message.set_content(snapshot["body"] + "\n\n" + snapshot["footer"])
+    set_message_content(message, snapshot)
     return message.as_string()
 
 

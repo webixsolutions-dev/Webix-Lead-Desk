@@ -258,6 +258,7 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
             "app_mode": "PC",
             "live_send_enabled": False,
             "mailbox_tests": False,
+            "email_signatures": 1,
         }
 
 

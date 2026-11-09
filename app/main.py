@@ -35,6 +35,7 @@ from app.api import (
     pipeline,
     playbook,
     research,
+    signatures,
     sources,
 )
 from app.core.config import Settings
@@ -108,6 +109,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
             "frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'"
         )
+        if getattr(request.state, "email_preview", False):
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["Content-Security-Policy"] = signatures.PREVIEW_CSP
         if config.cookie_secure:
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
         return response
@@ -144,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(playbook.router)
     app.include_router(delivery.router)
     app.include_router(mailbox_tests.router)
+    app.include_router(signatures.router)
     app.include_router(pilot.router)
     app.include_router(pipeline.router)
     app.include_router(demos.router)

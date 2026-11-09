@@ -29,6 +29,7 @@ async def queue_mailbox_test(
             fields.get("request_id", ""),
             principal.user.id,
             utc_now(),
+            signature_version=int(fields.get("signature_version", "0")),
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error

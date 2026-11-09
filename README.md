@@ -234,7 +234,7 @@ This release does not provision accounts, configure production secrets or enable
 
 ## Windows desktop setup
 
-Use the v0.21.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
+Use the v0.22.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
 
 ### Dashboard navigation
 
@@ -246,11 +246,11 @@ The v0.20 web layout works with the installed v0.19 PC worker; no reinstall or k
 is needed. Sending still requires the existing worker settings and exact approvals.
 
 
-### Mailbox connection tests (v0.21)
+### Mailbox connection tests (v0.22)
 
 Settings → Email setup → Mailbox connections → **Send a test email** now previews one
 fixed message and accepts one explicitly approved test inbox. Update the Windows companion
-to v0.21, or enable `MAILBOX_TESTS_ENABLED=true` on the PC/VPS worker only. Keep it false
+to v0.22, or enable `MAILBOX_TESTS_ENABLED=true` on the PC/VPS worker only. Keep it false
 on Vercel. Existing encrypted settings and schema are unchanged.
 
 The test sends once through the existing SMTP adapter while outreach remains off. Three
@@ -258,3 +258,13 @@ requests per mailbox per UTC day, signed approvals, request deduplication and du
 uncertainty holds prevent automatic duplicate sends. Check the actual recipient inbox
 before confirming receipt. This does not mark all sender checks as complete or enable
 campaigns. See [owner setup](docs/owner-setup.md) and [diagnostic design](docs/decisions/0021-mailbox-diagnostics.md).
+
+### Mailbox signatures (v0.22)
+
+Owners can save an HTML signature per mailbox under Settings → Email setup. The app sanitizes
+pasted markup, shows an isolated preview and derives a text alternative. The exact signature
+revision is frozen with every draft or test approval; subsequent edits require a fresh review.
+The updated worker sends multipart email and keeps the existing outreach unsubscribe footer.
+Customer signatures stay in private settings storage. No schema migration or new environment
+variable is needed; update the PC companion to send the new HTML format. Saving a signature does
+not send mail or enable outreach. See [the design decision](docs/decisions/0022-mailbox-signatures.md).

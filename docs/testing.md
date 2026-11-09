@@ -125,10 +125,13 @@ Real provider, owner-PC startup and hosted database acceptance remain setup task
 
 ## v0.18 hosted protection
 
-Local full offline suite: 393 passed (four PostgreSQL tests deferred to CI); final
-additional role/restore regressions: all eight hosted tests passed. Ruff, format
-and strict mypy pass. Full-run line coverage: 85.65% overall, jobs 83.79%, sending
-91.77%, inbox 94.85%. CI repeats the complete suite including the final additions.
+Final local full offline suite: 399 passed (four PostgreSQL tests run separately in
+CI). Ruff, format and strict mypy pass. Full-run line coverage: 85.48% overall,
+jobs 83.10%, sending 91.77%, inbox 94.85%. Every required module exceeds 80%.
+Explicit worker reconnect tests cover a lost completion write after an offline
+send side effect: the send remains held, is never replayed, and later health work
+completes. Permanent/one-shot errors exit and failed shutdown releases stay redacted.
+CI repeats the complete suite including these failure-path regressions.
 New PostgreSQL checks require RLS on every ORM table and Alembic version table,
 verify a granted ordinary role cannot read/insert, terminate an actual connection
 and check fresh checkout/pre-ping recovery with prepared statements disabled.

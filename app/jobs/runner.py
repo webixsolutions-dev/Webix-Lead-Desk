@@ -6,6 +6,9 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from random import SystemRandom
 
+import psycopg
+from sqlalchemy.exc import DBAPIError
+
 from app.audit.batch import BatchPending
 from app.audit.budget import BudgetBlocked
 from app.core.clock import utc_now
@@ -121,20 +124,39 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
             from app.linkedin.planner import plan_day
             from app.sending.schedule import plan_jobs
 
-            keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
-            if utc_now() >= next_linkedin_plan:
-                from app.linkedin.learning import tick as linkedin_learning_tick
+            try:
+                keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
+                if utc_now() >= next_linkedin_plan:
+                    from app.linkedin.learning import tick as linkedin_learning_tick
 
-                linkedin_learning_tick(db, utc_now())
-                plan_day(db, utc_now())
-                from app.linkedin.posting import plan as plan_posts
+                    linkedin_learning_tick(db, utc_now())
+                    plan_day(db, utc_now())
+                    from app.linkedin.posting import plan as plan_posts
 
-                plan_posts(db, settings, utc_now())
-                next_linkedin_plan = utc_now() + timedelta(
-                    seconds=settings.linkedin_plan_interval_seconds
-                )
-            plan_jobs(db, settings, utc_now())
-            run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
+                    plan_posts(db, settings, utc_now())
+                    next_linkedin_plan = utc_now() + timedelta(
+                        seconds=settings.linkedin_plan_interval_seconds
+                    )
+                from app.operations.scheduled_backup import scheduled_backup
+
+                scheduled_backup(db, settings, utc_now())
+                plan_jobs(db, settings, utc_now())
+                run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
+            except DBAPIError as error:
+                from app.db.connection import transient
+
+                if not (
+                    error.connection_invalidated
+                    or isinstance(error.orig, psycopg.OperationalError)
+                    and transient(error.orig)
+                ):
+                    raise
+                logger.warning("Database connection interrupted; unfinished claims remain fenced")
+                if once:
+                    raise
+                db.engine.dispose()
+                time.sleep(min(30, settings.job_retry_seconds))
+                continue
             if once:
                 break
             time.sleep(settings.worker_poll_seconds)
@@ -142,7 +164,10 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
         logger.info("Worker stopping")
     finally:
         keep_awake(utc_now(), enabled=False)
-        release_worker(db, owner, utc_now())
+        try:
+            release_worker(db, owner, utc_now())
+        except DBAPIError:
+            logger.warning("Worker disconnected; its lease will expire automatically")
 
 
 def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> str:

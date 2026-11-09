@@ -1,5 +1,5 @@
 # Run locally as Administrator after setup and migration. Never paste credentials into chat.
-param([switch]$ValidateOnly, [switch]$Uninstall)
+param([switch]$ValidateOnly, [switch]$Uninstall, [switch]$WorkerOnly)
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectPython = Join-Path $projectRoot ".venv\Scripts\python.exe"
@@ -38,6 +38,10 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RestartCount 999 `
     -MultipleInstances IgnoreNew -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $scripts = @("start.ps1", "worker.ps1")
+if ($WorkerOnly) {
+    $names = @("Webix Lead Desk - Worker")
+    $scripts = @("worker.ps1")
+}
 for ($index = 0; $index -lt $names.Count; $index++) {
     $scriptPath = Join-Path $PSScriptRoot $scripts[$index]
     $arguments = '-NoProfile -NonInteractive -File "' + $scriptPath + '"'

@@ -1,12 +1,17 @@
 # Owner setup before the first live pilot
 
+**Current hosted default: Supabase Free + existing Vercel dashboard + Windows PC worker.**
+Follow [Steps A–G](supabase-setup.md), confirming one step at a time. v0.18.0 adds
+connection safeguards, default-deny RLS, weekly backups and owner warnings.
+
+
 The application code covers the original phases, outreach-review fixes, acquisition and LinkedIn L1–L5. CI and synthetic tests are separate from a working hosted account or live provider acceptance. No prospect was contacted and no client outcome is implied.
 
 ## 1. Choose the initial runtime
 
 **No provider purchase:** use PC mode and SQLite with the Windows commands in the README. Keep the PC awake for background work. The dashboard is local to that PC.
 
-**Hosted dashboard:** use the existing Vercel project plus a dedicated PostgreSQL database and a PC worker. Neon is supported but not connected. Select an eligible zero-cost database/account, or explicitly authorize the paid organization's cost before provisioning. Do not reuse an unrelated database. Vercel currently has `APP_MODE=VERCEL`; the remaining production database/secrets and owner account are not configured. A green build is not a verified live dashboard.
+**Hosted dashboard:** use the existing Vercel project plus a dedicated PostgreSQL database and a PC worker. Supabase is the default; Neon remains an optional alternative with the compute-hour warning in the setup guide. Neither database has been provisioned by the code changes. Select an eligible zero-cost database/account, or explicitly authorize the paid organization's cost before provisioning. Do not reuse an unrelated database. Vercel currently has `APP_MODE=VERCEL`; the remaining production database/secrets and owner account are not configured. A green build is not a verified live dashboard.
 
 Set the private variables listed in [Vercel setup](deploy-to-vercel.md), migrate explicitly, create the owner via the local hidden-password prompt, then verify sign-in and a worker health job. Never paste passwords or keys into chat. If moving existing SQLite data, follow [cutover](move-to-vps.md); do not create accounts in the empty target before restoration.
 
@@ -117,7 +122,7 @@ only after reviewing the caption and the exact uploaded asset.
 ## Final launch sequence
 
 1. Choose local PC/SQLite or the hosted Vercel dashboard with a dedicated shared
-   PostgreSQL database and PC worker. No Neon project or production secrets have been
+   PostgreSQL database and PC worker. No hosted project or production secrets have been
    provisioned by these code phases. Confirm current hosting configuration before launch.
 2. Back up, stop old workers, run `lead-desk migrate` through the current head on the
    shared database, then start one worker. On Windows complete autostart with the real

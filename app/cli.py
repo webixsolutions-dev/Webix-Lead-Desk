@@ -54,6 +54,12 @@ def parser() -> argparse.ArgumentParser:
     for name in ["backup", "restore", "verify-backup"]:
         operation = commands.add_parser(name, help="Private encrypted database " + name)
         operation.add_argument("--file", required=True, type=Path)
+        if name == "backup":
+            operation.add_argument(
+                "--online",
+                action="store_true",
+                help="Consistent snapshot; restore holds all unfinished work",
+            )
         if name != "verify-backup":
             operation.add_argument("--offline-confirmed", action="store_true")
     return root
@@ -88,7 +94,11 @@ def main() -> int:
                 )
             case "backup":
                 result = export_backup(
-                    db, settings, args.file, offline_confirmed=args.offline_confirmed
+                    db,
+                    settings,
+                    args.file,
+                    offline_confirmed=args.offline_confirmed,
+                    online=args.online,
                 )
                 logger.info(
                     "Encrypted backup saved: %s rows; file SHA-256 %s",

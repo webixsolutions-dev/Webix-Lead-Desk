@@ -222,3 +222,12 @@ comparable angle tests and profile holds. Closed-fortnight proposals remain pend
 until the owner applies a reviewed Playbook rule. [Metric definitions](docs/linkedin-results.md)
 and [the remaining owner launch sequence](docs/owner-setup.md#final-launch-sequence).
 Code completion is separate from real provider connection, PC startup and live acceptance.
+
+
+## v0.18 hosted setup
+
+Supabase Free is the default hosted database, with the existing Vercel dashboard
+and a Windows PC worker. Follow [Steps A–G](docs/supabase-setup.md) one at a time.
+Session pooler safeguards, bounded connection pools, default-deny PostgreSQL RLS,
+weekly encrypted PC backups and owner capacity/activity warnings are implemented.
+This release does not provision accounts, configure production secrets or enable sending.

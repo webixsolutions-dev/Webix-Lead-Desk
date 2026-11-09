@@ -25,12 +25,24 @@ def cipher(settings: Settings) -> Fernet:
 
 
 def export_backup(
-    db: Database, settings: Settings, output: Path, *, offline_confirmed: bool = False
+    db: Database,
+    settings: Settings,
+    output: Path,
+    *,
+    offline_confirmed: bool = False,
+    online: bool = False,
 ) -> dict[str, Any]:
     """Write one new encrypted snapshot without overwriting an existing backup."""
     encryption = cipher(settings)
-    quiesce(db, offline_confirmed=offline_confirmed)
+    if settings.app_mode == "VERCEL":
+        raise ValueError("Backups must run on the PC or VPS worker")
+    if not online:
+        quiesce(db, offline_confirmed=offline_confirmed)
     payload = snapshot(db, settings)
+    if online:
+        from app.operations.recovery_snapshot import fence_snapshot
+
+        fence_snapshot(payload)
     if payload["tables"]["integration_secrets"]:
         if not settings.encryption_key:
             raise ValueError("Configure the original ENCRYPTION_KEY before backing up credentials")
@@ -59,6 +71,10 @@ def export_backup(
     except OSError:
         output.unlink(missing_ok=True)
         raise
+    from app.operations.scheduled_backup import record_success
+
+    digest = hashlib.sha256(encrypted).hexdigest()
+    record_success(db, digest, len(encrypted))
     return {
         "schema": payload["schema"],
         "rows": sum(payload["counts"].values()),

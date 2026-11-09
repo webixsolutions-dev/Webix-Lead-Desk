@@ -6,14 +6,14 @@ The explicit `[tool.vercel] entrypoint = "app.vercel:app"` loads a top-level Fas
 
 ## Persistent database and configuration
 
-Provision or select a PostgreSQL database dedicated to this application before serving the dashboard. Do not use an unrelated project's database. No provider is provisioned or billed by this code. SQLite, including a file under `/tmp`, cannot hold this application's persistent hosted accounts, sessions or jobs.
+Supabase Free is the default hosted database. Follow [the step-by-step setup](supabase-setup.md) using the IPv4 Session pooler on port 5432 with sslmode=require. Neon remains optional, with the CU-hour/polling warning in that guide. Provision one dedicated application database before serving the dashboard. Do not use an unrelated project's database. No provider is provisioned or billed by this code. SQLite, including a file under `/tmp`, cannot hold this application's persistent hosted accounts, sessions or jobs.
 
 In Vercel Project Settings → Environment Variables, configure the following for the intended environment. Store credentials there and in your private local `.env`, never in Git or chat.
 
 | Variable | Value |
 |---|---|
 | `APP_MODE` | `VERCEL` |
-| `DATABASE_URL` | Provider connection URL, using the `postgresql+psycopg://` scheme; preserve provider TLS parameters such as `sslmode=require` |
+| `DATABASE_URL` | Supabase Session pooler URL, `postgresql+psycopg://`, port 5432 and `sslmode=require` |
 | `ENCRYPTION_KEY` | Original private Fernet credential key, identical on web and worker; never replace it without migrating stored credentials |
 | `PUBLIC_BASE_URL` | Actual HTTPS origin before approving public concept links |
 | `SESSION_SECRET` | A securely generated random key, at least 32 characters; keep the same key across instances in an environment |
@@ -21,7 +21,7 @@ In Vercel Project Settings → Environment Variables, configure the following fo
 | `ALLOWED_HOSTS` | JSON list of exact domains without `https://` or paths, e.g. `["webix-lead-desk.vercel.app"]`; verify the actual assigned domain first |
 | `LIVE_SEND_ENABLED` | `false` |
 | `EXTERNAL_INTEGRATIONS_ENABLED` | `false` |
-| `PREVIEW_ENABLED` | `true` to display explicitly fictional business examples after sign-in |
+| `PREVIEW_ENABLED` | `false` for Production; synthetic examples are for isolated previews |
 
 The Vercel entry point enforces the hosted profile even if `APP_MODE=PC` was copied accidentally. It rejects SQLite, insecure cookies and an absent/short session key. `PREVIEW_ENABLED` does not bypass authentication or database requirements.
 
@@ -38,7 +38,7 @@ uv run lead-desk create-user --email owner@company.example --name "Workspace Own
 uv run lead-desk check
 ```
 
-Replace the example email/name with your own. The account command prompts privately for a password. There is no default password, automatic public signup or unauthenticated setup endpoint. Use a provider's migration/direct endpoint if its pooled endpoint does not support migrations.
+Replace the example email/name with your own. The account command prompts privately for a password. There is no default password, automatic public signup or unauthenticated setup endpoint. Use the Supabase Session pooler for migrations; do not switch to its Direct IPv6 endpoint.
 
 Migrations and account creation are explicit administrator actions. Builds and request startup never apply migrations. On startup the existing factory checks the migration revision and refuses an unavailable or unmigrated database.
 

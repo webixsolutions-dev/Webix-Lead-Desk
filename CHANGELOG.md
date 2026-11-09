@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.0 — 2026-11-09
+
+- Bundled Windows installer and red/white desktop worker controls.
+- User-scoped encrypted settings, recovery key access and optional sign-in startup.
+- Cooperative Stop finishes in-flight work; existing sender/worker fences unchanged.
+- Windows package smoke, upgrade/uninstall checks, downloadable installer and checksum.
+
+
 ## 0.18.0 — 2026-11-09
 
 - Supabase session-pooler defaults, SSL/port guards, Vercel NullPool and bounded worker pool.

@@ -237,3 +237,20 @@ status. scheduled_backup.py runs once a week from the dedicated worker loop; it
 shares the encrypted exporter with CLI and recovery_snapshot.py fences the backup
 copy for safe restore. No live workspace maintenance toggling is needed for backups.
 SQLite/PC remains supported; hosted processes share one URL and credential key.
+
+## v0.19 Windows installer
+
+`app/desktop/` adds a Tkinter UI, DPAPI configuration store, Windows mutex/startup
+adapter and threaded controller. It uses the existing `app/jobs/runner.py` with a
+cooperative stop Event and a started callback after acquiring the database lease.
+Network work stays off Tk's UI thread. Stop never kills the job thread. The GUI
+is a worker companion; the Vercel dashboard and PostgreSQL schema are unchanged.
+No additional database tables or migrations. PC/VPS CLI remains supported.
+
+`packaging/windows/` contains a PyInstaller one-folder spec and Inno Setup installer.
+Python, native libraries, migrations, timezone data and logo are bundled in Windows
+CI. Settings and backups live separately under the Windows user's AppData. Only
+DPAPI-encrypted bytes are written atomically; existing keys survive updates. The
+installer is per-user, creates shortcuts and respects the application's mutex.
+Sign-in autostart is opt-in and removed on uninstall. Releases are published only
+after lint/types/tests/secret scan, PostgreSQL and Windows packaging checks pass.

@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from random import SystemRandom
+from threading import Event
 
 import psycopg
 from sqlalchemy.exc import DBAPIError
@@ -110,7 +111,14 @@ def run_once(
     return True
 
 
-def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
+def run_worker(
+    db: Database,
+    settings: Settings,
+    *,
+    once: bool = False,
+    stop_event: Event | None = None,
+    on_started: Callable[[], None] | None = None,
+) -> None:
     """Poll until interrupted, or process one job for a supervised smoke test."""
     if settings.app_mode == "VERCEL":
         raise RuntimeError("Run the dedicated worker with a PC or VPS profile")
@@ -120,7 +128,9 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
     logger.info("Worker started")
     next_linkedin_plan = utc_now()
     try:
-        while True:
+        if on_started is not None:
+            on_started()
+        while stop_event is None or not stop_event.is_set():
             from app.linkedin.planner import plan_day
             from app.sending.schedule import plan_jobs
 
@@ -141,6 +151,8 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
 
                 scheduled_backup(db, settings, utc_now())
                 plan_jobs(db, settings, utc_now())
+                if stop_event is not None and stop_event.is_set():
+                    break
                 run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
             except DBAPIError as error:
                 from app.db.connection import transient
@@ -155,11 +167,17 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
                 if once:
                     raise
                 db.engine.dispose()
-                time.sleep(min(30, settings.job_retry_seconds))
+                if stop_event is None:
+                    time.sleep(min(30, settings.job_retry_seconds))
+                else:
+                    stop_event.wait(min(30, settings.job_retry_seconds))
                 continue
             if once:
                 break
-            time.sleep(settings.worker_poll_seconds)
+            if stop_event is None:
+                time.sleep(settings.worker_poll_seconds)
+            else:
+                stop_event.wait(settings.worker_poll_seconds)
     except KeyboardInterrupt:
         logger.info("Worker stopping")
     finally:

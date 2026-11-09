@@ -46,3 +46,8 @@ package-lock.json
 *.backup
 *.env
 .env-backup-*
+
+# Generated installer assets and encrypted desktop configuration
+packaging/windows/webix.ico
+*.exe
+*.dat

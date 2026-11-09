@@ -108,3 +108,8 @@ no-website package from Offer Library. No Google Places account is needed while
 that provider stays off. Start the existing PC/VPS worker using the shared database.
 Reviewers can use Today → Calls; Settings is now owner-only. No live sender or
 production Neon acceptance is implied by the offline test suite.
+
+LinkedIn public posting is optional and off until each real member authorizes the
+owner-configured developer app. Follow [the posting setup](linkedin-posting.md);
+enter all credentials privately, never in chat. Approve one real acceptance post
+only after reviewing the caption and the exact uploaded asset.

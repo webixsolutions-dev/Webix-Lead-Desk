@@ -124,6 +124,9 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
             keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
             if utc_now() >= next_linkedin_plan:
                 plan_day(db, utc_now())
+                from app.linkedin.posting import plan as plan_posts
+
+                plan_posts(db, settings, utc_now())
                 next_linkedin_plan = utc_now() + timedelta(
                     seconds=settings.linkedin_plan_interval_seconds
                 )
@@ -143,6 +146,10 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
     """Run an explicitly registered handler; imports are idempotent by source key."""
     if job.kind == "health":
         return health_handler(job)
+    if settings is not None and job.kind == "linkedin_post":
+        from app.linkedin.posting import dispatch as publish_post
+
+        return publish_post(db, settings, job.payload["post_id"])
     if settings is not None and job.kind == "linkedin_draft":
         from app.linkedin.ai import generate as generate_linkedin
 

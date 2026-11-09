@@ -37,6 +37,7 @@ def enqueue(
         "score",
         "find_owner",
         "linkedin_draft",
+        "linkedin_post",
     }:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
@@ -118,6 +119,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "assess",
                         "draft",
                         "linkedin_draft",
+                        "linkedin_post",
                         "inbox",
                         "send",
                         "reconcile",
@@ -153,6 +155,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                     "assess",
                     "draft",
                     "linkedin_draft",
+                    "linkedin_post",
                     "send",
                     "discover",
                     "enrich_company",

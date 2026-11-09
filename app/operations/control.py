@@ -52,6 +52,17 @@ def quiesce(db: Database, *, offline_confirmed: bool) -> None:
             raise ValueError("A job lease is still live; wait for its expiry")
         for item in session.scalars(select(SendIntent).where(SendIntent.state == "transmitting")):
             hold_intent(session, item, now)
+        from app.db.linkedin_post_models import LinkedInPost
+
+        for post in session.scalars(
+            select(LinkedInPost).where(
+                LinkedInPost.state.in_(["uploading", "submitting", "native"])
+            )
+        ):
+            post.state, post.reason = (
+                "needs_check",
+                "Interrupted during maintenance; check LinkedIn",
+            )
         for job in jobs:
             job.state, job.error_code, job.finished_at = "failed", "maintenance_recovery", now
             for attempt in session.scalars(

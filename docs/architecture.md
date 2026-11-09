@@ -209,3 +209,10 @@ review, reply cards and optional copy suggestions. API routes use both role and
 assignment checks. The same monthly AI ledger now covers every provider entry point;
 unknown charges remain reserved, and worker priorities process replies before research.
 All planned invitations and DMs remain manual; the worker never executes them.
+
+L4 stores public post slots/revisions/approvals separately from person-targeted tasks.
+The same member policy row serializes both. `app/linkedin/posting.py` schedules
+short worker jobs; no work runs after a Vercel request finishes. Media uses private
+1 MB base64 database chunks shared by PC/VPS/Vercel, retaining portable JSON backups.
+OAuth state is excluded from backups; encrypted tokens use the existing credential
+vault and key fingerprint. Maintenance turns in-flight posts into checked holds.

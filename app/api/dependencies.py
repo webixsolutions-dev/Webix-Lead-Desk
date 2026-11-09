@@ -39,7 +39,10 @@ def require_user(request: Request) -> Principal:
                     if user.role != "owner" and not re.fullmatch(
                         r"/|/logout|/status/worker|/calls(?:/[^/]+/(?:outcome|notes))?"
                         r"|/linkedin/(?:plan|queue)|/linkedin/tasks/[^/]+(?:/(?:start|complete))?"
-                        r"|/people/[^/]+/(?:reply|event)",
+                        r"|/people/[^/]+/(?:reply|event)"
+                        r"|/linkedin/posts(?:/[^/]+(?:/native)?)?"
+                        r"|/linkedin/oauth/(?:finish|[^/]+/(?:start|decision))"
+                        r"|/linkedin/media/(?:new|[^/]+/(?:[0-9]+|finish|remove|chunk/[0-9]+))",
                         request.url.path,
                     ):
                         raise HTTPException(403, "This page is available to the owner")

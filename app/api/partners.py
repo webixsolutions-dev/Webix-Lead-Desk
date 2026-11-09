@@ -1,7 +1,7 @@
 """Partner reviews, editable campaign targeting and observed results."""
 
 from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
@@ -23,6 +23,12 @@ def partners_page(request: Request, principal: CurrentUser) -> HTMLResponse:
     context = dashboard_context(request, principal, "partners")
     context["results"] = campaign_results(services(request).db)
     with services(request).db.sessions() as session:
+        context["no_website_count"] = (
+            session.scalar(
+                select(func.count()).select_from(Company).where(Company.has_website == "false")
+            )
+            or 0
+        )
         day = session.get(PartnerDay, utc_now().astimezone(CALGARY).date().isoformat())
         context["reserved_partners"] = day.reserved if day else 0
         context["partner_reviews"] = list(

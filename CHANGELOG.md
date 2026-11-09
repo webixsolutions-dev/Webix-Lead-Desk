@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 — Discovery, human calls and lead journeys
+
+- Add budgeted OpenAI Responses web-search discovery for any campaign city,
+  official-site identity checks, per-field source links, 90-day company search
+  deduplication, bounded batches and automatic audit/score/draft continuation.
+- Add disabled-by-default Places New adapter, encrypted key and separate owner caps;
+  retain place IDs and independently verified first-party data only.
+- Add editable/versioned rule scores, listing reviews, the no-website lane and
+  Offer Library selection. Unknown signals do not earn points.
+- Add mobile/print human call lists, outcomes, exact verbal consent, company/phone
+  suppression, and optional AI note cleanup with unapproved email suggestions.
+- Restrict Settings and Learning to owners; reviewers retain call-list access.
+- Add immutable lead events, historical backfill, derived stages, source-backed
+  score history, Calgary/Pakistan timeline, activity filters and revision diffs.
+- Add offline provider, quota race, migration, call consent and UI regression tests.
+- No provider purchases, real prospect contacts or live delivery acceptance tests.
+
 ## 0.11.0 — Outreach review fixes
 
 - Add Titan, Hostinger and Gmail per-mailbox settings, SSL/STARTTLS, provider readiness/limits,

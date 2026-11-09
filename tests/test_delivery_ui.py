@@ -94,7 +94,7 @@ def test_reviewer_cannot_save_credentials_or_schedule(
     """Viewer access does not grant either credential changes or message dispatch."""
     item = approved_intent(db, drafting_setup)
     sign_in(client, reviewer)
-    csrf = csrf_from(client.get("/settings").text)
+    csrf = csrf_from(client.get("/").text)
     assert (
         client.post(
             "/settings/connections",

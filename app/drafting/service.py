@@ -18,7 +18,7 @@ from app.learning.capture import capture_edit
 from app.partners.service import partner_block, reserve_slot
 from app.playbook.partner import meeting_block
 from app.playbook.service import current_guidance
-from app.policy.contacts import is_suppressed
+from app.policy.contacts import company_suppressed, is_suppressed
 from app.policy.verification import verification_block, verify_address
 from app.sending.sequences import days_for
 from app.sources.validation import domain_of
@@ -348,12 +348,27 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append("Sender identity changed or is not an eligible sender profile")
         if (
             not company
-            or not company.website
-            or not session.scalar(
-                select(CompanyDomain.id).where(
-                    CompanyDomain.company_id == company.id,
-                    CompanyDomain.domain == domain_of(company.website),
-                    CompanyDomain.status == "verified",
+            or (
+                company.has_website != "false"
+                and (
+                    not company.website
+                    or not session.scalar(
+                        select(CompanyDomain.id).where(
+                            CompanyDomain.company_id == company.id,
+                            CompanyDomain.domain == domain_of(company.website),
+                            CompanyDomain.status == "verified",
+                        )
+                    )
+                )
+            )
+            or (
+                company.has_website == "false"
+                and not session.scalar(
+                    select(Evidence.id).where(
+                        Evidence.company_id == company.id,
+                        Evidence.kind == "listing",
+                        Evidence.reviewed_by.is_not(None),
+                    )
                 )
             )
         ):
@@ -376,7 +391,10 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
         )
         if not basis or basis.no_solicitation or basis.expires_at <= utc_now():
             reasons.append("Contact permission evidence is missing, restricted or expired")
-        if company and is_suppressed(db, snapshot["recipient"], company.website):
+        if company and (
+            is_suppressed(db, snapshot["recipient"], company.website)
+            or company_suppressed(db, company.id)
+        ):
             reasons.append("Global suppression prevents outreach")
     return reasons
 

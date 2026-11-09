@@ -21,7 +21,21 @@ def enqueue(
     db: Database, unique_key: str, kind: str, payload: dict[str, Any], now: datetime
 ) -> Job:
     """Enqueue bounded reference data with a unique business key."""
-    if kind not in {"health", "calgary", "audit", "assess", "draft", "inbox", "send", "reconcile"}:
+    if kind not in {
+        "health",
+        "calgary",
+        "audit",
+        "assess",
+        "draft",
+        "inbox",
+        "send",
+        "reconcile",
+        "discover",
+        "enrich_company",
+        "advance_company",
+        "call_notes",
+        "score",
+    }:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
         raise ValueError("Job key must contain 1–128 characters")
@@ -95,7 +109,21 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
         expired = session.scalars(
             select(Job).where(
                 Job.kind.in_(
-                    ["health", "calgary", "audit", "assess", "draft", "inbox", "send", "reconcile"]
+                    [
+                        "health",
+                        "calgary",
+                        "audit",
+                        "assess",
+                        "draft",
+                        "inbox",
+                        "send",
+                        "reconcile",
+                        "discover",
+                        "enrich_company",
+                        "advance_company",
+                        "call_notes",
+                        "score",
+                    ]
                 ),
                 Job.state == "running",
                 Job.lease_expires_at <= now,
@@ -116,7 +144,8 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             )
             job.state = (
                 "failed"
-                if job.kind in {"assess", "draft", "send"}
+                if job.kind
+                in {"assess", "draft", "send", "discover", "enrich_company", "call_notes"}
                 or job.attempts >= settings.job_max_attempts
                 else "queued"
             )

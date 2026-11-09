@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 from starlette.responses import HTMLResponse, RedirectResponse
 
-from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
+from app.api.dependencies import Owner, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.db.lead_models import Campaign
 from app.db.learning_models import LearningProposal
@@ -58,7 +58,7 @@ def learning_data(request: Request) -> dict[str, Any]:
 
 
 @router.get("/learning", response_class=HTMLResponse)
-def learning_page(request: Request, principal: CurrentUser) -> HTMLResponse:
+def learning_page(request: Request, principal: Owner) -> HTMLResponse:
     """Render the compatibility view; primary navigation uses the Settings section."""
     context = dashboard_context(request, principal, "learning")
     context.update(learning_data(request))

@@ -226,7 +226,11 @@ def test_source_routes_and_contact_review(
         == 303
     )
     with db.sessions() as session:
-        assert session.scalar(select(Job.kind)) == "calgary"
+        assert session.scalar(select(Job.kind).where(Job.kind == "calgary")) == "calgary"
+        assert (
+            session.scalar(select(Job.kind).where(Job.kind == "advance_company"))
+            == "advance_company"
+        )
     assert (
         client.post(
             "/suppression",

@@ -78,7 +78,7 @@ def test_reviewer_cannot_mutate_owner_state(
 ) -> None:
     """Server-side roles protect settings and job submission, not just disabled buttons."""
     sign_in(client, reviewer)
-    assert client.get("/settings").status_code == 200
+    assert client.get("/settings").status_code == 403
     for path in ["/settings", "/jobs/health"]:
         assert (
             client.post(path, data={"csrf_token": csrf_from(client.get("/").text)}).status_code

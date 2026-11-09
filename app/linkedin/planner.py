@@ -122,8 +122,11 @@ def plan_profile(db: Database, profile_id: str, now: datetime) -> int:
                 release,
                 "Owner approval required",
             )
-            # Only L3 can make an exact-approved task ready. Planning cannot confer approval.
-            task.state = "pending"
+            from app.linkedin.drafts import valid
+
+            task.state = "ready" if valid(session, task, now) else "pending"
+            if task.state == "ready":
+                task.reason = "Approved for this member and exact text"
         policy.planned_day = today
         return len(allocated)
 
@@ -134,4 +137,8 @@ def plan_day(db: Database, now: datetime) -> int:
         return 0
     with db.sessions() as session:
         profiles = list(session.scalars(select(LinkedInProfile.id)))
-    return sum(plan_profile(db, profile, now) for profile in profiles)
+    from app.linkedin.review import schedule_replies
+
+    return sum(
+        schedule_replies(db, profile, now) + plan_profile(db, profile, now) for profile in profiles
+    )

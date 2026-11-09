@@ -139,6 +139,15 @@ def stop_company(
                 session.add(SuppressionEntry(key=value, reason=item.reason))
     cancel_pending(session, company_id, item.reason)
     end_ownership(session, company_id)
+    from app.db.linkedin_queue_models import LinkedInSequence
+
+    session.execute(
+        update(LinkedInSequence)
+        .where(
+            LinkedInSequence.person_id.in_(select(Person.id).where(Person.company_id == company_id))
+        )
+        .values(state="replied", hold_until=item.hold_until if item.state == "cooldown" else None)
+    )
     emit(
         session,
         company_id,

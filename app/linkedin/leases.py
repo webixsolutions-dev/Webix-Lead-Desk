@@ -42,7 +42,7 @@ def claim_task(
             or profile.user_id != actor
             or profile.status != "active"
             or not ownership
-            or not ownership.active
+            or (not ownership.active and task.action != "reply")
             or ownership.profile_id != profile.id
             or task.state != "ready"
             or task.planned_day != local_day(now)

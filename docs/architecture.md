@@ -199,3 +199,13 @@ LinkedIn L2 uses database-backed profile locks, quota rows, sequence progress an
 leases. The dedicated worker plans bounded weekday batches without executing them.
 Named-person day reservations fence both SMTP and future human LinkedIn starts. See
 [LinkedIn setup](linkedin.md) for limits, catch-up, Windows startup and recovery.
+
+
+### LinkedIn L3
+
+Separate immutable draft/approval tables preserve the email schema. `app/linkedin/`
+contains exact-copy checks, member action leases, human sequence progression, voice
+review, reply cards and optional copy suggestions. API routes use both role and
+assignment checks. The same monthly AI ledger now covers every provider entry point;
+unknown charges remain reserved, and worker priorities process replies before research.
+All planned invitations and DMs remain manual; the worker never executes them.

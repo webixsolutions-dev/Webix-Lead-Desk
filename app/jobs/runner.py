@@ -143,6 +143,10 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
     """Run an explicitly registered handler; imports are idempotent by source key."""
     if job.kind == "health":
         return health_handler(job)
+    if settings is not None and job.kind == "linkedin_draft":
+        from app.linkedin.ai import generate as generate_linkedin
+
+        return generate_linkedin(db, settings, job.payload["draft_id"], job.id)
     if settings is not None and job.kind == "find_owner":
         from app.linkedin.finder import find_owners
 

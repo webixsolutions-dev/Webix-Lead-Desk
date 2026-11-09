@@ -124,6 +124,8 @@ def generate(
         request_key,
         settings.openai_model,
         maximum,
+        category="email_drafts",
+        company_id=payload["company_id"],
         audit=False,
         batch=False,
     )

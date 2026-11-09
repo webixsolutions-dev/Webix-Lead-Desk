@@ -109,7 +109,16 @@ def clean_notes(
         )
         / 1_000_000
     )
-    reservation = reserve(db, request_key, settings.openai_model, maximum, utc_now(), audit=False)
+    reservation = reserve(
+        db,
+        request_key,
+        settings.openai_model,
+        maximum,
+        utc_now(),
+        audit=False,
+        category="replies",
+        company_id=call.company_id,
+    )
     try:
         response = provider(key, payload)
         texts = [

@@ -141,6 +141,14 @@ def reserve_quota(session: Session, task: LinkedInTask, now: datetime) -> bool:
         >= cap.all_messages
     ):
         return False
+    # Each profile-opening task reserves a view too; manual work outside this UI is
+    # not observable. Count plans conservatively rather than overpromise platform usage.
+    profile_actions = {"view", "invite", "message1", "message2", "message3", "reply", "comment"}
+    if (
+        action in profile_actions
+        and sum(counts.get(key, 0) for key in profile_actions) >= cap.views
+    ):
+        return False
     if action in {"invite", "post"}:
         weekly = (
             session.scalar(

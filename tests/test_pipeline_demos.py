@@ -232,15 +232,15 @@ def test_public_concept_is_exact_revocable_and_private_data_free(
     assert "noindex" in page.text and client.get("/concepts/missing").status_code == 404
     sign_in(client, reviewer)
     page = client.get("/demos/" + item.id)
-    assert page.status_code == 200
+    assert page.status_code == 403
     assert (
         client.post(
             f"/demos/{item.id}/message",
-            data={"csrf_token": csrf_from(client.get("/pipeline").text), "body": "test"},
+            data={"csrf_token": csrf_from(client.get("/").text), "body": "test"},
         ).status_code
         == 403
     )
-    client.post("/logout", data={"csrf_token": csrf_from(client.get("/pipeline").text)})
+    client.post("/logout", data={"csrf_token": csrf_from(client.get("/").text)})
     sign_in(client, owner)
     with db.sessions() as session:
         card = session.scalar(select(Opportunity))

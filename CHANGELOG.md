@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.15.0 — LinkedIn L3: exact review and manual member queue
+
+- Immutable LinkedIn copy revisions and append-only owner approvals bind the recipient,
+  real member, full identity/opt-out, reviewed evidence, angle and expiring contact basis.
+- Manual member cards support start/open/copy/confirm, connection acceptance, factual
+  replies and profile corrections. Unknown actions require owner reconciliation.
+- Three-message progression, stale-task review, 21-day withdrawal hold, 90-day silence
+  cooldown and retained 180-day ownership. Reply responses never restart cold sequences.
+- Member access is limited to their queue and assigned company calls. Owner Outbox and
+  Pipeline integrate LinkedIn tasks and real replies without fabricated email threads.
+- Reviewed voice cards, optional budgeted copy improvement, free asset prompts and
+  non-carrying monthly AI category caps under a $170 total ceiling.
+- Current scope remains human messaging; official post publishing is the next phase.
+
+
 ## 0.14.0 — LinkedIn L2
 
 - Persistent weekday planner, conservative warmup/daily/weekly quotas, catch-up slots and uncertain-action holds.

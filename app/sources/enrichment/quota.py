@@ -99,7 +99,13 @@ def reserve_search(
                     if company_id
                     else "This discovery query ran within 24 hours; review the saved results"
                 )
-            call = None if places else reserve_in_session(session, key, model, maximum, now)
+            call = (
+                None
+                if places
+                else reserve_in_session(
+                    session, key, model, maximum, now, category="enrichment", company_id=company_id
+                )
+            )
             record = SearchRecord(
                 request_key=key,
                 cache_key=cache_key,

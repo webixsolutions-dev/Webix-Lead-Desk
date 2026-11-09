@@ -104,6 +104,8 @@ def assess(
         key,
         settings.openai_model,
         maximum,
+        category="audits",
+        company_id=company_id,
         audit=True,
         batch=settings.openai_processing == "batch",
     )

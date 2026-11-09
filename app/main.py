@@ -23,6 +23,8 @@ from app.api import (
     learning,
     linkedin,
     linkedin_planner,
+    linkedin_review,
+    linkedin_tasks,
     operations,
     partners,
     pilot,
@@ -123,6 +125,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(calls.router)
     app.include_router(linkedin.router)
     app.include_router(linkedin_planner.router)
+    app.include_router(linkedin_tasks.router)
+    app.include_router(linkedin_review.router)
     app.include_router(dashboard.router)
     app.include_router(sources.router)
     app.include_router(research.router)

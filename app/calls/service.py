@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from app.calls.access import can_call
 from app.core.clock import utc_now
 from app.db.acquisition_models import CallRecord
 from app.db.lead_models import (
@@ -74,11 +75,15 @@ def record_call(
         )
     try:
         with db.sessions.begin() as session:
+            from app.linkedin.coordination import lock_company
+
+            lock_company(session, company_id)
             user = session.get(User, actor)
             company = session.get(Company, company_id)
             if (
                 not user
                 or not user.active
+                or not can_call(session, company_id, user)
                 or not company
                 or not company.phone
                 or not session.scalar(

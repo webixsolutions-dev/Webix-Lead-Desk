@@ -21,7 +21,10 @@ def planned_tasks(db: Database, actor: User, now: datetime) -> list[dict[str, An
             .where(LinkedInTask.state.not_in(["done", "cancelled"]))
         )
         if actor.role != "owner":
-            query = query.where(LinkedInProfile.user_id == actor.id)
+            query = query.where(
+                LinkedInProfile.user_id == actor.id,
+                LinkedInTask.state.in_(["ready", "acting", "needs_check"]),
+            )
         return [
             {
                 "task": task,

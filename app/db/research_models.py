@@ -71,6 +71,8 @@ class AICall(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     request_key: Mapped[str] = mapped_column(String(128))
     model: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(String(24), default="reserve", server_default="reserve")
+    company_id: Mapped[str | None] = mapped_column(ForeignKey("companies.id"), index=True)
     state: Mapped[str] = mapped_column(String(24), default="reserved")
     reserved: Mapped[int] = mapped_column(Integer)
     batch: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True), nullable=True)

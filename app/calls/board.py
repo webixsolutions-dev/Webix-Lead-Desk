@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from app.calls.access import can_call
 from app.core.clock import utc_now
 from app.core.timezones import zone
 from app.db.acquisition_models import CallNote, CallRecord, LeadScore
@@ -16,6 +17,7 @@ from app.db.lead_models import (
     Contact,
     ContactBasis,
 )
+from app.db.models import User
 from app.db.outreach_models import Offer
 from app.db.research_models import Evidence
 from app.db.session import Database
@@ -34,7 +36,7 @@ def offer_for_listing(db: Database) -> Offer | None:
         return offer if offer and offer.active else None
 
 
-def call_list(db: Database) -> list[dict[str, Any]]:
+def call_list(db: Database, actor: User | None = None) -> list[dict[str, Any]]:
     """Return eligible due human calls, ordered by their latest evidence-based score."""
     now = utc_now()
     offer = offer_for_listing(db)
@@ -42,6 +44,8 @@ def call_list(db: Database) -> list[dict[str, Any]]:
     with db.sessions() as session:
         companies = list(session.scalars(select(Company).where(Company.phone != "")))
         for company in companies:
+            if actor and not can_call(session, company.id, actor):
+                continue
             if company_suppressed(db, company.id):
                 continue
             campaign = session.scalar(
@@ -148,7 +152,7 @@ def call_list(db: Database) -> list[dict[str, Any]]:
     )
 
 
-def call_history(db: Database, limit: int = 30) -> list[dict[str, Any]]:
+def call_history(db: Database, limit: int = 30, actor: User | None = None) -> list[dict[str, Any]]:
     """Link recent human notes, model suggestions and unapproved draft records."""
     with db.sessions() as session:
         return [
@@ -157,7 +161,6 @@ def call_history(db: Database, limit: int = 30) -> list[dict[str, Any]]:
                 "company": session.get(Company, call.company_id),
                 "cleaned": session.scalar(select(CallNote).where(CallNote.call_id == call.id)),
             }
-            for call in session.scalars(
-                select(CallRecord).order_by(CallRecord.created_at.desc()).limit(limit)
-            )
-        ]
+            for call in session.scalars(select(CallRecord).order_by(CallRecord.created_at.desc()))
+            if not actor or can_call(session, call.company_id, actor)
+        ][:limit]

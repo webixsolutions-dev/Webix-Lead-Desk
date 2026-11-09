@@ -86,3 +86,13 @@ calls are made and no real LinkedIn action is performed.
 CI exposed different OS timezone databases. Current bundled tzdata is now used across
 all application clocks, display, callbacks and quotas. Regression checks cover Alberta's
 November 2026 permanent UTC-6 transition and historical UTC-7 winter behavior.
+
+
+### LinkedIn L3 local verification
+
+360 offline tests passed, with the two PostgreSQL-only checks left to CI. Exact
+approval and database mutation guards, wrong-member isolation, monthly category/total
+caps, uncertain completion, replay prevention, requested response separation and
+90-day/12-month cooldowns are covered. Synthetic desktop/mobile browser review checked
+readable copy, identity/opt-out retention and manual-copy fallback when clipboard access
+is unavailable. Real LinkedIn execution was not performed.

@@ -19,7 +19,15 @@ class BatchPending(Exception):
 
 
 def reserve_call(
-    db: Database, key: str, model: str, maximum: int, *, audit: bool, batch: bool
+    db: Database,
+    key: str,
+    model: str,
+    maximum: int,
+    *,
+    audit: bool,
+    batch: bool,
+    category: str = "reserve",
+    company_id: str | None = None,
 ) -> AICall:
     """Resume only an acknowledged, still-reserved batch for the same request key."""
     if batch:
@@ -29,7 +37,9 @@ def reserve_call(
                 if existing.state == "reserved" and existing.batch and existing.batch.get("id"):
                     return existing
                 raise BudgetBlocked("Existing batch needs review; no resubmission allowed")
-    return reserve(db, key, model, maximum, utc_now(), audit=audit)
+    return reserve(
+        db, key, model, maximum, utc_now(), audit=audit, category=category, company_id=company_id
+    )
 
 
 def response(db: Database, call: AICall, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:

@@ -7,3 +7,18 @@
 .outcome-options input[type="radio"]{width:16px;height:16px;min-height:0;padding:0;margin:0;flex-shrink:0}.outcome-options label{min-height:40px}.call-card>p{margin:8px 0}.call-heading>div{min-width:0}
 
 .manual-dm{display:block;margin-top:16px;font-size:12px;color:#666b74}.manual-dm textarea{display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:12px;border:1px solid #e3e5e9;border-radius:8px;background:#fff;font:inherit;color:#25282e;resize:vertical}
+
+.linkedin-card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:20px; }
+.message-preview { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; background:#fafafa; border:1px solid #eee; border-radius:12px; padding:20px; }
+.connection-row { padding:20px 0; border-bottom:1px solid #eee; }
+.copy-status { display:inline-block; margin:10px; }
+.linkedin-card-grid .button { margin-top:12px; }
+
+.linkedin-task label { display:block; margin:14px 0; color:#59616d; font-size:13px; }
+.linkedin-task textarea,.linkedin-task input:not([type=checkbox]):not([type=hidden]),.linkedin-task select { box-sizing:border-box;display:block;width:100%;max-width:100%;margin-top:7px;padding:12px;border:1px solid #e3e5e9;border-radius:8px;background:#fff;font:inherit;line-height:1.55;color:#25282e; }
+.linkedin-task textarea { resize:vertical; min-height:120px; }
+.linkedin-task .check-label { display:flex; align-items:flex-start; gap:8px; line-height:1.5; }
+.linkedin-task .check-label input { flex:0 0 auto; width:16px; height:16px; margin:2px 0 0; }
+.linkedin-task .count-pill { white-space:normal; text-align:right; }
+.linkedin-task .section-title { align-items:flex-start; }
+.linkedin-task button:disabled { opacity:.55; cursor:not-allowed; }

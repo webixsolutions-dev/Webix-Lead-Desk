@@ -238,8 +238,8 @@ def test_pilot_forms_and_real_metrics_exclude_preview_cards(
     )
     assert metrics(db)["company_count"] == 1 and metrics(db)["sent_today"] == 0
     dashboard = client.get("/")
-    assert dashboard.status_code == 200 and "Imported records only" in dashboard.text
-    assert "Fictional examples" in dashboard.text
+    assert dashboard.status_code == 200 and "In your lead list" in dashboard.text
+    assert "Explore fictional examples" in dashboard.text
 
 
 def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(

@@ -1,3 +1,7 @@
+v0.20 improves the web dashboard: a clear next action, compact lead filters, grouped
+settings and mobile navigation. The existing v0.19 PC worker remains compatible;
+updating the desktop installer is optional and no new database migration is required.
+
 Install the bundled Windows worker without Python, uv, Git or terminal setup.
 
 - Red/white Webix companion with masked setup fields, Test connection, Start/Stop and Open Dashboard.

@@ -78,6 +78,11 @@ def company_suppressed(db: Database, company_id: str) -> bool:
         company = session.get(Company, company_id)
         if not company:
             return True
+        from app.db.linkedin_models import CompanyCoordination
+
+        coordination = session.get(CompanyCoordination, company_id)
+        if coordination and coordination.state in {"suppressed", "cooldown"}:
+            return True
         keys = {"company:" + company_id}
         if company.phone:
             keys.add("phone:" + re.sub(r"\D", "", company.phone))

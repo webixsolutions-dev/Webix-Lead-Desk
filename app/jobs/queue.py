@@ -35,6 +35,7 @@ def enqueue(
         "advance_company",
         "call_notes",
         "score",
+        "find_owner",
     }:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
@@ -120,6 +121,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "reconcile",
                         "discover",
                         "enrich_company",
+                        "find_owner",
                         "advance_company",
                         "call_notes",
                         "score",
@@ -145,7 +147,15 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
             job.state = (
                 "failed"
                 if job.kind
-                in {"assess", "draft", "send", "discover", "enrich_company", "call_notes"}
+                in {
+                    "assess",
+                    "draft",
+                    "send",
+                    "discover",
+                    "enrich_company",
+                    "call_notes",
+                    "find_owner",
+                }
                 or job.attempts >= settings.job_max_attempts
                 else "queued"
             )

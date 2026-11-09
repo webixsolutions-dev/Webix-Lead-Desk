@@ -104,6 +104,7 @@ def test_call_notes_create_unapproved_draft_only_after_consent(
         assert note and draft and note.draft_id == draft.id and draft.state == "draft"
         assert not session.scalar(select(DraftApproval))
         assert "Website identity needs review" not in approval_blocks(db, draft)
+        assert not any("Company outreach paused" in block for block in approval_blocks(db, draft))
     assert "already saved" in clean_notes(
         db, settings, call.id, "duplicate-notes", provider=provider
     )

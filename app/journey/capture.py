@@ -6,11 +6,13 @@ from sqlalchemy.orm import Session, UOWTransaction
 from app.db.acquisition_models import CallRecord
 from app.db.delivery_models import InboxMessage, SendIntent
 from app.db.lead_models import Campaign, Company, SourceRecord
+from app.db.linkedin_models import Person
 from app.db.models import AuditEvent
 from app.db.outreach_models import Conversation, Draft, DraftApproval
 from app.db.pipeline_models import DemoVersion, Opportunity, PipelineEvent
 from app.db.research_models import Assessment, WebsiteAudit
 from app.journey.events import emit
+from app.linkedin.coordination import record_touch
 
 
 def conversation_company(session: Session, conversation_id: str) -> str | None:
@@ -29,6 +31,18 @@ def capture_intent(session: Session, item: SendIntent) -> None:
 
     conversation = session.get(Conversation, item.conversation_id)
     campaign = session.get(Campaign, conversation.campaign_id) if conversation else None
+    if item.state == "accepted" and conversation:
+        person = session.scalar(select(Person).where(Person.contact_id == conversation.contact_id))
+        record_touch(
+            session,
+            company,
+            "email_sent:" + item.id,
+            "email",
+            "outbound",
+            "sent",
+            person_id=person.id if person else None,
+            at=item.accepted_at,
+        )
     kind = {
         "scheduled": "scheduled",
         "accepted": "followup_sent" if draft and draft.kind == "follow_up" else "sent",

@@ -1,6 +1,5 @@
 """Human call outcomes, exact verbal consent and company-wide outreach stops."""
 
-import re
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
@@ -8,17 +7,14 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.clock import utc_now
 from app.db.acquisition_models import CallRecord
-from app.db.delivery_models import SendIntent
 from app.db.lead_models import (
     CampaignLead,
     ChannelReservation,
     Company,
     Contact,
     ContactBasis,
-    SuppressionEntry,
 )
 from app.db.models import User
-from app.db.outreach_models import Conversation, Draft
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.journey.events import emit
@@ -147,47 +143,21 @@ def record_call(
                     reviewed_by=actor,
                 )
             )
-            if outcome == "not_interested":
-                keys = {"company:" + company_id, "phone:" + re.sub(r"\D", "", company.phone)}
-                keys.update(
-                    "email:" + value
-                    for value in session.scalars(
-                        select(Contact.email).where(Contact.company_id == company_id)
-                    )
-                )
-                for key in keys:
-                    if not session.scalar(
-                        select(SuppressionEntry.id).where(SuppressionEntry.key == key)
-                    ):
-                        session.add(
-                            SuppressionEntry(key=key, reason="Not interested on a human call")
-                        )
-                conversation = session.scalar(
-                    select(Conversation).where(Conversation.company_id == company_id)
-                )
-                if conversation:
-                    conversation.state = "stopped"
-                    for intent in session.scalars(
-                        select(SendIntent).where(
-                            SendIntent.conversation_id == conversation.id,
-                            SendIntent.state.in_(["scheduled", "held"]),
-                        )
-                    ):
-                        intent.state, intent.hold_reason = "cancelled", "call_not_interested"
-                    for draft in session.scalars(
-                        select(Draft).where(
-                            Draft.conversation_id == conversation.id,
-                            Draft.state.in_(["draft", "approved"]),
-                        )
-                    ):
-                        draft.state = "cancelled"
-                emit(
-                    session,
-                    company_id,
-                    "call_stop:" + item.id,
-                    "stopped",
-                    {"reason": "Not interested on a human call"},
-                    actor=actor,
+            from app.linkedin.coordination import record_touch, stop_company
+
+            record_touch(
+                session,
+                company_id,
+                "call:" + item.id,
+                "phone",
+                "outbound",
+                outcome,
+                actor=actor,
+                at=now,
+            )
+            if outcome not in {"no_answer", "voicemail"}:
+                stop_company(
+                    session, company_id, outcome, "phone", "call:" + item.id, actor=actor, at=now
                 )
             if email:
                 emit(

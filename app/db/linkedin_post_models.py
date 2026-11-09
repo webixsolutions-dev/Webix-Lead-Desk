@@ -68,6 +68,7 @@ class LinkedInPost(Base):
     current_revision: Mapped[int] = mapped_column(Integer, default=0)
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     media_urn: Mapped[str] = mapped_column(String(200), default="")
+    published_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     published_url: Mapped[str] = mapped_column(String(500), default="")
     reason: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)

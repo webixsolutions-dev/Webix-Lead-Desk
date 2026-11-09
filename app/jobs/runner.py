@@ -123,6 +123,9 @@ def run_worker(db: Database, settings: Settings, *, once: bool = False) -> None:
 
             keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
             if utc_now() >= next_linkedin_plan:
+                from app.linkedin.learning import tick as linkedin_learning_tick
+
+                linkedin_learning_tick(db, utc_now())
                 plan_day(db, utc_now())
                 from app.linkedin.posting import plan as plan_posts
 

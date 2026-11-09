@@ -22,3 +22,4 @@
 .linkedin-task .count-pill { white-space:normal; text-align:right; }
 .linkedin-task .section-title { align-items:flex-start; }
 .linkedin-task button:disabled { opacity:.55; cursor:not-allowed; }
+.metric-pairs{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;margin:22px 0}.metric-pairs dt{color:#6b7078}.metric-pairs dd{margin:0;font-weight:650;text-align:right}.table-wrap{overflow-x:auto}.table-wrap table{width:100%;border-collapse:collapse}.table-wrap th,.table-wrap td{padding:14px 12px;text-align:left;border-bottom:1px solid #ececef;vertical-align:top}.table-wrap th{font-size:12px;color:#747880;font-weight:600}

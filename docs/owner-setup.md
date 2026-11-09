@@ -1,6 +1,6 @@
 # Owner setup before the first live pilot
 
-The application code covers phases 1–10. CI and synthetic tests are separate from a working hosted account or live provider acceptance. No prospect was contacted and no client outcome is implied.
+The application code covers the original phases, outreach-review fixes, acquisition and LinkedIn L1–L5. CI and synthetic tests are separate from a working hosted account or live provider acceptance. No prospect was contacted and no client outcome is implied.
 
 ## 1. Choose the initial runtime
 
@@ -30,16 +30,16 @@ Every message revision needs owner approval. Up to four follow-ups are supported
 
 | Capability | Current implementation |
 |---|---|
-| Lead discovery | CSV/manual source review and Open Calgary worker import |
+| Lead discovery | CSV/manual review, Open Calgary, budgeted source-backed web-search discovery; optional Places New |
 | Google Maps | Manual review/CSV; automatic Maps collection is not implemented |
 | Website audit | Bounded public-page fetching and evidence extraction; owner visual review |
 | Social/Meta ads | Owner-recorded observations; no automated login or ad-spend inference |
 | Personalized drafts | Manual text or copyable ChatGPT brief; optional paid OpenAI API after verified funding/rates |
 | ChatGPT Pro | Eligible subscriptions can claim API credits; verify the linked organization, remaining balance and expiry |
-| Firecrawl/Places | Private key storage is available for later adapters; adapters are not enabled or implemented |
+| Firecrawl/Places | Places New adapter exists but is off until separately configured with owner caps; Firecrawl key storage remains a later-adapter option |
 | Contact forms | Approved copy and manual submission/outcome recording; no automatic external filling/submission |
 | Demos | Reviewed concept pages/flows tied to evidence; no full prospect website built automatically |
-| Learning | Owner-approved guidance versions and restoration; no automatic model training |
+| Learning | Owner-reviewed guidance versions, fortnightly LinkedIn proposals and restoration; no automatic model training |
 
 No provider account purchase is automatic. Start with the paths that need no new API spending. A one-week client close is a sales goal, not a guaranteed system result.
 
@@ -113,3 +113,23 @@ LinkedIn public posting is optional and off until each real member authorizes th
 owner-configured developer app. Follow [the posting setup](linkedin-posting.md);
 enter all credentials privately, never in chat. Approve one real acceptance post
 only after reviewing the caption and the exact uploaded asset.
+
+## Final launch sequence
+
+1. Choose local PC/SQLite or the hosted Vercel dashboard with a dedicated shared
+   PostgreSQL database and PC worker. No Neon project or production secrets have been
+   provisioned by these code phases. Confirm current hosting configuration before launch.
+2. Back up, stop old workers, run `lead-desk migrate` through the current head on the
+   shared database, then start one worker. On Windows complete autostart with the real
+   Windows account and verify restart/awake behaviour on that PC. CI smoke tests do not
+   establish the owner's Windows credentials or Task Scheduler setup.
+3. Add the real member identities/voice cards, actual sender identity and encrypted mail
+   credential privately. Verify provider access with explicitly approved owner test inboxes.
+4. For optional AI, supply a private API key and confirm organization balance, expiry and
+   current model prices. Credits and spend are never assumed from the ChatGPT plan alone.
+5. For official LinkedIn posting, complete the developer app and each member's own OAuth.
+   If not configured, use the exact-approved native post workflow. All DMs/invitations remain
+   human actions; no browser extension or automated account interaction is required.
+6. Run the ten-business review pilot, approve exact messages individually and record real
+   replies. Review [LinkedIn results](linkedin-results.md) and pending Playbook suggestions.
+   No automated test has sent a real prospect email, form, DM or public post.

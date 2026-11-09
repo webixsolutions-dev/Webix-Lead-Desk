@@ -103,3 +103,21 @@ Local full suite: 376 passed, two PostgreSQL-only tests skipped locally; CI runs
 Offline post/media/OAuth cases and synthetic desktop/mobile review are included.
 Coverage: overall 85.17%, jobs 80.74%, sending 91.77%, inbox 94.85%.
 Real OAuth, codec processing and native LinkedIn posting remain owner acceptance tests.
+
+
+## L5 results and learning
+
+Final local full suite: 387 passed, two PostgreSQL-only tests skipped locally; CI
+runs these separately. Coverage: overall 85.37%, jobs 80.88%, sending 91.77%,
+inbox 94.85%. Regression tests cover distinct-person weekly cohorts, temporal
+reply attribution, exact-draft angle provenance, comparable 50-contact minimums,
+49/50 request and 19/20 percent pause boundaries, preserved owner-review history,
+immutable observations, latest cumulative post totals, role isolation, CSRF,
+maintenance, fortnight proposal idempotency and the actual offline worker tick.
+A 50-contact fixture verifies batched report queries stay bounded. Synthetic
+desktop/mobile renderings were reviewed; no real account or prospect was contacted.
+
+Limitations: analytics and SSI are member-entered observations; historical rows
+without exact provenance remain unknown. The acceptance pause conservatively
+includes pending invitations. An observed leading angle is not a causal finding.
+Real provider, owner-PC startup and hosted database acceptance remain setup tasks.

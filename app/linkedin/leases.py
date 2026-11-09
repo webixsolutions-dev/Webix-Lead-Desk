@@ -35,6 +35,10 @@ def claim_task(
         lock_company(session, task.company_id)
         lock_policy(session, task.profile_id, now)
         session.refresh(task)
+        from app.linkedin.learning import evaluate_pause
+
+        if evaluate_pause(session, task.profile_id, now):
+            return None
         profile = session.get(LinkedInProfile, task.profile_id)
         ownership = session.get(PersonOwnership, task.person_id)
         if (

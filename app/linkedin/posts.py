@@ -130,6 +130,8 @@ def save(
     body = validate_body(body)
     with db.sessions.begin() as session:
         require_staff(session, actor, owner=True)
+        # Serialize cross-profile copy checks as well as the per-member revision.
+        lock_registry(session)
         post = session.get(LinkedInPost, post_id)
         if not post:
             raise ValueError("Post not found")

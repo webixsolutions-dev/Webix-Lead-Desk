@@ -65,6 +65,11 @@ def delivery_blocks(
             or not (approval.digest == draft.digest == item.approval_digest)
         ):
             reasons.append("exact_approval_required")
+        if draft and approval and approval.source == "policy":
+            from app.sending.delegation import policy_block
+
+            if reason := policy_block(session, draft, approval.policy_version):
+                reasons.append(reason)
         if draft and (
             item.mailbox_id != draft.snapshot["mailbox_id"]
             or item.conversation_id != draft.snapshot["conversation_id"]

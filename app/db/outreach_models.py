@@ -71,6 +71,8 @@ class DraftApproval(Base):
     digest: Mapped[str] = mapped_column(String(64))
     approved_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
     approved_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    source: Mapped[str] = mapped_column(String(16), default="owner", server_default="owner")
+    policy_version: Mapped[int | None] = mapped_column(Integer)
 
 
 class PlaybookVersion(Base):

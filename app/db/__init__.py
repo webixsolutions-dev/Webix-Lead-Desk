@@ -2,6 +2,7 @@
 
 from app.db import acquisition_models as acquisition_models
 from app.db import backup_models as backup_models
+from app.db import booking_models as booking_models
 from app.db import delivery_models as delivery_models
 from app.db import form_models as form_models
 from app.db import lead_models as lead_models

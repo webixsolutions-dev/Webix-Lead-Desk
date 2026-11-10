@@ -13,7 +13,9 @@ from starlette.responses import JSONResponse, Response
 
 from app.api import (
     acquisition,
+    approval_policy,
     auth,
+    bookings,
     calls,
     dashboard,
     delivery,
@@ -22,6 +24,7 @@ from app.api import (
     forms,
     learning,
     linkedin,
+    linkedin_activity,
     linkedin_media,
     linkedin_metrics,
     linkedin_planner,
@@ -132,9 +135,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"status": "ready"})
 
     app.include_router(auth.router)
+    app.include_router(approval_policy.router)
+    app.include_router(bookings.router)
     app.include_router(acquisition.router)
     app.include_router(calls.router)
     app.include_router(linkedin.router)
+    app.include_router(linkedin_activity.router)
     app.include_router(linkedin_planner.router)
     app.include_router(linkedin_tasks.router)
     app.include_router(linkedin_posts.router)

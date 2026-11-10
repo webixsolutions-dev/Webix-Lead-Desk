@@ -200,6 +200,9 @@ def inbox(request: Request, principal: CurrentUser) -> HTMLResponse:
                 select(InboxMessage).order_by(InboxMessage.received_at.desc()).limit(100)
             )
         )
+        context["reply_companies"] = {
+            row.id: row.company_id for row in session.scalars(select(Conversation))
+        }
     return render(request, "inbox.html", context)
 
 

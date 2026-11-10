@@ -15,7 +15,13 @@ def current_guidance(db: Database, campaign_id: str | None = None) -> list[Playb
     result: list[PlaybookVersion] = []
     with db.sessions() as session:
         campaign = session.get(Campaign, campaign_id) if campaign_id else None
-        scopes = ["global"] + (["partner"] if campaign and campaign.lane == "partner" else [])
+        from app.playbook.industries import matching
+
+        scopes = ["global", "conversation"] + (
+            ["partner"] if campaign and campaign.lane == "partner" else []
+        )
+        if campaign:
+            scopes += ["industry:" + item["slug"] for item in matching(campaign.industry)]
         for scope in scopes + ([campaign_id] if campaign_id else []):
             item = session.scalar(
                 select(PlaybookVersion)
@@ -37,7 +43,12 @@ def append_version(
     actor = session.get(User, actor_id)
     if not actor or actor.role != "owner" or not actor.active:
         raise ValueError("Only the owner can publish guidance")
-    if scope not in {"global", "partner"} and session.get(Campaign, scope) is None:
+    from app.playbook.industries import catalog
+
+    allowed = {"global", "partner", "conversation", "linkedin"} | {
+        "industry:" + item["slug"] for item in catalog()
+    }
+    if scope not in allowed and session.get(Campaign, scope) is None:
         raise ValueError("Choose global guidance or an existing campaign")
     current = session.scalar(
         select(PlaybookVersion)

@@ -40,7 +40,7 @@ def settings_data(request: Request) -> dict[str, Any]:
 @router.post("/settings/acquisition")
 async def acquisition_settings(request: Request, principal: Owner) -> RedirectResponse:
     """Save explicit limits and optional encrypted Places key without making any API call."""
-    fields = await read_form(request)
+    fields = await read_form(request, max_fields=32)
     check_csrf(principal, fields.pop("csrf_token", ""))
     key = fields.pop("places_key", "").strip()
     try:

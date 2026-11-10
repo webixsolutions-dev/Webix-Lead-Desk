@@ -33,6 +33,12 @@ def schedule(db: Database, draft_id: str, actor_id: str, now: datetime | None = 
             or approval.digest != draft.digest
         ):
             raise ValueError("Approve the exact message before scheduling")
+    if approval.source == "policy":
+        from app.sending.delegation import policy_block
+
+        with db.sessions() as session:
+            if reason := policy_block(session, draft, approval.policy_version):
+                raise ValueError(reason)
     reasons = approval_blocks(db, draft)
     if reasons:
         raise ValueError("; ".join(reasons))

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.0 — Business-first reviews, conversations and bookings
+
+- Review business facts, source links, audit gaps, service hypotheses and the exact email together; approve selected exact revisions in batches up to 100.
+- Keep manual approval as default. Optional owner delegation applies only to new cold outreach in selected campaigns. Replies, quotations and concepts remain owner-only; disabling delegation revokes pending automatic approvals.
+- Add reply-aware AI rewriting with bounded recipient-specific history and optional owner-approved quotation content.
+- Add timezone-aware proposed bookings, explicit confirmation, conflict checks and rescheduling.
+- Add named LinkedIn chat/activity views using recorded human invitations, acceptances and replies; no unsupported inbox or invitation API is implied.
+- Add 26 editable industry references, conversation/LinkedIn guidance scopes, tool/booking markup signals, balanced evidence and ranked service alternatives. Strong sites no longer reduce non-website campaign opportunities.
+- Migration 0022 adds private booking records and approval provenance. Upgrade the worker before restarting. AI funding, campaigns and live delivery are not enabled by this update.
+
 ## 0.23.0 — Reusable service offers and scoped proof
 
 - Save multiple packages per service with optional custom-quote pricing, explicit currency and billing period.

@@ -270,3 +270,7 @@ variable is needed; update the PC companion to send the new HTML format. Saving 
 not send mail or enable outreach. See [the design decision](docs/decisions/0022-mailbox-signatures.md).
 
 See [Writing and offers](docs/writing-and-offers.md) for reusable packages, custom quotes and service-specific proof.
+
+## Review, conversation and booking workflow (v0.24)
+
+See [the operator guide](docs/review-workflow.md). Default approval remains manual; the owner may explicitly delegate new cold outreach per campaign, while every incoming-reply response remains owner-approved. Industry and conversation guidance are versioned configuration, not model training.

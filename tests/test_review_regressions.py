@@ -83,7 +83,7 @@ def test_first_touch_links_blocked(link: str) -> None:
     check_copy("A useful suggestion", "Please visit " + link, first_touch=False)
 
 
-def test_gmail_profile_and_six_main_tabs(client: TestClient, owner: Account, db: Database) -> None:
+def test_gmail_profile_and_workflow_tabs(client: TestClient, owner: Account, db: Database) -> None:
     """The authenticated form accepts Gmail without turning on sending."""
     sign_in(client, owner)
     page = client.get("/settings")
@@ -104,7 +104,7 @@ def test_gmail_profile_and_six_main_tabs(client: TestClient, owner: Account, db:
     with db.sessions() as session:
         box = session.scalar(select(Mailbox).where(Mailbox.email == "synthetic@gmail.com"))
         assert box and box.provider == "gmail" and not box.enabled
-    assert len(NAVIGATION) == 6
+    assert {"/bookings", "/linkedin/activity"}.issubset({item[1] for item in NAVIGATION})
     assert all(path in page.text for path in ['href="#learning"', 'href="#operations"'])
 
 

@@ -25,6 +25,8 @@ def settings_data(request: Request) -> dict[str, Any]:
     """Read non-secret configuration and version history for authenticated settings."""
     from app.api.delivery import connection_data
     from app.audit.monthly import CAPS, TOTAL, usage
+    from app.playbook.industries import catalog
+    from app.sending.delegation import read_policy
 
     scope = request.query_params.get("scope", "global")
     with services(request).db.sessions() as session:
@@ -38,6 +40,12 @@ def settings_data(request: Request) -> dict[str, Any]:
         )
         monthly_usage = usage(session, utc_now())
         return {
+            "industry_playbooks": catalog(),
+            "seed_guidance": next(
+                (item["guidance"] for item in catalog() if scope == "industry:" + item["slug"]), ""
+            ),
+            "approval_policy": read_policy(session)[0],
+            "approval_policy_version": read_policy(session)[1],
             "ai_monthly_usage": monthly_usage,
             "ai_monthly_caps": CAPS,
             "ai_monthly_total": TOTAL,

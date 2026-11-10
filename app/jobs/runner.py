@@ -150,6 +150,9 @@ def run_worker(
                 from app.operations.scheduled_backup import scheduled_backup
 
                 scheduled_backup(db, settings, utc_now())
+                from app.sending.delegation import tick as delegation_tick
+
+                delegation_tick(db, settings)
                 plan_jobs(db, settings, utc_now())
                 if stop_event is not None and stop_event.is_set():
                     break

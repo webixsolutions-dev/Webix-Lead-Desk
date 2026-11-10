@@ -95,7 +95,7 @@ async def read_form(
         pairs = parse_qsl(
             body.decode("utf-8"),
             keep_blank_values=True,
-            max_num_fields=32 if repeatable else max_fields,
+            max_num_fields=max(32, max_fields) if repeatable else max_fields,
         )
     except (UnicodeDecodeError, ValueError) as error:
         raise HTTPException(status_code=400, detail="Invalid form") from error

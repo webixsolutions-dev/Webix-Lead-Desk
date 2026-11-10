@@ -102,7 +102,13 @@ def make_draft(db: Database, setup: dict[str, str], **overrides: Any) -> Draft:
         subject="A question about heating estimates", body=BODY, evidence_ids=[setup["evidence_id"]]
     )
     if overrides.get("step") and "body" not in overrides:
-        values["body"] += f" A distinct step {overrides['step']} question for your team."
+        followups = [
+            "Could customers provide property details before your team prepares a heating quote?",
+            "Who reviews new estimate enquiries before assigning them to a technician?",
+            "Would an intake checklist help your office gather the information needed for pricing?",
+            "Is improving the enquiry process something you would consider later this year?",
+        ]
+        values["body"] = followups[min(int(overrides["step"]), 4) - 1]
     values.update(overrides)
     return save_draft(db, **values)
 

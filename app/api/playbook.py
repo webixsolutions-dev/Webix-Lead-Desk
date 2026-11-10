@@ -252,3 +252,15 @@ async def save_local_member(request: Request, principal: Owner) -> RedirectRespo
         member.reviewed_by = principal.user.id
         member.reviewed_at = utc_now()
     return RedirectResponse("/settings#local-team", 303)
+
+
+@router.post("/settings/offers/bundle-templates")
+async def bundle_templates(request: Request, principal: Owner) -> RedirectResponse:
+    """Create internal package suggestions without activating any service or sending."""
+    from app.playbook.bundles import install_templates
+
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    with services(request).db.sessions.begin() as session:
+        install_templates(session, principal.user.id)
+    return RedirectResponse("/settings?scope=global#offers", 303)

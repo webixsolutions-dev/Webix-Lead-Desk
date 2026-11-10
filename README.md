@@ -286,3 +286,5 @@ CI runs pinned Playwright/axe checks on synthetic desktop and mobile pages and r
 Today orders replies before meetings, proposals, drafts, calls and research. Start my day opens in-place review. In the panel, J/K moves between queue items, A submits the exact approval form only after its required review checks, and S focuses the skip reason. Typing in an editor never activates shortcuts. Changes require the existing role, CSRF and content-version checks.
 
 Conversations groups only confirmed recipient identities. LinkedIn and email merge only through an explicit Person.contact_id link; unmatched incoming senders remain separate for review. Activity refreshes every 20 seconds from persisted events; it does not call AI. Sending/call schedules still follow America/Edmonton. The campaign clock is display-only and marks other unconfigured local timezones explicitly.
+
+Conversation review, lead outcomes and internal offer bundles: [design and operating rules](docs/decisions/0027-conversation-checks.md). Owner overrides apply to style warnings only; replies always require exact owner approval.

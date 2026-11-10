@@ -80,6 +80,13 @@ def task_page(request: Request, principal: CurrentUser, task_id: str) -> HTMLRes
         draft = latest(session, task.id)
         if principal.user.role != "owner" and (not draft or draft.state != "approved"):
             raise HTTPException(404, "Approved task not found")
+        from app.drafting.check_context import linkedin_report
+
+        context["conversation_checks"] = (
+            linkedin_report(session, draft.snapshot)
+            if draft and task.action not in {"invite", "withdraw"}
+            else None
+        )
         context.update(
             task=task,
             profile=profile,
@@ -156,6 +163,7 @@ async def save_copy(request: Request, principal: Owner, task_id: str) -> Redirec
             angle=fields.get("angle", ""),
             noncommercial=fields.get("noncommercial") == "true",
             previous_id=fields.get("previous_id") or None,
+            allow_price=fields.get("allow_price") == "true",
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
@@ -172,7 +180,13 @@ async def approve_copy(request: Request, principal: Owner, task_id: str) -> Redi
             draft = latest(session, task_id)
             if not draft or draft.id != fields.get("draft_id"):
                 raise ValueError("Draft changed; reload")
-        approve(services(request).db, draft.id, fields.get("digest", ""), principal.user.id)
+        approve(
+            services(request).db,
+            draft.id,
+            fields.get("digest", ""),
+            principal.user.id,
+            override_note=fields.get("override_note", ""),
+        )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     return RedirectResponse("/linkedin/tasks/" + task_id, 303)

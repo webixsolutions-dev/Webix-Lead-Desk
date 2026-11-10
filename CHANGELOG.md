@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.27.0
+- Block AI conversation suggestions with repeated, irrelevant or premature copy; show human warnings with recorded owner overrides. Changed recipient context invalidates review.
+- Add ask-first, named research, dated revisit and no-opportunity outcomes, including owner entry and Today research work.
+- Add discovery-only services and five reusable internal bundle templates; exclude bundles from first-contact copy and campaign service choices.
+- Preserve explicit owner quotation permission on email and LinkedIn replies. Known provider spend remains charged when a suggestion fails checks.
+- Migration 0023 adds offer availability, type and components; inbound AI voice remains discovery-only.
+
 ## 0.26.0
 - Bring replies, bookings, drafts, calls and research into an ordered Command Center with in-place review.
 - Consolidate navigation into six sections, recipient conversations, three settings groups and canonical bookmark redirects.

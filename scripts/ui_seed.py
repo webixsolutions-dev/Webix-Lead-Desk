@@ -84,3 +84,45 @@ def seed_review(db: Database, actor_id: str) -> tuple[str, str]:
         actor_id,
     )
     return f"/leads/{company.id}/draft?step=0&kind=first_touch", f"/drafts/{draft.id}/approve"
+
+
+def seed_conversation_review(db: Database, actor_id: str, approval_url: str) -> str:
+    """Add a synthetic incoming question and a human draft with visible style warnings."""
+    from app.db.delivery_models import InboxMessage
+    from app.db.outreach_models import Conversation, Draft
+
+    with db.sessions.begin() as session:
+        first = session.get(Draft, approval_url.split("/")[2])
+        assert first
+        conversation = session.get(Conversation, first.conversation_id)
+        assert conversation
+        data = first.snapshot
+        first.state = "sent"
+        conversation.state = "replied"
+        conversation.first_message_id = "<synthetic-opening@example.test>"
+        conversation.last_message_id = "<synthetic-response@example.test>"
+        session.add(
+            InboxMessage(
+                mailbox_id=data["mailbox_id"],
+                conversation_id=conversation.id,
+                sender=data["recipient"],
+                provider_key="ui-question",
+                dedupe_key="ui-question",
+                subject=data["subject"],
+                body="What would the website scope include?",
+            )
+        )
+    draft = save_draft(
+        db,
+        data["company_id"],
+        data["campaign_id"],
+        data["contact_id"],
+        data["mailbox_id"],
+        data["subject"],
+        "Thank you for your reply. Would the website scope include an online booking page?",
+        data["evidence_ids"],
+        actor_id,
+        kind="reply",
+        step=1,
+    )
+    return f"/leads/{data['company_id']}/draft?step={draft.step}&kind=reply"

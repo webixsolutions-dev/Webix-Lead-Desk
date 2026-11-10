@@ -146,7 +146,7 @@ def test_concept_message_keeps_thread_and_separate_approval(
     """An approved public concept is not permission to email it; acceptance advances the board."""
     item = ready_concept(db, delivery_setup, drafting_setup)
     body = (
-        "Thanks for explaining your estimate process. Here is the concept we discussed: "
+        "You asked for more details. Here is a proposed heating estimate page: "
         f"{item.share_url}. Would this be useful?"
     )
     draft = demo_message(db, item.id, body, drafting_setup["actor_id"])
@@ -180,7 +180,7 @@ def test_concept_final_guard_observes_reply_or_revocation(
     draft = demo_message(
         db,
         item.id,
-        f"Thanks for your interest. Here is the proposed page: {item.share_url}",
+        f"Here are the requested details in a proposed page: {item.share_url}",
         drafting_setup["actor_id"],
     )
     approve(db, draft.id, draft.digest, drafting_setup["actor_id"])

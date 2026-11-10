@@ -259,9 +259,13 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
 
         result = assess(db, settings, job.payload["company_id"], job.payload["campaign_id"], job.id)
         if job.payload.get("continue_flow"):
+            from app.audit.outcomes import may_draft
             from app.jobs.queue import enqueue
 
-            enqueue(db, "assessed:" + job.id, "draft", job.payload, utc_now())
+            with db.sessions() as session:
+                ready = may_draft(session, job.payload["company_id"], job.payload["campaign_id"])
+            if ready:
+                enqueue(db, "assessed:" + job.id, "draft", job.payload, utc_now())
         return result
     if job.kind == "draft" and settings is not None:
         from app.drafting.ai import generate

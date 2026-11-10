@@ -137,6 +137,17 @@ def test_reply_price_is_opt_in_and_exact_approval_bound(
         thread.state = "replied"
         thread.first_message_id = "<first@example.org>"
         thread.last_message_id = "<incoming@example.com>"
+        session.add(
+            InboxMessage(
+                mailbox_id=setup["mailbox_id"],
+                conversation_id=first.conversation_id,
+                provider_key="quote-request",
+                dedupe_key="quote-request",
+                sender="service@example.com",
+                subject=first.snapshot["subject"],
+                body="What is the quote for the five-page scope?",
+            )
+        )
     quote = (
         "For the five-page scope we discussed, the approved quote is CAD 1800. "
         "Would you like the detailed scope?"
@@ -235,7 +246,7 @@ def test_business_brief_exact_message_and_booking_pages(
     assessment(db, setup)
     sign_in(client, owner)
     page = client.get("/conversations/drafts")
-    assert page.status_code == 200 and "Why approach this business?" in page.text
+    assert page.status_code == 200 and "Recommended next action:" in page.text
     assert draft.snapshot["body"] in page.text and "https://example.com/services" in page.text
     assert "Not checked / needs evidence" in page.text
     for path in [

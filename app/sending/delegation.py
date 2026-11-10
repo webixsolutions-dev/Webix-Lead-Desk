@@ -105,6 +105,8 @@ def policy_block(session: Session, draft: Draft, version: int | None) -> str | N
         {"first_touch", "follow_up"} if policy.get("mode") == "outreach" else {"first_touch"}
     ):
         return "reply_requires_owner_approval"
+    if draft.snapshot.get("conversation_checks", {}).get("flags"):
+        return "conversation_warnings_require_owner_approval"
     if draft.snapshot.get("allow_price") or draft.snapshot.get("attachments"):
         return "commercial_response_requires_owner_approval"
     if draft.snapshot.get("campaign_id") not in policy.get("campaigns", []):

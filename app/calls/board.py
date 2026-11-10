@@ -22,6 +22,7 @@ from app.db.outreach_models import Offer
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.linkedin.coordination import outreach_block
+from app.playbook.bundles import matching_bundles
 from app.policy.contacts import company_suppressed
 from app.sources.enrichment.config import get_config
 
@@ -138,6 +139,7 @@ def call_list(db: Database, actor: User | None = None) -> list[dict[str, Any]]:
                     "question": question,
                     "opener": opener,
                     "offer": service,
+                    "bundles": matching_bundles(session, company.id, campaign.id),
                     "best_time": last.due_at.astimezone(zone("America/Edmonton")).strftime(
                         "%d %b, %I:%M %p Calgary"
                     )

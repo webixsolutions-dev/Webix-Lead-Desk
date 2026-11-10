@@ -15,6 +15,7 @@ from app.db.models import AuditEvent
 from app.db.outreach_models import Conversation, Draft
 from app.db.pipeline_models import Opportunity
 from app.db.session import Database
+from app.reporting.lead_actions import next_actions
 
 GROUPS = (
     ("replies", "Replies waiting"),
@@ -272,6 +273,7 @@ def queue(
                     company.created_at,
                 )
             )
+        values["research"].extend(next_actions(session, now))
         review_count = (
             session.scalar(select(func.count()).select_from(Draft).where(Draft.state == "draft"))
             or 0

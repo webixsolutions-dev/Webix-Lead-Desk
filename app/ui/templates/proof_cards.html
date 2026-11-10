@@ -1,0 +1,16 @@
+{% macro proof_form(item=none) %}
+<form method="post" action="/settings/proofs" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}">
+{% if item %}<input type="hidden" name="proof_id" value="{{ item.id }}"><input type="hidden" name="version" value="{{ item.version }}">{% endif %}
+<label>Title<input name="title" value="{{ item.title if item else '' }}" minlength="3" maxlength="160" required></label>
+<label>Verified fact<textarea name="fact" minlength="10" maxlength="2000" rows="3" required>{{ item.fact if item else '' }}</textarea></label>
+<label>Source URL<input name="source_url" value="{{ item.source_url if item else '' }}" type="url" maxlength="2000" required></label>
+<label>Project attribution<input name="attribution" value="{{ item.attribution if item else '' }}" maxlength="120" required placeholder="Agency, own product, or approved anonymous project"><small>Who did this work? Do not credit another sender brand automatically.</small></label>
+<label>Relevant services · comma separated<input name="services" value="{{ item.services|join(', ') if item else '' }}" list="saved-services" maxlength="3600" required><small>Use names from Services &amp; offers. Unassigned proof is excluded from new briefs.</small></label>
+<label>Industry restriction · optional, comma separated<input name="industries" value="{{ item.industries|join(', ') if item else '' }}" maxlength="3600"><small>Blank allows any industry for the matching service. Otherwise use the campaign's exact industry label.</small></label>
+<label class="checkbox-row"><input name="verified" type="checkbox" value="true" required>I verified this fact, its attribution and permission to reference it.</label>
+<button class="button secondary">{{ 'Update verified proof' if item else 'Save proof card' }}</button></form>
+{% endmacro %}
+<section class="panel work-panel" id="proofs"><h2>Verified proof</h2><p class="small muted">Use evidence for the service being offered. A website build proves delivered work, not increased sales. Add measured results only with a source, timeframe and permission.</p>
+{% for item in proofs %}<details class="work-panel"><summary>{{ item.title }} · {{ item.services|join(', ') if item.services and item.attribution else 'Needs service and attribution' }}</summary><p>{{ item.fact }}</p><p class="small">{{ item.attribution }}</p><a href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">Source ↗</a>{% if user.role == 'owner' %}{{ proof_form(item) }}{% endif %}</details>{% else %}<p>No verified proof yet. You can research and draft without making case-study claims.</p>{% endfor %}
+{% if user.role == 'owner' %}<details><summary>Add a verified case fact</summary>{{ proof_form() }}</details>{% endif %}
+</section>

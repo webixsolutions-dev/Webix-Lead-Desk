@@ -1,0 +1,3 @@
+<fieldset class="work-panel"><legend>Services for this campaign</legend><p class="small muted">Choose only relevant services, up to 12. Offers and proof are reused across markets.</p>
+{% for service in service_names %}<label class="checkbox-row"><input type="checkbox" name="services" value="{{ service }}" {% if service in selected_services %}checked{% endif %}>{{ service }}</label>{% endfor %}
+<label>Other services · comma separated<input name="services" maxlength="1000" value="{{ selected_services|reject('in', service_names)|join(', ') }}" placeholder="Add a matching offer in Settings"></label></fieldset>

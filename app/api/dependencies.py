@@ -73,7 +73,11 @@ def check_csrf(principal: Principal, supplied: str) -> None:
 
 
 async def read_form(
-    request: Request, *, maximum: int | None = None, repeatable: frozenset[str] = frozenset()
+    request: Request,
+    *,
+    maximum: int | None = None,
+    repeatable: frozenset[str] = frozenset(),
+    max_fields: int = 12,
 ) -> dict[str, str]:
     """Read bounded URL-encoded forms only; Phase 1 accepts no uploaded files."""
     content_type = request.headers.get("content-type", "").split(";")[0]
@@ -89,7 +93,9 @@ async def read_form(
 
     try:
         pairs = parse_qsl(
-            body.decode("utf-8"), keep_blank_values=True, max_num_fields=32 if repeatable else 12
+            body.decode("utf-8"),
+            keep_blank_values=True,
+            max_num_fields=32 if repeatable else max_fields,
         )
     except (UnicodeDecodeError, ValueError) as error:
         raise HTTPException(status_code=400, detail="Invalid form") from error

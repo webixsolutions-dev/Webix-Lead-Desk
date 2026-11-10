@@ -93,8 +93,15 @@ class Offer(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     service: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text)
-    setup_cad_cents: Mapped[int] = mapped_column(Integer)
-    recurring_cad_cents: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    pricing_mode: Mapped[str] = mapped_column(String(12), default="quote", server_default="fixed")
+    currency: Mapped[str] = mapped_column(String(3), default="CAD", server_default="CAD")
+    billing_period: Mapped[str] = mapped_column(
+        String(12), default="monthly", server_default="monthly"
+    )
+    # Legacy column names are retained for older workers. Currency is explicit; no FX conversion.
+    setup_cad_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recurring_cad_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     version: Mapped[int] = mapped_column(Integer, default=1)
 
@@ -109,6 +116,10 @@ class ProofCard(Base):
     source_url: Mapped[str] = mapped_column(String(2000))
     approved_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
     approved_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    services: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    industries: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    attribution: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
 
 class LocalTeamMember(Base):

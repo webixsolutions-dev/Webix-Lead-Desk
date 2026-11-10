@@ -1,6 +1,6 @@
 # Install the Windows worker
 
-Download `Webix-Lead-Desk-Setup-0.22.0.exe` from this repository's v0.22.0 release.
+Download `Webix-Lead-Desk-Setup-0.23.0.exe` from this repository's v0.23.0 release.
 
 Updating an existing installation: press **Stop**, wait for the worker to finish, close the
 companion, then run the new installer under the same Windows account. Saved connection details

@@ -1,6 +1,5 @@
 """Owner-managed guidance, sender identities, editable offers and verified proof cards."""
 
-from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -11,8 +10,10 @@ from starlette.responses import RedirectResponse
 from app.api.dependencies import Owner, check_csrf, read_form, services
 from app.core.clock import utc_now
 from app.db.lead_models import Campaign
+from app.db.models import AuditEvent
 from app.db.outreach_models import LocalTeamMember, Mailbox, Offer, PlaybookVersion, ProofCard
 from app.db.research_models import AICall, BudgetAccount
+from app.playbook.catalog import BILLING_PERIODS, CURRENCIES, labels, offer_values, service_names
 from app.playbook.service import publish
 from app.sending.providers import PERSONAL_DOMAINS, PRESETS, connection
 from app.sources.validation import email_address, website_url
@@ -49,6 +50,9 @@ def settings_data(request: Request) -> dict[str, Any]:
             "mailboxes": list(session.scalars(select(Mailbox))),
             "local_team_members": list(session.scalars(select(LocalTeamMember))),
             "offers": list(session.scalars(select(Offer))),
+            "service_names": service_names(session),
+            "currencies": CURRENCIES,
+            "billing_periods": BILLING_PERIODS,
             "proofs": list(session.scalars(select(ProofCard))),
             "ai_budget": session.get(BudgetAccount, "primary"),
             "ai_calls": list(
@@ -129,33 +133,17 @@ async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse
 
 @router.post("/settings/offers")
 async def save_offer(request: Request, principal: Owner) -> RedirectResponse:
-    """Create or update owner-defined CAD pricing without altering outgoing drafts."""
-    fields = await read_form(request)
+    """Create or update reusable quotes without altering outgoing drafts."""
+    fields = await read_form(request, max_fields=16)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
-        service, description = (
-            fields.get("service", "").strip(),
-            fields.get("description", "").strip(),
-        )
-        setup = int(Decimal(fields.get("setup_cad", "")) * 100)
-        recurring = int(Decimal(fields.get("recurring_cad", "")) * 100)
+        values = offer_values(fields)
         version = int(fields.get("version", "0"))
-        if (
-            not 2 <= len(service) <= 120
-            or not 10 <= len(description) <= 2000
-            or not 0 <= setup <= 100_000_000
-            or not 0 <= recurring <= 100_000_000
-        ):
-            raise ValueError("Check offer details and prices")
-        values = {
-            "service": service,
-            "description": description,
-            "setup_cad_cents": setup,
-            "recurring_cad_cents": recurring,
-            "active": fields.get("active") == "true",
-        }
         with services(request).db.sessions.begin() as session:
             if fields.get("offer_id"):
+                existing = session.get(Offer, fields["offer_id"])
+                if existing and existing.service != values["service"]:
+                    raise ValueError("Keep the service family; add a new offer for another service")
                 changed = session.scalar(
                     update(Offer)
                     .where(Offer.id == fields["offer_id"], Offer.version == version)
@@ -164,35 +152,71 @@ async def save_offer(request: Request, principal: Owner) -> RedirectResponse:
                 )
                 if not changed:
                     raise ValueError("Offer changed. Reload before saving.")
+                offer_id = changed
             else:
-                session.add(Offer(**values))
-    except (ValueError, InvalidOperation, OverflowError) as error:
-        raise HTTPException(422, "Check the offer fields and current version") from error
-    return RedirectResponse("/settings", 303)
+                offer = Offer(**values)
+                session.add(offer)
+                session.flush()
+                offer_id = offer.id
+            session.add(
+                AuditEvent(actor_id=principal.user.id, action="offer.saved", entity_id=offer_id)
+            )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    return RedirectResponse("/settings?scope=global#offers", 303)
 
 
 @router.post("/settings/proofs")
 async def add_proof(request: Request, principal: Owner) -> RedirectResponse:
-    """Record a genuine case fact only after explicit owner verification."""
-    fields = await read_form(request)
+    """Record or revise a scoped fact only after explicit owner verification."""
+    fields = await read_form(request, max_fields=16)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         source = website_url(fields.get("source_url", ""))
         title, fact = fields.get("title", "").strip(), fields.get("fact", "").strip()
+        attribution = fields.get("attribution", "").strip()
+        proof_services = labels(fields.get("services", ""))
+        industries = labels(fields.get("industries", ""))
         if (
             not source
             or not 3 <= len(title) <= 160
             or not 10 <= len(fact) <= 2000
             or fields.get("verified") != "true"
+            or len(attribution) > 120
         ):
             raise ValueError("Confirm the case fact and its source")
         with services(request).db.sessions.begin() as session:
+            values = dict(
+                title=title,
+                fact=fact,
+                source_url=source,
+                approved_by=principal.user.id,
+                approved_at=utc_now(),
+                services=proof_services,
+                industries=industries,
+                attribution=attribution,
+            )
+            if fields.get("proof_id"):
+                version = int(fields.get("version", "0"))
+                proof_id = session.scalar(
+                    update(ProofCard)
+                    .where(ProofCard.id == fields["proof_id"], ProofCard.version == version)
+                    .values(**values, version=version + 1)
+                    .returning(ProofCard.id)
+                )
+                if not proof_id:
+                    raise ValueError("Proof changed. Reload before saving.")
+            else:
+                proof = ProofCard(**values)
+                session.add(proof)
+                session.flush()
+                proof_id = proof.id
             session.add(
-                ProofCard(title=title, fact=fact, source_url=source, approved_by=principal.user.id)
+                AuditEvent(actor_id=principal.user.id, action="proof.saved", entity_id=proof_id)
             )
     except ValueError as error:
-        raise HTTPException(422, "Provide a verified fact, title and source URL") from error
-    return RedirectResponse("/settings", 303)
+        raise HTTPException(422, str(error)) from error
+    return RedirectResponse("/settings?scope=global#proofs", 303)
 
 
 @router.post("/settings/local-team")

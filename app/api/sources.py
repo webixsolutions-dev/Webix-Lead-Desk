@@ -28,6 +28,7 @@ from app.db.models import AuditEvent
 from app.db.research_models import Assessment, Evidence, WebsiteAudit
 from app.jobs.queue import enqueue
 from app.journey.project import summary
+from app.playbook.catalog import service_names
 from app.policy.contacts import suppress
 from app.sources.importing import import_candidates, parse_csv
 from app.sources.validation import domain_of, website_url
@@ -113,6 +114,7 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
                     select(SuppressionEntry).order_by(SuppressionEntry.created_at.desc()).limit(50)
                 )
             ),
+            service_names=service_names(session),
             selected_campaign=campaign_id,
             selected_lane=lane,
             search=search,
@@ -123,7 +125,7 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
 @router.post("/campaigns")
 async def create_campaign(request: Request, principal: Owner) -> RedirectResponse:
     """Create a targeting configuration without enabling any external spending."""
-    fields = await read_form(request)
+    fields = await read_form(request, repeatable=frozenset({"services"}))
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         name, industry, area = (fields.get(key, "").strip() for key in ("name", "industry", "area"))

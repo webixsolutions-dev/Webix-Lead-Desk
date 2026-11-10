@@ -10,6 +10,7 @@ from app.core.clock import utc_now
 from app.db.lead_models import Company
 from app.db.partner_models import PartnerDay, PartnerReview
 from app.partners.service import review_partner
+from app.playbook.catalog import service_names
 from app.reporting.service import campaign_results
 from app.sending.window import CALGARY
 from app.sources.campaigns import edit_campaign
@@ -23,6 +24,7 @@ def partners_page(request: Request, principal: CurrentUser) -> HTMLResponse:
     context = dashboard_context(request, principal, "partners")
     context["results"] = campaign_results(services(request).db)
     with services(request).db.sessions() as session:
+        context["service_names"] = service_names(session)
         context["no_website_count"] = (
             session.scalar(
                 select(func.count()).select_from(Company).where(Company.has_website == "false")
@@ -45,7 +47,7 @@ def partners_page(request: Request, principal: CurrentUser) -> HTMLResponse:
 @router.post("/campaigns/{campaign_id}/edit")
 async def save_campaign(request: Request, principal: Owner, campaign_id: str) -> RedirectResponse:
     """Save a version-checked campaign edit without rewriting its historical imports."""
-    fields = await read_form(request)
+    fields = await read_form(request, repeatable=frozenset({"services"}))
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         edit_campaign(

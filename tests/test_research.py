@@ -287,6 +287,18 @@ def test_ai_structure_budget_and_invented_source_guard(
     with db.sessions() as session:
         evidence = list(session.scalars(select(Evidence)))
     result = recommendation(evidence[0].id)
+    from app.db.outreach_models import Offer
+
+    with db.sessions.begin() as session:
+        session.add(
+            Offer(
+                service=str(result["service"]),
+                name="Synthetic quote journey",
+                description="Improve the documented quote request path",
+                active=True,
+                pricing_mode="quote",
+            )
+        )
     config = settings.model_copy(
         update={
             "openai_enabled": True,

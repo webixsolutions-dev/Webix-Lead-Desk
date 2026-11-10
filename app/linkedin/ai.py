@@ -12,9 +12,10 @@ from app.core.ai_config import task_settings
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import openai_key
+from app.db.lead_models import Company
 from app.db.linkedin_draft_models import LinkedInDraft
 from app.db.linkedin_models import LinkedInProfile, LinkedInTask
-from app.db.outreach_models import PlaybookVersion
+from app.db.outreach_models import Mailbox, PlaybookVersion
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.integrations.openai import ModelUnavailable, create_response
@@ -71,6 +72,29 @@ def generate(
             )
             or ""
         )
+        from app.drafting.context import linkedin_context
+
+        conversation = linkedin_context(session, task.person_id, task.profile_id)
+        mailbox = session.get(Mailbox, data["mailbox_id"]) if data.get("mailbox_id") else None
+        company = session.get(Company, task.company_id)
+        from app.playbook.industries import context as industry_context
+
+        industry = industry_context(session, company.industry) if company else []
+        scopes = ["conversation", "linkedin"]
+        if mailbox and mailbox.lane == "partner":
+            scopes.append("partner")
+        extra = list(
+            session.scalars(
+                select(PlaybookVersion)
+                .where(PlaybookVersion.scope.in_(scopes))
+                .order_by(PlaybookVersion.version.desc())
+            )
+        )
+        seen: set[str] = set()
+        for entry in extra:
+            if entry.scope not in seen:
+                guidance += "\n" + entry.guidance
+                seen.add(entry.scope)
     payload: dict[str, Any] = {
         "model": settings.openai_model,
         "store": False,
@@ -89,6 +113,9 @@ def generate(
                 "body": data["body"],
                 "angle": data["angle"],
                 "voice": voice,
+                "sender_identity": data.get("footer", ""),
+                "industry_priors_not_business_facts": industry,
+                "recipient_conversation": conversation,
                 "owner_writing_guidance": guidance,
                 "evidence": evidence,
             }

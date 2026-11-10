@@ -22,7 +22,9 @@ def fingerprint(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def check_copy(subject: str, body: str, *, first_touch: bool = True) -> None:
+def check_copy(
+    subject: str, body: str, *, first_touch: bool = True, allow_price: bool = False
+) -> None:
     """Reject header injection, empty or oversized copy and outreach price promises."""
     if not 3 <= len(subject.strip()) <= 150 or any(c in subject for c in "\r\n\x00"):
         raise ValueError("Use a single-line subject of 3–150 characters")
@@ -30,7 +32,9 @@ def check_copy(subject: str, body: str, *, first_touch: bool = True) -> None:
         raise ValueError("Keep the message body between 10 characters and 120 words")
     if re.search(r"<\s*(html|img|script|iframe|a\b)", body, re.I):
         raise ValueError("Use plain text without HTML or images")
-    if re.search(
+    if re.search(r"\bguarantee(?:d)?\b", subject + " " + body, re.I):
+        raise ValueError("Do not promise guaranteed outcomes")
+    if (first_touch or not allow_price) and re.search(
         r"[$€£]|\b(?:CAD|USD)\s*\d|\b\d[\d,.]*\s*(?:CAD|USD|dollars?)\b|\bguarantee(?:d)?\b",
         subject + " " + body,
         re.I,

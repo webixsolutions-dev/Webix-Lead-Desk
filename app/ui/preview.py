@@ -66,6 +66,8 @@ NAVIGATION = [
     ("leads", "/leads", "Leads", "search"),
     ("outbox", "/outbox", "Outbox", "send"),
     ("pipeline", "/pipeline", "Pipeline", "chat"),
+    ("bookings", "/bookings", "Bookings", "calendar"),
+    ("linkedin", "/linkedin/activity", "LinkedIn", "people"),
     ("demos", "/demos", "Demos", "window"),
     ("settings", "/settings", "Settings", "sliders"),
 ]

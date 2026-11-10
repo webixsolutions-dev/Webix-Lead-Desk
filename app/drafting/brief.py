@@ -4,42 +4,52 @@ import json
 
 from sqlalchemy import select
 
+from app.audit.coverage import coverage, evidence_bundle
 from app.db.lead_models import Campaign, Company
 from app.db.outreach_models import Offer
-from app.db.research_models import Evidence
+from app.db.research_models import Assessment
 from app.db.session import Database
 from app.playbook.catalog import matching_proofs
+from app.playbook.industries import context as industry_context
 from app.playbook.partner import local_members
 from app.playbook.service import current_guidance
 
 
-def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
+def build_brief(
+    db: Database, company_id: str, campaign_id: str, *, kind: str = "first_touch"
+) -> str:
     """Build copyable guidance and source facts without passing credentials or permission."""
     with db.sessions() as session:
         company = session.get(Company, company_id)
         campaign = session.get(Campaign, campaign_id)
         if not company or not campaign:
             raise ValueError("Business or campaign not found")
-        evidence = list(
-            session.scalars(
-                select(Evidence)
-                .where(Evidence.company_id == company_id)
-                .order_by(Evidence.observed_at.desc())
-                .limit(8)
-            )
-        )
+        evidence = evidence_bundle(session, company_id)
+        industry = industry_context(session, campaign.industry)
         offers = list(
             session.scalars(
-                select(Offer)
-                .where(Offer.active.is_(True), Offer.service.in_(campaign.services))
-                .limit(12)
+                select(Offer).where(Offer.active.is_(True), Offer.service.in_(campaign.services))
             )
         )
         proofs = matching_proofs(session, campaign)
         members = local_members(session, company, campaign)
+        assessment = session.scalar(
+            select(Assessment)
+            .where(Assessment.company_id == company_id, Assessment.campaign_id == campaign_id)
+            .order_by(Assessment.created_at.desc())
+            .limit(1)
+        )
     guidance = current_guidance(db, campaign_id)
+    task = {
+        "first_touch": "Write one personalized first-contact email. ",
+        "follow_up": "Write a useful follow-up with a distinct angle; avoid repeating the pitch. ",
+        "reply": "Answer the recipient's latest question; do not repeat the opening pitch. ",
+        "concept": "Write about the actual reviewed concept; do not invent a completed asset. ",
+    }.get(kind)
+    if task is None:
+        raise ValueError("Choose a supported message stage")
     return (
-        "Write one personalized first-contact email. Return Subject and Body only. "
+        task + "Return Subject and Body only. "
         "Keep the body under 120 words. Use one verified observation, ask a useful question, "
         "suggest one relevant enabled service as a hypothesis, and end with a soft reply CTA. "
         "No prices, guaranteed outcomes, invented familiarity or fabricated claims. "
@@ -53,6 +63,10 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
         + json.dumps(
             {
                 "business": company.name,
+                "industry_playbook": industry,
+                "audit_coverage": coverage(evidence),
+                "country": campaign.country,
+                "website": company.website,
                 "city": company.city,
                 "local_team_members": [
                     {"name": m.name, "city": m.city, "country": m.country} for m in members
@@ -61,6 +75,7 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
                 if members
                 else "Offer a video call; owner should add a local team member if available",
                 "services": campaign.services,
+                "service_hypothesis": assessment.result if assessment else None,
                 "offer_scope_without_prices": [
                     {"service": item.service, "offer": item.name, "scope": item.description}
                     for item in offers

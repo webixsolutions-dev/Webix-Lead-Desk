@@ -1,0 +1,310 @@
+[
+  {
+    "slug": "contractors",
+    "title": "Contractors & Home Services (HVAC, plumbing, electrical, roofing, landscaping)",
+    "guidance": "- **Win customers:** Google search and Maps, reviews, emergency calls, quote requests, referrals.\n- **Audit signals:** click-to-call on mobile, emergency/24-hour wording, quote form, service-area pages, financing page, reviews recency.\n- **Tools to detect:** Jobber, Housecall Pro, ServiceTitan, FieldPulse, Workiz.\n- **Likely needs:** 1) fast lead response and after-hours handling 2) quote follow-up 3) service-area landing pages and Google profile 4) reviews 5) ads.\n- **AI / automation:** inbound after-hours call answering, missed-call text-back, quote follow-up sequence, review request after job, maintenance-plan reminders.\n- **Opening questions:** \"When a call comes in after hours, does it reach someone or voicemail?\" · \"After a quote goes out, is there a set follow-up?\"\n- **Bundle:** Local Lead Engine. **Season (Calgary):** furnace Oct–Mar, AC May–Aug, roofing spring and summer hail season, landscaping spring, snow removal winter.\n- **Cautions:** never claim missed calls or lost jobs. If Jobber/Housecall Pro is present, quote follow-up may already exist.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "hvac",
+      "plumbing",
+      "plumber",
+      "electrician",
+      "electrical",
+      "roofing",
+      "landscaping",
+      "contractor",
+      "home services"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "healthcare",
+    "title": "Healthcare & Clinics (medical, dental, physio, chiro, optometry)",
+    "guidance": "- **Win customers:** search, insurance/benefit directories, referrals, reviews.\n- **Audit signals:** online booking link and where it goes, new-patient form, hours, multiple practitioners, services pages.\n- **Tools to detect:** Jane, Cliniko, Dentrix, ABELDent, ClinicSense, Accuro, Oscar.\n- **Likely needs:** 1) easier booking and reminders 2) reception phone load 3) new-patient intake 4) local search and reviews 5) clear service pages.\n- **AI / automation:** administrative inbound call help, booking requests, reminders, intake forms, FAQ assistant (hours, services, fees).\n- **Opening questions:** \"How are appointment calls handled when the front desk is busy?\" · \"Can new patients complete intake before they arrive?\"\n- **Bundle:** Smart Front Desk (after feasibility). **Season:** steady; benefits use-it-or-lose-it rush Nov–Dec.\n- **Cautions:** administrative only, no clinical advice. Some systems (e.g. Jane) do not accept direct calendar writes; offer booking requests + handoff instead. Privacy sensitive: no patient data in demos.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "healthcare",
+      "medical",
+      "dental",
+      "dentist",
+      "physio",
+      "chiro",
+      "optometry",
+      "clinic"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "beauty",
+    "title": "Beauty & Salons (hair, barber, nails, spa, lashes, med-spa)",
+    "guidance": "- **Win customers:** Instagram, Google Maps, referrals, repeat visits.\n- **Audit signals:** booking platform link, Instagram recency and quality, service menu with durations, deposit/cancellation policy.\n- **Tools to detect:** Square Appointments, Fresha, Vagaro, Booksy, Mindbody, Schedulicity, GlossGenius.\n- **Likely needs:** 1) regular content and short video 2) rebooking and reminders 3) phone/DM booking load 4) Google profile and reviews 5) offers and ads.\n- **AI / automation:** inbound booking assistant, rebooking reminders, no-show reduction (deposits/reminders), DM auto-replies to booking link.\n- **Opening questions:** \"Do most bookings come by phone, DM or your booking link?\" · \"Who looks after your posts and reels?\"\n- **Bundle:** Content Engine or Smart Front Desk. **Season:** wedding and summer peak, December holidays.\n- **Cautions:** many already have a working booking platform: do not pitch replacing it. UGC-style content never means fake testimonials.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "beauty",
+      "salon",
+      "barber",
+      "nails",
+      "spa",
+      "lashes"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "hospitality",
+    "title": "Restaurants & Hospitality (restaurants, cafes, catering, hotels, venues)",
+    "guidance": "- **Win customers:** Maps, Instagram, delivery apps, reviews, events.\n- **Audit signals:** menu readable on mobile (not only PDF), reservation link, online ordering, review replies, events/catering page.\n- **Tools to detect:** OpenTable, Resy, Toast, TouchBistro, Square, SevenRooms, DoorDash/Uber Eats/SkipTheDishes links.\n- **Likely needs:** 1) social content and video 2) review replies 3) mobile menu and Google profile 4) direct ordering or catering enquiries 5) local ads for events.\n- **AI / automation:** review reply workflow, reservation/enquiry assistant, catering quote intake, repeat-guest email/SMS.\n- **Opening questions:** \"Do catering or group bookings come through a form or by phone?\" · \"Who replies to Google reviews?\"\n- **Bundle:** Content Engine. **Season:** patios May–Sep, holiday parties Nov–Dec.\n- **Cautions:** thin margins; lead with low-effort, visible wins. Do not criticise food or service from reviews.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "restaurant",
+      "cafe",
+      "catering",
+      "hotel",
+      "hospitality",
+      "venue"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "fitness",
+    "title": "Fitness & Wellness (gyms, studios, personal training, yoga, martial arts)",
+    "guidance": "- **Win customers:** local search, Instagram, trials, referrals.\n- **Audit signals:** trial/intro offer, class schedule, online sign-up, membership pricing visibility, social recency.\n- **Tools to detect:** Mindbody, Glofox, Wodify, Zen Planner, PushPress, TeamUp, Trainerize.\n- **Likely needs:** 1) trial-to-member follow-up 2) content and video 3) landing page for offers 4) ads 5) retention messages.\n- **AI / automation:** lead follow-up after trial sign-up, class reminders, win-back for lapsed members, FAQ assistant.\n- **Opening questions:** \"What happens after someone books a free trial?\" · \"Do lapsed members get any follow-up?\"\n- **Bundle:** Content Engine or Business Growth. **Season:** January and September peaks.\n- **Cautions:** no body-image or health-result claims.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "fitness",
+      "gym",
+      "yoga",
+      "martial arts",
+      "wellness"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "automotive",
+    "title": "Automotive (repair shops, detailing, tyres, body shops, dealers)",
+    "guidance": "- **Win customers:** Maps, reviews, repeat service, urgency.\n- **Audit signals:** online booking or only phone, service list and pricing guidance, review recency, reminders mention.\n- **Tools to detect:** Tekmetric, Shopmonkey, Shop-Ware, Mitchell 1, AutoLeap.\n- **Likely needs:** 1) booking and reminders 2) reviews and Google profile 3) clear service pages 4) seasonal campaigns 5) quote/estimate follow-up.\n- **AI / automation:** inbound booking assistant, service-due reminders, estimate follow-up, status updates to customers.\n- **Opening questions:** \"How do customers book a service slot today?\" · \"Do you send reminders when a service is due?\"\n- **Bundle:** Smart Front Desk or Local Lead Engine. **Season (Calgary):** winter tyre changeover Oct–Nov, spring Apr–May.\n- **Cautions:** do not quote repair prices or imply faults.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "automotive",
+      "auto repair",
+      "detailing",
+      "tyres",
+      "tires",
+      "body shop",
+      "dealer"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "property-construction",
+    "title": "Real Estate & Construction (agents, brokerages, builders, renovators)",
+    "guidance": "- **Win customers:** listings portals, referrals, social, project portfolios.\n- **Audit signals:** lead capture on listings, project gallery, testimonials, response path, areas served.\n- **Tools to detect:** Follow Up Boss, kvCORE, Lofty, Buildertrend, CoConstruct, Procore, Houzz.\n- **Likely needs:** agents: lead follow-up, personal brand content, landing pages. Builders/renovators: portfolio site, quote intake, project updates for clients.\n- **AI / automation:** instant lead reply and qualification, viewing scheduling, client project portal with updates and documents, review requests.\n- **Opening questions:** \"How quickly do new enquiries usually get a first reply?\" · \"How do clients follow progress on their project?\"\n- **Bundle:** Business Growth + portal. **Season:** spring market, renovations spring–fall.\n- **Cautions:** no market or price predictions; respect board/brokerage advertising rules.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "real estate",
+      "construction",
+      "builder",
+      "renovator",
+      "brokerage"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "professional",
+    "title": "Professional Services (law, consulting, insurance, financial, architecture)",
+    "guidance": "- **Win customers:** referrals, search, reputation, LinkedIn.\n- **Audit signals:** consultation booking, practice-area pages, team bios, intake form, content recency.\n- **Tools to detect:** Clio, PracticePanther, HubSpot, Calendly, Salesforce.\n- **Likely needs:** 1) intake and qualification 2) clear service pages and SEO/GEO 3) client document portal 4) LinkedIn content 5) CRM.\n- **AI / automation:** intake assistant, appointment scheduling, document collection reminders, FAQ assistant (non-advisory).\n- **Opening questions:** \"How do new enquiries get qualified before a consultation?\" · \"How do clients send and track documents?\"\n- **Bundle:** Business Growth + portal. **Season:** tax and year-end peaks vary by field.\n- **Cautions:** regulated advertising (law, finance, insurance): no outcome claims, no advice from the assistant, confidentiality first.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "professional",
+      "law",
+      "lawyer",
+      "consulting",
+      "insurance",
+      "financial",
+      "architecture"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "ecommerce",
+    "title": "E-commerce",
+    "guidance": "- **Win customers:** ads, social, search, email, marketplaces.\n- **Audit signals:** platform, mobile checkout steps, product page quality, reviews, shipping/returns clarity, email capture, ad activity.\n- **Tools to detect:** Shopify, WooCommerce, BigCommerce, Klaviyo, Mailchimp, Gorgias, Yotpo/Judge.me.\n- **Likely needs:** 1) conversion (product pages, checkout) 2) ad creative and video 3) email/SMS flows 4) SEO/GEO for products 5) order and support automation.\n- **AI / automation:** abandoned-cart and post-purchase flows, support assistant for order status, product content generation with review, inventory/order workflows.\n- **Opening questions:** \"Which step loses the most shoppers right now?\" · \"Are cart and post-purchase emails set up?\"\n- **Bundle:** Business Growth or Content Engine. **Season:** Black Friday to Christmas, back to school.\n- **Cautions:** highly competitive agency niche; lead with one specific observed issue. Never claim revenue or conversion figures.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "ecommerce",
+      "e-commerce",
+      "online store",
+      "retail"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "saas",
+    "title": "SaaS & Startups",
+    "guidance": "- **Win customers:** content, product-led sign-ups, demos, outbound, communities.\n- **Audit signals:** clear value proposition, demo/sign-up path, docs, pricing page, blog recency, hiring pages (growth signal).\n- **Tools to detect:** HubSpot, Intercom, Webflow, Segment, Stripe.\n- **Likely needs:** 1) marketing site or landing pages 2) MVP or feature build capacity (web, Flutter) 3) SEO/GEO content 4) onboarding automation 5) design.\n- **AI / automation:** support assistant on docs, lead qualification, internal workflow automation, AI features inside their product.\n- **Opening questions:** \"Is the product team stretched on the marketing site or the app?\" · \"Where do sign-ups drop off?\"\n- **Bundle:** Custom (web, Flutter MVP, SEO/GEO). **Season:** budget cycles Jan and after funding news.\n- **Cautions:** technical buyers; be specific, no buzzwords. NDA early.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "saas",
+      "startup",
+      "software",
+      "it company",
+      "agency"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "education",
+    "title": "Education & Training (schools, tutoring, colleges, driving schools, courses)",
+    "guidance": "- **Win customers:** search, referrals, open days, social.\n- **Audit signals:** enquiry and enrolment path, course pages, schedule, fees clarity, parent/student login.\n- **Tools to detect:** Teachworks, TutorCruncher, Thinkific, Teachable, Moodle, Google Classroom.\n- **Likely needs:** 1) enquiry-to-enrolment follow-up 2) course landing pages 3) student/parent portal 4) content and ads before intake dates 5) reminders.\n- **AI / automation:** enquiry assistant, enrolment reminders, class scheduling, progress updates to parents.\n- **Opening questions:** \"What happens after a parent or student sends an enquiry?\" · \"How do families see schedules and progress?\"\n- **Bundle:** Business Growth + portal. **Season:** Aug–Sep and Jan intakes.\n- **Cautions:** minors' data is sensitive; no student data in demos.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "education",
+      "tutoring",
+      "college",
+      "driving school",
+      "training"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "multi-location",
+    "title": "Multi-Location businesses",
+    "guidance": "- **Win customers:** each branch through local search and Maps.\n- **Audit signals:** location pages, separate Google profiles, consistent hours/phones, per-location booking, review spread.\n- **Tools to detect:** Yext, BrightLocal, location finder widgets, franchise systems.\n- **Likely needs:** 1) location pages and profiles 2) review management across branches 3) central reporting 4) lead routing to the right branch 5) local ads.\n- **AI / automation:** enquiry routing by location, review reply workflow, central dashboard, call handling per branch.\n- **Opening questions:** \"How do enquiries get routed to the right location?\" · \"Who manages reviews across branches?\"\n- **Bundle:** Business Growth. **Season:** follows the underlying industry.\n- **Cautions:** confirm whether marketing is decided locally or by head office/franchisor before pitching a branch.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "multi-location",
+      "multilocation",
+      "franchise"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "logistics",
+    "title": "Logistics & Trucking",
+    "guidance": "- **Win customers:** contracts, load boards, referrals, direct sales; driver recruitment is a second funnel.\n- **Audit signals:** quote request form, service lanes/areas, tracking, careers page, certifications.\n- **Tools to detect:** Samsara, Motive, McLeod, Rose Rocket, Truckbase, DAT.\n- **Likely needs:** 1) credible website and quote intake 2) driver recruitment pages and ads 3) customer tracking/portal 4) dispatch and paperwork automation 5) LinkedIn presence.\n- **AI / automation:** quote intake and follow-up, document collection (PODs, invoices), shipment status updates, driver application screening.\n- **Opening questions:** \"How do shippers request a quote and get updates?\" · \"Is driver hiring a bottleneck right now?\"\n- **Bundle:** Business Growth + portal. **Season:** pre-holiday freight Sep–Dec.\n- **Cautions:** B2B, longer sales cycle; reach operations or the owner.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "logistics",
+      "trucking",
+      "transport"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "travel",
+    "title": "Travel & Immigration",
+    "guidance": "- **Win customers:** search, community referrals, social, WhatsApp.\n- **Audit signals:** consultation booking, service/visa pages, licence details shown, intake form, testimonials.\n- **Tools to detect:** Calendly, CaseEasy, Officio, WhatsApp chat widgets.\n- **Likely needs:** 1) trust-building website and SEO/GEO 2) intake and document collection 3) case status portal 4) content answering common questions 5) ads.\n- **AI / automation:** intake questionnaire, document checklist reminders, status updates, FAQ assistant (non-advisory).\n- **Opening questions:** \"How do clients send documents and check where their file stands?\" · \"How are consultation requests handled?\"\n- **Bundle:** Business Growth + portal. **Season:** intake peaks around program openings and study terms.\n- **Cautions:** regulated field: the assistant gives no immigration advice or outcome claims; licence details must be accurate.\n\n---\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "travel",
+      "immigration"
+    ],
+    "tier": "main"
+  },
+  {
+    "slug": "industrial",
+    "title": "Oilfield & industrial services (Alberta)",
+    "guidance": "- **Win:** relationships, tenders, vendor lists, word of mouth. **Signals:** dated site, missing capabilities/equipment lists, safety certifications (COR, ISNetworld) not shown, no RFQ form.\n- **Needs:** credible capabilities website, RFQ intake, SEO/GEO for service + region, LinkedIn presence, document/portal for clients.\n- **AI / automation:** RFQ intake and follow-up, safety document tracking, job ticket and field form automation.\n- **Opening:** \"How do new clients request a quote or check your certifications?\" **Bundle:** Business Growth + portal. **Caution:** B2B, practical tone, no hype.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "oilfield",
+      "industrial"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "manufacturing",
+    "title": "Manufacturing, fabrication & machine shops",
+    "guidance": "- **Win:** repeat B2B buyers, referrals, RFQs. **Signals:** capabilities and equipment list, RFQ form with file upload, certifications, catalogue PDFs.\n- **Needs:** capabilities site, RFQ workflow, SEO/GEO for processes and materials, product catalogue.\n- **AI / automation:** RFQ intake with drawings, quote follow-up, order status portal.\n- **Opening:** \"Can buyers send drawings and get a quote through the site?\" **Bundle:** Business Growth + portal.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "manufacturing",
+      "fabrication",
+      "machine shop"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "wholesale",
+    "title": "Wholesale & distribution",
+    "guidance": "- **Win:** account customers, reps, phone/email orders. **Signals:** PDF catalogue, no online ordering, account login absence.\n- **Needs:** B2B ordering portal or store, searchable catalogue, reorder workflow.\n- **AI / automation:** order entry from emails, reorder reminders, stock/price enquiries assistant.\n- **Opening:** \"Do customers still order by phone and email, or can they reorder online?\" **Bundle:** E-commerce / order portal.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "wholesale",
+      "distribution"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "agriculture",
+    "title": "Agriculture & farm services",
+    "guidance": "- **Win:** local reputation, dealers, seasons. **Signals:** no or dated site, weak Google profile, seasonal services not listed.\n- **Needs:** simple site and Google profile, service/season pages, enquiry form.\n- **AI / automation:** enquiry intake, seasonal reminders to customers.\n- **Opening:** \"Where do new customers usually find you before the season starts?\" **Bundle:** Get Online. **Season:** spring seeding, fall harvest.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "agriculture",
+      "farm"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "veterinary",
+    "title": "Veterinary clinics",
+    "guidance": "- **Win:** local search, reviews, referrals. **Signals:** online booking, new-client form, emergency info, hours.\n- **Tools to detect:** ezyVet, AVImark, Cornerstone, IDEXX Neo, PetDesk, Vetstoria.\n- **Needs:** booking and reminders, phone load, reviews, clear service pages.\n- **AI / automation:** administrative inbound booking help, vaccine/visit reminders, intake forms.\n- **Opening:** \"How are booking calls handled during busy clinic hours?\" **Bundle:** Smart Front Desk. **Caution:** administrative only; no medical advice.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "veterinary",
+      "vet clinic"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "home-care",
+    "title": "Senior care & home care",
+    "guidance": "- **Win:** family searches, referrals from health workers, reviews. **Signals:** services and care levels explained, enquiry path, trust signals, staff info.\n- **Needs:** trust-building site, reviews, content for families, enquiry follow-up.\n- **AI / automation:** enquiry intake and callback scheduling, family update portal.\n- **Opening:** \"When a family enquires, how soon can someone walk them through options?\" **Bundle:** Business Growth. **Caution:** warm, respectful tone; no urgency tactics.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "senior care",
+      "home care"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "childcare",
+    "title": "Childcare & daycares",
+    "guidance": "- **Win:** local search, parent groups, waitlists. **Signals:** tour booking, waitlist form, programs and ages, fees clarity.\n- **Tools to detect:** Brightwheel, Lillio (HiMama), Procare, Kangarootime.\n- **Needs:** enquiry and waitlist workflow, tour booking, Google profile and reviews.\n- **AI / automation:** waitlist and tour scheduling, enquiry follow-up, parent FAQ assistant.\n- **Opening:** \"How do parents join the waitlist or book a tour today?\" **Bundle:** Get Online or Business Growth. **Caution:** no children's photos or data in demos.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "childcare",
+      "daycare"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "funeral",
+    "title": "Funeral homes",
+    "guidance": "- **Win:** local reputation, search at time of need. **Signals:** obituaries section, pre-planning info, clear contact any hour, dated design.\n- **Needs:** dignified modern site, local visibility, pre-planning enquiry path.\n- **AI / automation:** after-hours enquiry handling with human handoff, pre-planning form.\n- **Opening:** \"Is your pre-planning information easy for families to find and request?\" **Bundle:** Business Growth. **Caution:** calm, respectful, no urgency, no sales language; never reference specific obituaries.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "funeral"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "property-management",
+    "title": "Property management",
+    "guidance": "- **Win:** owner referrals, search, listings. **Signals:** tenant/owner login, maintenance request form, vacancy listings.\n- **Tools to detect:** Buildium, AppFolio, Yardi, Rent Manager, TenantCloud.\n- **Needs:** maintenance request workflow, owner reporting, listing pages, lead follow-up for vacancies.\n- **AI / automation:** maintenance intake and routing, viewing scheduling, tenant FAQ assistant, owner updates.\n- **Opening:** \"How do tenants submit maintenance requests and get updates?\" **Bundle:** Business Growth + portal.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "property management"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "moving",
+    "title": "Moving, storage & pest control",
+    "guidance": "- **Win:** search, reviews, urgent need. **Signals:** quote form, pricing guidance, service areas, review recency.\n- **Needs:** quote intake and follow-up, Google profile and reviews, landing pages, ads.\n- **AI / automation:** quote estimator intake, missed-call text-back, booking reminders, review requests.\n- **Opening:** \"After someone requests a quote, what's the follow-up?\" **Bundle:** Local Lead Engine. **Season:** moving May–Sep; pest spring–summer.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "moving",
+      "storage",
+      "pest control"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "accounting",
+    "title": "Accounting & bookkeeping firms",
+    "guidance": "- **Win:** referrals, search, niche expertise. **Signals:** services pages, booking link, client portal link, content recency.\n- **Tools to detect:** TaxDome, Karbon, Canopy, QuickBooks/Xero badges, Calendly.\n- **Needs:** client document collection, intake and onboarding, niche service pages and SEO/GEO.\n- **AI / automation:** document request reminders, onboarding workflow, FAQ assistant (non-advisory).\n- **Opening:** \"How do clients send documents at tax time?\" **Bundle:** Business Growth + portal. **Season:** Feb–Apr is busiest: pitch before January or after May.\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "accounting",
+      "bookkeeping"
+    ],
+    "tier": "test"
+  },
+  {
+    "slug": "cleaning",
+    "title": "Commercial cleaning & janitorial",
+    "guidance": "- **Win:** B2B contracts, referrals, bids. **Signals:** commercial services pages, quote/walkthrough request, industries served, insurance/bonding shown.\n- **Needs:** credible site, quote/walkthrough workflow, LinkedIn and local SEO, client reporting.\n- **AI / automation:** walkthrough scheduling, quote follow-up, inspection reports portal.\n- **Opening:** \"How do facility managers request a walkthrough and quote?\" **Bundle:** Local Lead Engine or Business Growth.\n\n---\n\nTreat these patterns as questions, not facts about a lead. Detected tools indicate possible existing capability; confirm configuration and gaps before recommending a replacement. Missing tools in page markup do not prove absence. Validate seasonality against the actual location and date. Bundle labels are ideas, not priced offers. Use only available campaign offers; voice and cloud pilots remain paused until a separate feasibility review. Do not infer call volume, missed bookings, revenue or ad spend. A no-fit result is valid.",
+    "aliases": [
+      "commercial cleaning",
+      "janitorial",
+      "cleaning"
+    ],
+    "tier": "test"
+  }
+]

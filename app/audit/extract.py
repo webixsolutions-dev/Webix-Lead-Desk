@@ -130,4 +130,6 @@ def extract(url: str, html: str) -> tuple[dict[str, Any], list[str]]:
         )
         if match:
             candidates.append(match)
-    return parser.facts(), candidates
+    from app.audit.signals import tool_signals
+
+    return {**parser.facts(), **tool_signals(html, parser.links)}, candidates

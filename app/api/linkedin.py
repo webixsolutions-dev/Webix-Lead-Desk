@@ -181,7 +181,12 @@ async def record_reply(
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse("/", 303)
+    return RedirectResponse(
+        f"/linkedin/conversations/{person_id}"
+        if principal.user.role == "owner"
+        else "/linkedin/queue",
+        303,
+    )
 
 
 @router.post("/leads/{company_id}/linkedin-control")

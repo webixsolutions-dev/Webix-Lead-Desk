@@ -15,6 +15,7 @@ from app.db.models import AuditEvent
 from app.db.outreach_models import Conversation, Draft, Mailbox
 from app.db.research_models import Evidence
 from app.drafting.brief import build_brief
+from app.drafting.review import briefs_for_drafts, review_brief
 from app.drafting.service import approval_blocks, approve, save_draft
 from app.learning.capture import capture
 from app.playbook.partner import local_members
@@ -39,6 +40,7 @@ def outbox_context(request: Request, principal: Principal) -> dict[str, Any]:
         context["intents"] = list(
             session.scalars(select(SendIntent).order_by(SendIntent.due_at).limit(100))
         )
+    context["review_briefs"] = briefs_for_drafts(services(request).db, context["drafts"])
     return context
 
 
@@ -121,8 +123,11 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
             partner_lane=bool(campaign and campaign.lane == "partner"),
             blocks=approval_blocks(db, item) if item else [],
         )
+    context["review"] = review_brief(db, company_id, campaign.id if campaign else None)
     context["brief"] = (
-        build_brief(db, company_id, campaign.id) if campaign else "Create a campaign first."
+        build_brief(db, company_id, campaign.id, kind=kind)
+        if campaign
+        else "Create a campaign first."
     )
     return render(request, "draft_editor.html", context)
 
@@ -147,6 +152,7 @@ async def edit_draft(request: Request, principal: CurrentUser, company_id: str) 
             previous_id=fields.get("previous_id") or None,
             step=step,
             kind=fields.get("kind") or None,
+            allow_price=principal.user.role == "owner" and fields.get("allow_price") == "true",
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
@@ -162,6 +168,10 @@ async def approve_draft(request: Request, principal: Owner, draft_id: str) -> Re
         raise HTTPException(422, "Review the exact message and confirm its factual accuracy")
     try:
         approve(services(request).db, draft_id, fields.get("digest", ""), principal.user.id)
+        if fields.get("schedule") == "true":
+            from app.sending.schedule import schedule
+
+            schedule(services(request).db, draft_id, principal.user.id)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     return RedirectResponse("/outbox", 303)
@@ -257,6 +267,16 @@ async def queue_generation(request: Request, principal: Owner, company_id: str) 
             or not session.get(Mailbox, fields.get("mailbox_id", ""))
         ):
             raise HTTPException(422, "Choose an existing contact and sender")
+    try:
+        generation_step = int(fields.get("step", "0"))
+        if not 0 <= generation_step <= 20 or fields.get("kind", "first_touch") not in {
+            "first_touch",
+            "follow_up",
+            "reply",
+        }:
+            raise ValueError("Invalid generation step")
+    except ValueError as error:
+        raise HTTPException(422, "Choose a supported draft stage") from error
     now = utc_now()
     enqueue(
         app.db,
@@ -269,6 +289,10 @@ async def queue_generation(request: Request, principal: Owner, company_id: str) 
             "mailbox_id": fields.get("mailbox_id", ""),
             "actor_id": principal.user.id,
             "previous_id": fields.get("previous_id") or None,
+            "step": generation_step,
+            "kind": fields.get("kind", "first_touch"),
+            "rewrite_instruction": fields.get("rewrite_instruction", "")[:2000],
+            "allow_price": fields.get("allow_price") == "true",
         },
         now,
     )

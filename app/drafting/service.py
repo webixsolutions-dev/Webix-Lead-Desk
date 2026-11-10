@@ -42,9 +42,12 @@ def save_draft(
     step: int = 0,
     concept_id: str | None = None,
     kind: str | None = None,
+    allow_price: bool = False,
 ) -> Draft:
     """Create a revision; supersede the expected predecessor atomically without reusing approval."""
-    check_copy(subject, body, first_touch=step == 0)
+    if allow_price and kind != "reply":
+        raise ValueError("Prices are permitted only in an owner-reviewed reply")
+    check_copy(subject, body, first_touch=step == 0, allow_price=allow_price)
     if not 0 <= step <= 20 or not 1 <= len(evidence_ids) <= 10:
         raise ValueError("Use a supported message step with 1–10 evidence references")
     guidance = current_guidance(db, campaign_id)
@@ -63,6 +66,10 @@ def save_draft(
     sequence_step = step if kind == "follow_up" else 0
     try:
         with db.sessions.begin() as session:
+            if allow_price:
+                actor = session.get(User, actor_id)
+                if not actor or not actor.active or actor.role != "owner":
+                    raise ValueError("Only the owner can include a quotation")
             campaign = session.get(Campaign, campaign_id)
             contact = session.get(Contact, contact_id)
             mailbox = session.get(Mailbox, mailbox_id)
@@ -234,6 +241,7 @@ def save_draft(
                 "from_name": mailbox.sender_name,
                 "recipient": contact.email,
                 "subject": subject.strip(),
+                "allow_price": allow_price,
                 "body": body.strip(),
                 "footer": footer(mailbox),
                 "signature": get_signature(session, mailbox_id),
@@ -282,7 +290,12 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
     snapshot = draft.snapshot
     reasons: list[str] = []
     try:
-        check_copy(snapshot["subject"], snapshot["body"], first_touch=draft.step == 0)
+        check_copy(
+            snapshot["subject"],
+            snapshot["body"],
+            first_touch=draft.step == 0,
+            allow_price=draft.kind == "reply" and snapshot.get("allow_price") is True,
+        )
     except ValueError as error:
         reasons.append(str(error))
     if fingerprint(snapshot) != draft.digest:

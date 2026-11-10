@@ -11,7 +11,7 @@ from app.calls.listing import ListingReview, review_listing
 from app.calls.service import record_call
 from app.core.clock import utc_now
 from app.db.acquisition_models import CallRecord, LeadEvent
-from app.db.lead_models import ChannelReservation, Contact, ContactBasis
+from app.db.lead_models import Campaign, ChannelReservation, Contact, ContactBasis
 from app.db.session import Database
 from app.journey.project import derive, detail
 from app.policy.contacts import company_suppressed
@@ -44,7 +44,11 @@ def test_rule_score_history_and_mutual_exclusion(db: Database, owner: Account) -
     assert score(db, company.id, campaign.id).id == top.id
     review_listing(db, company.id, listing(mature=True), owner.user.id)
     lower = score(db, company.id, campaign.id)
-    assert lower.points == 7 and "-3 Mature" in lower.reason
+    assert lower.points == 10  # A strong site does not remove non-website opportunities.
+    with db.sessions.begin() as session:
+        saved_campaign = session.get(Campaign, campaign.id)
+        assert saved_campaign
+        saved_campaign.services = ["Websites and redesign"]
     save_rules(db, Rules(mature=-6), 0, owner.user.id)
     edited = score(db, company.id, campaign.id)
     assert edited.points == 4 and edited.band == "Later" and edited.policy_version == 1

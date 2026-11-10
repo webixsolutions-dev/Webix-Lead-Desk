@@ -111,6 +111,11 @@ def score(db: Database, company_id: str, campaign_id: str) -> LeadScore:
             )
             value = evidence.facts["signals"][signal] if evidence else None
             active = industry if signal == "industry" else (type(value) is bool and value)
+            if signal == "mature" and any(
+                not re.search(r"website|web design|redesign", service, re.I)
+                for service in campaign.services
+            ):
+                active = False
             if signal == "no_website":
                 active = company.has_website == "false" and bool(evidence and value is True)
             if signal == "weak_mobile" and company.has_website == "false":

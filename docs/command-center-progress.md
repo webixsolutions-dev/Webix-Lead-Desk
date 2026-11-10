@@ -6,8 +6,8 @@ Sending remains manual by default; this work does not approve prospect messages 
 1. Readability and ledger-backed AI credit meter — merged in PR #26, v0.25.0.
 2. Command Center, six-section navigation, activity, settings and display hardcodes — merged in PR #27, v0.26.0.
 3. Conversation checks, lead outcomes, bundles and discovery-only offers — merged in PR #28, v0.27.0.
-4. Meeting packs and owner-reviewed proposals — implementation in progress.
-5. Optional owner authenticator and device-session management — pending.
+4. Meeting packs and owner-reviewed proposals — merged in PR #29, v0.28.0.
+5. Optional owner authenticator and device-session management — implemented in v0.29.0; release verification is recorded in its phase PR.
 
 Corrections that take precedence over the supplied documents:
 - Authenticator enrollment is an owner's choice, never a mandatory sending prerequisite.
@@ -25,3 +25,5 @@ Part 1 validation: 478 offline tests, four PostgreSQL tests, 83.40% coverage; st
 Part 2 implementation: ordered work queue, native review panel, exact-recipient conversations, canonical navigation/redirects, activity/progress, three settings groups and Calgary source guard. All six CI jobs passed: 488 offline tests, four PostgreSQL tests, 83.59% coverage, Windows installer and desktop/mobile browser checks. Production health is ready; v0.26.0 release published. No schema or live configuration changes.
 
 Part 3: 522 offline tests, four PostgreSQL tests, 83.88% coverage; all six required CI jobs passed. Desktop/mobile conversation-warning screenshots visually checked. Production ready, Alembic 0023 applied, five internal bundle templates installed idempotently without prices. Voice remains discovery only and inactive for older workers.
+
+Part 4: 535 offline tests, four PostgreSQL tests, 84.23% coverage; all six required CI jobs passed. One-page meeting PDF and editable Word proposal visually verified. Production ready, Alembic 0024 applied; v0.28.0 installer published. No calendar synchronization or proposal auto-delivery.

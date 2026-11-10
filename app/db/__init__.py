@@ -19,3 +19,4 @@ from app.db import pilot_models as pilot_models
 from app.db import pipeline_models as pipeline_models
 from app.db import proposal_models as proposal_models
 from app.db import research_models as research_models
+from app.db import security_models as security_models

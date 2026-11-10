@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.responses import JSONResponse, Response
 
 from app.api import (
+    account_security,
     acquisition,
     approval_policy,
     auth,
@@ -92,6 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         blocked = False
         if request.method not in {"GET", "HEAD", "OPTIONS"} and request.url.path not in {
             "/login",
+            "/login/verify",
             "/logout",
         }:
             with db.sessions() as session:
@@ -137,6 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"status": "ready"})
 
     app.include_router(auth.router)
+    app.include_router(account_security.router)
     app.include_router(approval_policy.router)
     app.include_router(command.router)
     app.include_router(proposals.router)

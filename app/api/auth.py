@@ -5,7 +5,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, check_csrf, read_form, services
 from app.api.views import render
-from app.core.auth import authenticate, consume_login_attempt, revoke_session, start_session
+from app.core.auth import authenticate, consume_login_attempt, revoke_session
 from app.core.clock import utc_now
 from app.core.security import (
     LOGIN_CSRF_COOKIE,
@@ -64,7 +64,28 @@ async def submit_login(request: Request) -> HTMLResponse | RedirectResponse:
     old_token = request.cookies.get(SESSION_COOKIE)
     if old_token:
         revoke_session(app.db, old_token, user.id)
-    token = start_session(app.db, app.settings, user, now)
+    from app.security.login import CHALLENGE_COOKIE, begin_login
+
+    try:
+        with app.db.sessions.begin() as session:
+            token, needs_factor = begin_login(
+                session, app.settings, user, now, request.headers.get("user-agent", "")
+            )
+    except ValueError:
+        return login_page(request, "Sign-in changed. Please start again.", 401)
+    if needs_factor:
+        redirect = RedirectResponse("/login/verify", status_code=303)
+        redirect.set_cookie(
+            CHALLENGE_COOKIE,
+            token,
+            max_age=300,
+            httponly=True,
+            secure=app.settings.cookie_secure,
+            samesite="strict",
+        )
+        redirect.delete_cookie(SESSION_COOKIE)
+        redirect.delete_cookie(LOGIN_CSRF_COOKIE)
+        return redirect
     redirect = RedirectResponse("/", status_code=303)
     redirect.set_cookie(
         SESSION_COOKIE,
@@ -75,6 +96,7 @@ async def submit_login(request: Request) -> HTMLResponse | RedirectResponse:
         samesite="strict",
     )
     redirect.delete_cookie(LOGIN_CSRF_COOKIE)
+    redirect.delete_cookie(CHALLENGE_COOKIE)
     return redirect
 
 

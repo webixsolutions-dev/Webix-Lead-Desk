@@ -62,6 +62,9 @@ try {
         return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
       });
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+      const statusCard=page.locator('.workspace-chip>div').first();
+      const statusBounds=await statusCard.count() ? await statusCard.boundingBox() : null;
+      if(statusBounds) assert(statusBounds.x>=0 && statusBounds.x+statusBounds.width<=viewport.width+1, `Workspace status must fit ${file}`);
       if(violations.length||small.length||overflow||bodyContrast<7) failures.push({file,width:viewport.width,violations,small,overflow,bodyContrast});
     }
     await page.goto(`${base}/today-normal.html`);

@@ -89,21 +89,16 @@ def authenticate(db: Database, email: str, password: str) -> User | None:
 
 
 def start_session(db: Database, settings: Settings, user: User, now: datetime) -> str:
-    """Persist only the token hash and return the new bearer token once."""
-    token = random_token()
+    """Issue a password-only session only while the optional second factor is disabled."""
+    from app.db.security_models import OwnerMFA
+    from app.security.sessions import issue_session, lock_user
+
     with db.sessions.begin() as session:
-        session.execute(delete(UserSession).where(UserSession.expires_at <= now))
-        session.add(
-            UserSession(
-                token_hash=token_hash(token),
-                user_id=user.id,
-                csrf_token=random_token(),
-                created_at=now,
-                expires_at=now + timedelta(hours=settings.session_hours),
-            )
-        )
-        session.add(AuditEvent(actor_id=user.id, action="session.created", entity_id=user.id))
-    return token
+        current = lock_user(session, user.id)
+        factor = session.get(OwnerMFA, user.id)
+        if current.password_hash != user.password_hash or (factor and factor.enabled):
+            raise ValueError("Complete the current sign-in checks first.")
+        return issue_session(session, settings, current, now)
 
 
 def revoke_session(db: Database, token: str, actor_id: str) -> None:
@@ -120,6 +115,11 @@ def reset_password(db: Database, email: str, password: str) -> None:
         user = session.scalar(select(User).where(User.email == email.strip().casefold()))
         if user is None:
             raise ValueError("Account not found")
+        from app.db.security_models import MFAChallenge
+        from app.security.sessions import lock_user
+
+        user = lock_user(session, user.id)
         user.password_hash = encoded
+        session.execute(delete(MFAChallenge).where(MFAChallenge.user_id == user.id))
         session.execute(delete(UserSession).where(UserSession.user_id == user.id))
         session.add(AuditEvent(actor_id=user.id, action="user.password_reset", entity_id=user.id))

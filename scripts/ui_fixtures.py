@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
@@ -21,6 +22,7 @@ from app.db.session import create_database
 from app.main import create_app
 from app.playbook.bundles import install_templates
 from scripts.ui_proposal import seed as seed_proposal
+from scripts.ui_security import capture as capture_security
 from scripts.ui_seed import seed_conversation_review, seed_review
 
 
@@ -35,6 +37,7 @@ def main() -> None:
             database_url=f"sqlite:///{folder}/ui.sqlite",
             data_dir=Path(folder),
             session_secret=SecretStr(secrets.token_urlsafe(48)),
+            encryption_key=SecretStr(Fernet.generate_key().decode()),
         )
         migrate(config)
         db = create_database(config)
@@ -98,6 +101,7 @@ def main() -> None:
                 "campaigns": "/leads/campaigns",
                 "bookings": "/pipeline/bookings",
                 "settings": "/settings",
+                "security": "/settings/security",
                 "linkedin": "/linkedin/plan",
                 "usage": "/settings/ai-usage",
                 "message": "/leads/preview/prairie",
@@ -150,6 +154,7 @@ def main() -> None:
                 research = client.get(editor_url.split("/draft")[0])
                 assert research.status_code == 200
                 (target / f"research-{size}.html").write_text(research.text, encoding="utf-8")
+            capture_security(client, db, config, owner.id, password, target)
         db.engine.dispose()
 
 

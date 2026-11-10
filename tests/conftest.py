@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
@@ -106,3 +107,10 @@ def sign_in(client: TestClient, account: Account) -> None:
         },
     )
     assert response.status_code == 303
+
+
+@pytest.fixture
+def factor_settings(settings: Settings) -> Settings:
+    """Use a disposable random encryption key, never a production credential."""
+    settings.encryption_key = SecretStr(Fernet.generate_key().decode())
+    return settings

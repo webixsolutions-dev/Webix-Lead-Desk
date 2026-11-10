@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.0
+- Add optional owner-only authenticator enrollment, password-first sign-in challenges and private single-use recovery codes. Existing accounts remain unenrolled.
+- Require password and existing factor for security changes; revoke other devices while preserving the current session. Never make MFA a sending gate.
+- Serialize challenge/code use, prevent replay, retain rate/CSRF checks, and keep factors enabled across password resets.
+- Add private RLS-protected security tables in migration 0025 and show approximate device descriptions and last-seen times.
+- Keep the expanded workspace-status card within mobile viewports.
+
 ## 0.28.0
 - Prepare a bounded meeting brief with each booking, including exact-contact email context, reviewed facts, industry questions and relevant bundle reasons.
 - Confirm completed meeting notes, prepare immutable editable proposals with owner-entered prices, approve exact revisions and export branded Word documents.

@@ -43,13 +43,17 @@ def export_backup(
         from app.operations.recovery_snapshot import fence_snapshot
 
         fence_snapshot(payload)
-    if payload["tables"]["integration_secrets"]:
+    secrets = [row["ciphertext"] for row in payload["tables"]["integration_secrets"]]
+    secrets.extend(
+        row["encrypted_secret"] for row in payload["tables"]["owner_mfa"] if row["encrypted_secret"]
+    )
+    if secrets:
         if not settings.encryption_key:
             raise ValueError("Configure the original ENCRYPTION_KEY before backing up credentials")
         credential_cipher = Fernet(settings.encryption_key.get_secret_value().encode())
         try:
-            for secret in payload["tables"]["integration_secrets"]:
-                credential_cipher.decrypt(secret["ciphertext"].encode())
+            for secret in secrets:
+                credential_cipher.decrypt(secret.encode())
         except InvalidToken as error:
             raise ValueError(
                 "The configured ENCRYPTION_KEY cannot open stored credentials"

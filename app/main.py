@@ -38,6 +38,7 @@ from app.api import (
     pilot,
     pipeline,
     playbook,
+    proposals,
     research,
     signatures,
     sources,
@@ -138,6 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(approval_policy.router)
     app.include_router(command.router)
+    app.include_router(proposals.router)
     app.include_router(bookings.router)
     app.include_router(acquisition.router)
     app.include_router(calls.router)

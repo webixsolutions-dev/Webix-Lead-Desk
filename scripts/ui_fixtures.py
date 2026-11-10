@@ -20,6 +20,7 @@ from app.db.research_models import AICall, BudgetAccount
 from app.db.session import create_database
 from app.main import create_app
 from app.playbook.bundles import install_templates
+from scripts.ui_proposal import seed as seed_proposal
 from scripts.ui_seed import seed_conversation_review, seed_review
 
 
@@ -124,6 +125,7 @@ def main() -> None:
                     assert result.status_code == 200, (path, result.status_code)
                     (target / f"{name}-{size}.html").write_text(result.text, encoding="utf-8")
             reply_url = seed_conversation_review(db, owner.id, approval_url)
+            proposal_routes = seed_proposal(db, owner.id)
             for version, size in enumerate(("normal", "large"), start=2):
                 save_preferences(
                     db,
@@ -141,6 +143,10 @@ def main() -> None:
                 result = client.get(reply_url)
                 assert result.status_code == 200
                 (target / f"reply-{size}.html").write_text(result.text, encoding="utf-8")
+                for name, path in proposal_routes.items():
+                    result = client.get(path)
+                    assert result.status_code == 200
+                    (target / f"{name}-{size}.html").write_text(result.text, encoding="utf-8")
                 research = client.get(editor_url.split("/draft")[0])
                 assert research.status_code == 200
                 (target / f"research-{size}.html").write_text(research.text, encoding="utf-8")

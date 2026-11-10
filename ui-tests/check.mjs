@@ -42,6 +42,9 @@ try {
       await page.goto(`${base}/${file}`);
       await page.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));
       await page.screenshot({path:`${output}/${viewport.width}-${file}.png`,fullPage:true});
+      if (file==='meeting-pack-normal.html' && viewport.width===1366) {
+        await page.pdf({path:`${output}/meeting-pack.pdf`,format:'Letter',printBackground:true,margin:{top:'0.5in',right:'0.5in',bottom:'0.5in',left:'0.5in'}});
+      }
       const result=await new AxeBuilder({page}).withRules(['color-contrast','color-contrast-enhanced']).analyze();
       // Enhanced contrast applies to ordinary body copy; all text must meet AA.
       const violations=result.violations.filter(v=>v.id==='color-contrast');

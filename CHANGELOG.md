@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.28.0
+- Prepare a bounded meeting brief with each booking, including exact-contact email context, reviewed facts, industry questions and relevant bundle reasons.
+- Confirm completed meeting notes, prepare immutable editable proposals with owner-entered prices, approve exact revisions and export branded Word documents.
+- Record actual manual proposal delivery separately from export; add day 2/5/9 owner review reminders and Meeting held, Proposal sent and Negotiation stages.
+- Reject stale proposal reviews after notes, identity, booking or conversation changes. Keep automatic messaging disabled for proposals and follow-ups.
+- Migration 0024 creates private meeting/proposal tables with default-deny PostgreSQL RLS.
+
 ## 0.27.0
 - Block AI conversation suggestions with repeated, irrelevant or premature copy; show human warnings with recorded owner overrides. Changed recipient context invalidates review.
 - Add ask-first, named research, dated revisit and no-opportunity outcomes, including owner entry and Today research work.

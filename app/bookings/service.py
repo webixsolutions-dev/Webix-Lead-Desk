@@ -87,6 +87,9 @@ def save(db: Database, actor_id: str, fields: dict[str, str]) -> Booking:
         item.location, item.note = values["location"], values["note"]
         item.state, item.confirmed_by = "proposed", None
         session.flush()
+        from app.bookings.packs import prepare
+
+        prepare(session, item)
         session.add(AuditEvent(actor_id=actor_id, action="booking.proposed", entity_id=item.id))
         return item
 
@@ -129,8 +132,8 @@ def decide(db: Database, actor_id: str, booking_id: str, version: int, action: s
             if conflict:
                 raise ValueError("This host already has an overlapping confirmed booking")
             item.confirmed_by = actor_id
-        if action == "completed" and item.state != "confirmed":
-            raise ValueError("Only a confirmed booking can be completed")
+        if action == "completed" and (item.state != "confirmed" or item.ends_at > utc_now()):
+            raise ValueError("Only a confirmed past booking can be completed")
         changed = cast(
             CursorResult[Any],
             session.execute(
@@ -141,4 +144,8 @@ def decide(db: Database, actor_id: str, booking_id: str, version: int, action: s
         ).rowcount
         if changed != 1:
             raise ValueError("Booking changed; reload")
+        if action == "completed":
+            from app.bookings.pipeline import meeting_held
+
+            meeting_held(session, item, actor_id)
         session.add(AuditEvent(actor_id=actor_id, action="booking." + action, entity_id=booking_id))

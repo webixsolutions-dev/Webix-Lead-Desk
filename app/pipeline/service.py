@@ -24,18 +24,33 @@ STAGES = (
     "Demo sent",
     "Call booked",
     "Call held",
+    "Meeting held",
     "Proposal",
+    "Proposal sent",
+    "Negotiation",
     "Won",
     "Lost",
 )
-QUALIFIED = {"Interested", "Demo sent", "Call booked", "Call held", "Proposal"}
+QUALIFIED = {
+    "Interested",
+    "Demo sent",
+    "Call booked",
+    "Call held",
+    "Meeting held",
+    "Proposal",
+    "Proposal sent",
+    "Negotiation",
+}
 TRANSITIONS = {
     "Replied": {"Interested", "Call booked", "Lost"},
     "Interested": {"Call booked", "Lost"},
     "Demo sent": {"Call booked", "Lost"},
-    "Call booked": {"Call held", "Lost"},
+    "Call booked": {"Call held", "Meeting held", "Lost"},
     "Call held": {"Proposal", "Lost"},
+    "Meeting held": {"Proposal", "Lost"},
     "Proposal": {"Won", "Lost"},
+    "Proposal sent": {"Negotiation", "Won", "Lost"},
+    "Negotiation": {"Won", "Lost"},
     "Won": set(),
     "Lost": set(),
 }
@@ -91,7 +106,7 @@ def update_opportunity(
     if len(outcome_note) > 2000 or (stage in {"Won", "Lost"} and len(outcome_note.strip()) < 10):
         raise ValueError("Record an outcome reason for won or lost opportunities")
     link = website_url(meeting_url) if meeting_url else ""
-    if stage == "Call held" and (not meeting_at or meeting_at > utc_now()):
+    if stage in {"Call held", "Meeting held"} and (not meeting_at or meeting_at > utc_now()):
         raise ValueError("Record the actual past call time before marking it held")
     if stage == "Call booked" and (not meeting_at or not assigned_to):
         raise ValueError("A booked call needs a time and assigned team member")

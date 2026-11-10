@@ -288,3 +288,5 @@ Today orders replies before meetings, proposals, drafts, calls and research. Sta
 Conversations groups only confirmed recipient identities. LinkedIn and email merge only through an explicit Person.contact_id link; unmatched incoming senders remain separate for review. Activity refreshes every 20 seconds from persisted events; it does not call AI. Sending/call schedules still follow America/Edmonton. The campaign clock is display-only and marks other unconfigured local timezones explicitly.
 
 Conversation review, lead outcomes and internal offer bundles: [design and operating rules](docs/decisions/0027-conversation-checks.md). Owner overrides apply to style warnings only; replies always require exact owner approval.
+
+Meeting and proposal workflow: [decision 0028](docs/decisions/0028-meeting-proposals.md).

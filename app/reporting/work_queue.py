@@ -182,6 +182,9 @@ def queue(
                     booking.starts_at,
                 )
             )
+        from app.reporting.proposals import proposal_work
+
+        values["proposals"].extend(proposal_work(session, now))
         for card, name in session.execute(
             select(Opportunity, Company.name)
             .join(Conversation, Conversation.id == Opportunity.conversation_id)

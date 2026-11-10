@@ -16,3 +16,6 @@
   .meeting-pack h3 { font-size: 12pt; margin: 8pt 0 4pt; }
   .meeting-pack h2 { font-size: 18pt; }
 }
+
+.topbar .workspace-chip{margin:0;padding:0;display:block;border:0}
+@media(max-width:850px){.topbar{position:relative}.topbar .workspace-chip{position:static}.workspace-chip>div{left:18px;right:18px;width:auto;max-width:calc(100vw - 36px)}}

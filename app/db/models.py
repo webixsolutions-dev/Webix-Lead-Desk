@@ -64,6 +64,8 @@ class UserSession(Base):
     token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     csrf_token: Mapped[str] = mapped_column(String(64))
+    user_agent: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
 

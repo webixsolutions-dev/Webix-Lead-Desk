@@ -13,7 +13,13 @@ from app.db.migrate import migration_head
 from app.db.models import Base, UTCDateTime
 from app.db.session import Database
 
-OMIT_SESSION_TABLES = {"sessions", "login_throttles", "linkedin_oauth_states", "backup_status"}
+OMIT_SESSION_TABLES = {
+    "sessions",
+    "login_throttles",
+    "linkedin_oauth_states",
+    "backup_status",
+    "mfa_challenges",
+}
 
 
 def canonical(value: Any) -> bytes:
@@ -53,6 +59,11 @@ def table_rows(connection: Connection) -> dict[str, list[dict[str, Any]]]:
                         for name, value in row.items()
                     }
                 )
+        if table.name == "owner_mfa":
+            for factor_row in rows:
+                factor_row["pending_secret"] = factor_row["pending_expires"] = factor_row[
+                    "pending_session_hash"
+                ] = None
         # Database collations can order text primary keys differently across backends.
         keys = [column.name for column in table.primary_key.columns]
         tables[table.name] = sorted(rows, key=lambda row: canonical([row[key] for key in keys]))
@@ -82,6 +93,7 @@ def snapshot(db: Database, settings: Settings) -> dict[str, Any]:
                 "counts": {name: len(rows) for name, rows in tables.items()},
                 "credential_key": key_fingerprint(settings)
                 if tables["integration_secrets"]
+                or any(row["encrypted_secret"] for row in tables["owner_mfa"])
                 else "",
             }
             payload["data_sha256"] = hashlib.sha256(canonical(tables)).hexdigest()

@@ -62,3 +62,10 @@ caption { text-align: left; font-weight: 600; color: var(--ink); margin: 12px 0;
 .usage-ratios { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 20px 0 12px; font-size: var(--text-small); }.usage-ratios strong { margin-left: 8px; }
 .usage-method { padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--text-small); }.usage-method summary { cursor: pointer; }.usage-method p { margin-top: 10px; }
 @media(max-width: 1020px) { .usage-breakdown { grid-template-columns: 1fr; gap: 24px; } }
+
+/* Owner security: keep private keys and long device labels within mobile cards. */
+.factor-layout { width:min(100% - 32px, 560px); margin:48px auto; }
+.secret-key, .recovery-codes, .device-card { overflow-wrap:anywhere; }
+.recovery-codes { padding-left:24px; }
+.recovery-codes li { margin:12px 0; }
+.device-card { border-bottom:1px solid var(--line, #d6deea); padding:16px 0; }

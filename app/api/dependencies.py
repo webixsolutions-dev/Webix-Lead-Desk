@@ -3,6 +3,7 @@
 import hmac
 import re
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Annotated, cast
 
 from fastapi import Depends, HTTPException, Request
@@ -47,6 +48,11 @@ def require_user(request: Request) -> Principal:
                         request.url.path,
                     ):
                         raise HTTPException(403, "This page is available to the owner")
+                    if stored.last_seen_at is None or stored.last_seen_at < utc_now() - timedelta(
+                        minutes=5
+                    ):
+                        stored.last_seen_at = utc_now()
+                        session.commit()
                     return Principal(user=user, csrf_token=stored.csrf_token)
     if request.headers.get("HX-Request") == "true":
         raise HTTPException(status_code=401, headers={"HX-Redirect": "/login"})

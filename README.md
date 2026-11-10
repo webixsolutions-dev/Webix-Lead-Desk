@@ -290,3 +290,5 @@ Conversations groups only confirmed recipient identities. LinkedIn and email mer
 Conversation review, lead outcomes and internal offer bundles: [design and operating rules](docs/decisions/0027-conversation-checks.md). Owner overrides apply to style warnings only; replies always require exact owner approval.
 
 Meeting and proposal workflow: [decision 0028](docs/decisions/0028-meeting-proposals.md).
+
+Optional owner security: Settings → System → Account security. Authenticator enrollment is off until the owner verifies a code; it never changes sending approval. Manage your own devices and save recovery codes privately. See [security design and recovery](docs/decisions/0029-optional-owner-security.md).

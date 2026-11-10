@@ -10,18 +10,19 @@
   <link rel="stylesheet" href="/static/concepts.css">
   <link rel="stylesheet" href="/static/styles.css?v=0.22">
   <link rel="stylesheet" href="/static/workspace.css?v=0.20">
+  <link rel="stylesheet" href="/static/readability.css?v=0.25">
   <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0}'>
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/app.js?v=0.20" defer></script>
 </head>
-<body hx-history="false">
+<body hx-history="false" class="text-{{ preferences.text_size }}">
 <a class="skip-link" href="#main-content">Skip to content</a>
 <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
-  <div class="sidebar-brand"><a class="brand" href="/"><img class="brand-logo" src="/static/webix-logo.png" alt="Webix Solutions" width="2173" height="724"><span class="brand-sub">LEAD DESK</span></a><button class="icon-button mobile-menu" id="nav-close" aria-label="Close navigation">{{ icon('close') }}</button></div>
-  <span class="nav-caption">YOUR WORKSPACE</span>
+  <div class="sidebar-brand"><a class="brand" href="/"><img class="brand-logo" src="/static/webix-logo.png" alt="Webix Solutions" width="2173" height="724"><span class="brand-sub">Lead Desk</span></a><button class="icon-button mobile-menu" id="nav-close" aria-label="Close navigation">{{ icon('close') }}</button></div>
+  <span class="nav-caption">Your workspace</span>
   <nav aria-label="Main navigation">
     {% for key, url, label, symbol in navigation %}
-    {% if key == 'demos' %}<span class="nav-caption nav-divider">TOOLS &amp; SETUP</span>{% endif %}
+    {% if key == 'demos' %}<span class="nav-caption nav-divider">Tools &amp; setup</span>{% endif %}
     <a href="{{ url }}" class="nav-link{% if page == key %} active{% endif %}" {% if page == key %}aria-current="page"{% endif %}>{{ icon(symbol, 19) }}<span>{{ label }}</span>{% if key == 'leads' and lead_count %}<span class="nav-count">{{ lead_count }}</span>{% endif %}</a>
     {% endfor %}
   </nav>
@@ -32,13 +33,13 @@
 </aside>
 <button class="nav-backdrop" id="nav-backdrop" aria-label="Close navigation" tabindex="-1" hidden></button>
 <div class="app-shell">
-  <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="nav-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">{{ icon('menu') }}</button><span class="breadcrumb">Lead Desk <span>/</span> {% for key, url, label, symbol in navigation %}{% if key == page %}<strong>{{ label }}</strong>{% endif %}{% endfor %}</span></div><div class="topbar-right"><span class="timezone-clock">{{ icon('clock', 15) }} Calgary {{ calgary_time }}</span><span class="workspace-private">{{ icon('shield', 15) }} Private workspace</span></div></header>
+  <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="nav-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">{{ icon('menu') }}</button><span class="breadcrumb">Lead Desk <span>/</span> {% for key, url, label, symbol in navigation %}{% if key == page %}<strong>{{ label }}</strong>{% endif %}{% endfor %}</span></div><div class="topbar-right">{% if ai_allowance %}{% include "ai_chip.html" %}{% endif %}<span class="timezone-clock">{{ icon('clock', 15) }} Calgary {{ calgary_time }}</span><span class="workspace-private">{{ icon('shield', 15) }} Private workspace</span></div></header>
   <main id="main-content">
-    <div class="page-heading"><div><p class="eyebrow">{% block eyebrow %}WEBIX LEAD DESK{% endblock %}</p><h1>{% block heading %}Today{% endblock %}</h1><p class="page-description">{% block description %}{% endblock %}</p></div>{% block heading_action %}{% endblock %}</div>
+    <div class="page-heading"><div><p class="eyebrow">{% block eyebrow %}WEBIX Lead Desk{% endblock %}</p><h1>{% block heading %}Today{% endblock %}</h1><p class="page-description">{% block description %}{% endblock %}</p></div>{% block heading_action %}{% endblock %}</div>
     {% if preferences.preview_enabled %}<div class="preview-banner"><span>{{ icon('window', 17) }} <strong>Workspace preview</strong> <span class="banner-description">Sample cards are fictional. Real records require their own review and approval.</span></span>{% if user.role == 'owner' %}<a href="/settings#workspace">Manage preview {{ icon('arrow', 15) }}</a>{% endif %}</div>{% endif %}
     {% if hosted_status and hosted_status.warnings and page != 'settings' %}<details class="health-notice" open><summary>{{ icon('activity', 17) }} Workspace needs attention <span class="count-pill">{{ hosted_status.warnings|length }}</span></summary>{% for warning in hosted_status.warnings %}<p role="status">{{ warning }}</p>{% endfor %}<a class="text-link" href="/settings#operations">View system status {{ icon('arrow', 14) }}</a></details>{% endif %}
     {% block content %}{% endblock %}
-    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.22</span></footer>
+    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.25</span></footer>
   </main>
 </div>
 </body>

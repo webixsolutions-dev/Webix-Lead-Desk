@@ -1,6 +1,7 @@
 """Validated, versioned, non-secret settings with optimistic conflict handling."""
 
 from datetime import datetime
+from typing import Literal
 from zoneinfo import ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -21,6 +22,7 @@ class Preferences(BaseModel):
     display_timezone: str
     sending_timezone: str
     preview_enabled: bool
+    text_size: Literal["normal", "large"] = "normal"
 
     @field_validator("workspace_name")
     @classmethod

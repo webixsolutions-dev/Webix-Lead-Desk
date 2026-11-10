@@ -1,0 +1,5 @@
+<a class="ai-chip meter-{{ ai_allowance.tone }}" href="/settings/ai-usage" aria-label="AI usage: {{ ai_allowance.confirmed|dollars }} confirmed, {{ ai_allowance.reserved|dollars }} reserved, {{ ai_allowance.allowance|dollars }} allowance">
+  <span>AI <strong>{{ ai_allowance.confirmed|dollars }}</strong> / {{ ai_allowance.allowance|dollars }}</span>
+  <progress max="100" value="{{ ai_allowance.percent }}" aria-label="Allowance committed"></progress>
+  <small>{{ 'Expired' if ai_allowance.expired else 'Includes ' ~ (ai_allowance.reserved|dollars) ~ ' reserved' }}</small>
+</a>

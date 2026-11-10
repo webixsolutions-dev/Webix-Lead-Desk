@@ -31,6 +31,9 @@ def today(request: Request, principal: CurrentUser) -> HTMLResponse:
         context["planned_tasks"] = planned_tasks(services(request).db, principal.user, utc_now())
         return render(request, "linkedin_plan.html", context)
     context.update(metrics(services(request).db))
+    from app.audit.usage import usage_report
+
+    context["ai_usage"] = usage_report(services(request).db, utc_now())
     from app.calls.board import call_list
 
     context["call_count"] = len(call_list(services(request).db))
@@ -154,3 +157,13 @@ async def request_health_job(request: Request, principal: Owner) -> RedirectResp
     # Duplicate clicks within one minute produce one durable health job.
     enqueue_health(services(request).db, f"health:{now.strftime('%Y%m%d%H%M')}", now)
     return RedirectResponse("/outbox", status_code=303)
+
+
+@router.get("/settings/ai-usage", response_class=HTMLResponse)
+def ai_usage(request: Request, principal: Owner) -> HTMLResponse:
+    """Display ledger-only usage, restricted to the workspace owner."""
+    from app.audit.usage import usage_report
+
+    context = dashboard_context(request, principal, "settings")
+    context["ai_usage"] = usage_report(services(request).db, utc_now())
+    return render(request, "ai_usage.html", context)

@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import icon, badge, empty %}
 {% block title %}Today · {{ preferences.workspace_name }}{% endblock %}
-{% block eyebrow %}{{ today_date|upper }}{% endblock %}
+{% block eyebrow %}{{ today_date }}{% endblock %}
 {% block heading %}Your day, at a glance.{% endblock %}
 {% block description %}Find a good fit. Start a conversation. Keep it moving.{% endblock %}
 {% block heading_action %}<a class="button secondary" href="/leads">{{ icon('search', 17) }} Browse leads</a>{% endblock %}
 {% block content %}
 <section class="day-start">
   <div class="next-action">
-    <span class="eyebrow">YOUR NEXT STEP</span>
+    <span class="eyebrow">Your next step</span>
     {% if review_count %}
     <h2>{{ review_count }} {{ 'message is' if review_count == 1 else 'messages are' }} ready for your review.</h2><p>Check the business, the recipient and the message. Approve only what you want to send.</p><a class="button primary" href="/outbox">Review messages {{ icon('arrow', 17) }}</a>
     {% elif company_count %}
@@ -45,5 +45,6 @@
     {% if held_count or failed_jobs %}<a class="quick-action" href="/outbox"><span class="action-symbol">{{ icon('activity', 19) }}</span><span><strong>Needs attention</strong><small>{{ held_count }} held sends · {{ failed_jobs }} failed jobs</small></span>{{ icon('chevron', 17) }}</a>{% endif %}
   </section>
 </div>
+{% include "ai_usage_card.html" %}
 {% if leads %}<details class="panel work-panel"><summary>Explore fictional examples</summary><p class="muted">These sample businesses do not count toward your results.</p><div class="button-row">{% for lead in leads %}<a class="button secondary" href="/leads/preview/{{ lead.id }}">{{ lead.name }}</a>{% endfor %}</div></details>{% endif %}
 {% endblock %}

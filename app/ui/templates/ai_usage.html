@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block heading %}AI usage{% endblock %}
+{% block description %}Confirmed costs and outstanding reservations from your workspace ledger.{% endblock %}
+{% block content %}
+{% include 'ai_usage_card.html' %}
+<section class="panel work-panel"><h2>Daily usage by campaign and model</h2><p class="small">{{ ai_usage.month }} · Calgary dates. Campaign attribution uses an explicit search-call record. Calls without a reliable association remain Unattributed.</p><div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Campaign</th><th scope="col">Model</th><th scope="col">Calls</th><th scope="col">Confirmed</th><th scope="col">Reserved</th></tr></thead><tbody>{% for row in ai_usage.detail %}<tr><td>{{ row.day }}</td><td>{{ row.campaign }}</td><td>{{ row.model }}</td><td>{{ row.calls }}</td><td>{{ row.confirmed|dollars }}</td><td>{{ row.reserved|dollars }}</td></tr>{% else %}<tr><td colspan="6">No AI calls recorded this month.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from starlette.responses import HTMLResponse
 
 from app.api.dependencies import Principal, services
+from app.audit.usage import allowance_summary, dollars
 from app.core.clock import utc_now
 from app.core.preferences import get_preferences
 from app.core.timezones import zone
@@ -17,6 +18,8 @@ from app.db.models import Job, WorkerInstance
 from app.ui.preview import LEADS, NAVIGATION
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "ui" / "templates"))
+
+TEMPLATES.env.filters["dollars"] = dollars
 
 
 def render(request: Request, name: str, context: dict[str, Any], status: int = 200) -> HTMLResponse:
@@ -54,6 +57,7 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
     )
     return {
         "hosted_status": hosted,
+        "ai_allowance": allowance_summary(app.db, now) if principal.user.role == "owner" else None,
         "linkedin_action_labels": {
             "invite": "Connection request",
             "message1": "First message",

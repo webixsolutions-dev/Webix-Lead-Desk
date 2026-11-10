@@ -84,12 +84,27 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
         if kind not in {"first_touch", "follow_up", "concept", "reply"}:
             raise HTTPException(422, "Invalid message kind")
         if kind == "reply" and "step" not in request.query_params and conversation:
-            step = (
-                session.scalar(
-                    select(func.max(Draft.step)).where(Draft.conversation_id == conversation.id)
+            pending_reply = session.scalar(
+                select(Draft)
+                .where(
+                    Draft.conversation_id == conversation.id,
+                    Draft.kind == "reply",
+                    Draft.state.in_(["draft", "approved", "rejected"]),
                 )
-                or 0
-            ) + 1
+                .order_by(Draft.step.desc(), Draft.revision.desc())
+                .limit(1)
+            )
+            step = (
+                pending_reply.step
+                if pending_reply
+                else (
+                    session.scalar(
+                        select(func.max(Draft.step)).where(Draft.conversation_id == conversation.id)
+                    )
+                    or 0
+                )
+                + 1
+            )
         item = (
             session.scalar(
                 select(Draft)
@@ -110,6 +125,11 @@ def editor(request: Request, principal: CurrentUser, company_id: str) -> HTMLRes
         campaign = next(
             (entry for entry in campaigns if entry.id == selected),
             campaigns[0] if campaigns else None,
+        )
+        from app.drafting.check_context import email_report
+
+        context["conversation_checks"] = (
+            email_report(session, item.snapshot) if item and item.kind != "first_touch" else None
         )
         context.update(
             company_record=company,
@@ -178,7 +198,13 @@ async def approve_draft(request: Request, principal: Owner, draft_id: str) -> Re
     if fields.get("reviewed") != "true":
         raise HTTPException(422, "Review the exact message and confirm its factual accuracy")
     try:
-        approve(services(request).db, draft_id, fields.get("digest", ""), principal.user.id)
+        approve(
+            services(request).db,
+            draft_id,
+            fields.get("digest", ""),
+            principal.user.id,
+            override_note=fields.get("override_note", ""),
+        )
         if fields.get("schedule") == "true":
             from app.sending.schedule import schedule
 

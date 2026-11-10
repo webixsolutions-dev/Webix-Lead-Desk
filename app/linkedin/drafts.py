@@ -20,6 +20,8 @@ from app.db.models import AuditEvent, User
 from app.db.outreach_models import Mailbox
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.drafting.check_context import linkedin_report, stale_check
+from app.drafting.checks import require_override
 from app.drafting.content import fingerprint
 from app.linkedin.content import identity, validate_basis, validate_copy
 from app.linkedin.coordination import lock_company, outreach_block
@@ -100,7 +102,16 @@ def check_snapshot(
     blocked = outreach_block(session, task.company_id, response=task.action == "reply")
     if blocked:
         raise ValueError(blocked)
-    validate_copy(task.action, data["body"], data["noncommercial"])
+    validate_copy(
+        task.action,
+        data["body"],
+        data["noncommercial"],
+        allow_price=data.get("allow_price") is True,
+    )
+    if data.get("conversation_checks") and stale_check(
+        data["conversation_checks"], linkedin_report(session, data)
+    ):
+        raise ValueError("Conversation or offer status changed; save and review a fresh revision")
     if task.action.startswith("message") or task.action == "reply":
         mailbox = session.get(Mailbox, data.get("mailbox_id", ""))
         if not mailbox or identity(profile, mailbox) != data["footer"]:
@@ -131,6 +142,7 @@ def save(
     angle: str = "",
     noncommercial: bool = False,
     previous_id: str | None = None,
+    allow_price: bool = False,
 ) -> LinkedInDraft:
     """Create one immutable revision and revoke any previous approval atomically."""
     with db.sessions.begin() as session:
@@ -142,6 +154,8 @@ def save(
         session.refresh(task)
         if task.state in {"acting", "needs_check", "done", "cancelled"}:
             raise ValueError("Resolve this task before editing its copy")
+        if allow_price and task.action != "reply":
+            raise ValueError("Prices are permitted only in an owner-reviewed reply")
         old = latest(session, task.id)
         if (old.id if old else None) != previous_id:
             raise ValueError("The draft changed; reload before saving")
@@ -174,6 +188,7 @@ def save(
             "action": task.action,
             "generation": task.generation,
             "body": body.strip(),
+            "allow_price": allow_price,
             "footer": identity(profile, mailbox) if mailbox else "",
             "mailbox_id": mailbox_id,
             "basis": basis or {},
@@ -183,6 +198,8 @@ def save(
                 {"id": fact.id, "digest": fingerprint(fact.facts)} for fact in facts if fact
             ],
         }
+        if task.action not in {"invite", "withdraw"}:
+            data["conversation_checks"] = linkedin_report(session, data)
         check_snapshot(session, task, data, utc_now())
         if old:
             old.state = "superseded"
@@ -199,7 +216,9 @@ def save(
         return draft
 
 
-def approve(db: Database, draft_id: str, digest: str, actor: str) -> None:
+def approve(
+    db: Database, draft_id: str, digest: str, actor: str, *, override_note: str = ""
+) -> None:
     """Approve only the currently displayed exact revision, never all future edits."""
     with db.sessions.begin() as session:
         require_staff(session, actor, owner=True)
@@ -222,9 +241,16 @@ def approve(db: Database, draft_id: str, digest: str, actor: str) -> None:
         ):
             raise ValueError("Draft changed or is no longer eligible; reload before approving")
         check_snapshot(session, task, draft.snapshot, utc_now())
+        if task.action not in {"invite", "withdraw"}:
+            require_override(linkedin_report(session, draft.snapshot), override_note)
         session.add(LinkedInApproval(draft_id=draft.id, digest=digest, actor_id=actor))
         draft.state, task.approval_digest = "approved", digest
         task.state, task.reason = "ready", "Approved for this member and exact text"
         session.add(
-            AuditEvent(actor_id=actor, action="linkedin.draft_approved", entity_id=draft.id)
+            AuditEvent(
+                actor_id=actor,
+                action="linkedin.draft_approved",
+                entity_id=draft.id,
+                details={"conversation_override": override_note.strip()[:1000]},
+            )
         )

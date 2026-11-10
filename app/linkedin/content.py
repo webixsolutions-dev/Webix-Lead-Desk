@@ -21,7 +21,9 @@ def identity(profile: LinkedInProfile, mailbox: Mailbox) -> str:
     )
 
 
-def validate_copy(action: str, body: str, noncommercial: bool) -> None:
+def validate_copy(
+    action: str, body: str, noncommercial: bool, *, allow_price: bool = False
+) -> None:
     """Keep invitations non-promotional and all message stages free of price promises."""
     if action == "withdraw":
         if body:
@@ -39,7 +41,12 @@ def validate_copy(action: str, body: str, noncommercial: bool) -> None:
         return
     if action not in {"message1", "message2", "message3", "reply"}:
         raise ValueError("Unsupported message action")
-    check_copy("LinkedIn message", body, first_touch=action == "message1")
+    check_copy(
+        "LinkedIn message",
+        body,
+        first_touch=action == "message1",
+        allow_price=action == "reply" and allow_price,
+    )
     if action == "message1" and not 150 <= len(body) <= 200:
         raise ValueError("Keep the first message body between 150 and 200 characters")
     if action in {"message2", "message3"} and len(body) > 700:

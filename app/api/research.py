@@ -165,6 +165,7 @@ async def review_assessment(
     """Confirm a service hypothesis against the saved evidence without approving outreach."""
     from app.audit.classify import Recommendation, validate_recommendation
     from app.db.lead_models import Campaign
+    from app.db.outreach_models import Offer
     from app.db.research_models import Assessment
 
     fields = await read_form(request)
@@ -181,9 +182,19 @@ async def review_assessment(
         )
         if not campaign or not campaign.active:
             raise HTTPException(422, "Campaign is inactive")
+        offers = list(
+            session.scalars(
+                select(Offer).where(
+                    Offer.offer_type == "service", Offer.service.in_(campaign.services)
+                )
+            )
+        )
         try:
             validate_recommendation(
-                Recommendation.model_validate(assessment.result), evidence, campaign.services
+                Recommendation.model_validate(assessment.result),
+                evidence,
+                [o.service for o in offers if o.status in {"available", "discovery_only"}],
+                discovery_services=[o.service for o in offers if o.status == "discovery_only"],
             )
         except ValueError as error:
             raise HTTPException(
@@ -191,4 +202,19 @@ async def review_assessment(
             ) from error
         assessment.reviewed_by = principal.user.id
         company_id = assessment.company_id
+    return RedirectResponse(f"/leads/{company_id}", 303)
+
+
+@router.post("/leads/{company_id}/outcome")
+async def record_outcome(request: Request, principal: Owner, company_id: str) -> RedirectResponse:
+    """Save a reviewed next action independently of AI availability."""
+    from app.audit.outcomes import save_outcome
+
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    try:
+        with services(request).db.sessions.begin() as session:
+            save_outcome(session, company_id, principal.user.id, fields)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
     return RedirectResponse(f"/leads/{company_id}", 303)

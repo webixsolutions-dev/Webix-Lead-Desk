@@ -1,7 +1,7 @@
-# Webix Lead Desk v0.26.0
+# Webix Lead Desk v0.27.0
 
-Today is now a Command Center for replies, bookings, drafts, calls and research. Review work in a side panel with exact-message approvals, rewrite notes and keyboard navigation. Six main navigation sections replace scattered pages; old bookmarks redirect.
+Conversation suggestions now pass explainable checks before becoming drafts. Human-written copy shows warnings; the owner can fix it or record a reason for a style override. A stop request, identity mismatch or other delivery restriction still blocks sending. A new incoming message or changed service availability requires a fresh review.
 
-Activity and campaign progress read existing records and do not spend AI credits. Email and LinkedIn merge only for explicitly linked people. Calgary sending and call windows remain unchanged; automatic outreach remains off unless the owner has explicitly configured it.
+Lead outcomes can name remaining research, ask a useful question, set a revisit date or record no clear opportunity. Five internal bundle templates help plan discovery; they stay out of first-contact pitches. AI voice is discovery-only until feasibility and scope are reviewed. Email and LinkedIn prices require the owner's explicit reply-level permission.
 
-Dashboard changes appear on the website without reinstalling the Windows worker. This matching Windows package consolidates the editable dashboard URL default and preserves saved configuration on upgrade. Conversation checks, meeting packs, proposals and optional authenticator enrollment follow in separate implementation parts.
+Migration 0023 adds catalogue fields. Install the matching worker before restarting it against the upgraded database. Saved desktop settings are preserved. This release does not enable AI spending, campaigns, LinkedIn messaging integration or live email sending. Meeting packs, proposals and optional authenticator enrollment follow in the remaining authorized parts.

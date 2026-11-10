@@ -60,7 +60,20 @@ def offer_values(fields: dict[str, str]) -> dict[str, Any]:
         or period not in BILLING_PERIODS
     ):
         raise ValueError("Check the service, scope, price mode, currency and billing period")
+    status = fields.get("status", "available" if fields.get("active") == "true" else "paused")
+    offer_type = fields.get("offer_type", "service")
+    components = labels(fields.get("components", ""))
+    if status not in {"available", "discovery_only", "paused"} or offer_type not in {
+        "service",
+        "bundle",
+    }:
+        raise ValueError("Choose a supported offer type and availability")
+    if offer_type == "bundle" and not 2 <= len(components) <= 6:
+        raise ValueError("A bundle needs two to six named service families")
     return {
+        "availability": status,
+        "offer_type": offer_type,
+        "components": components if offer_type == "bundle" else [],
         "service": service,
         "name": name,
         "description": description,
@@ -69,13 +82,16 @@ def offer_values(fields: dict[str, str]) -> dict[str, Any]:
         "billing_period": period,
         "setup_cad_cents": _cents(fields.get("setup_cad", "")) if mode == "fixed" else None,
         "recurring_cad_cents": _cents(fields.get("recurring_cad", "")) if mode == "fixed" else None,
-        "active": fields.get("active") == "true",
+        "active": status == "available" and offer_type == "service",
     }
 
 
 def service_names(session: Session) -> list[str]:
     """List saved service families once, including paused families for owner editing."""
-    return sorted(set(session.scalars(select(Offer.service))), key=str.casefold)
+    return sorted(
+        set(session.scalars(select(Offer.service).where(Offer.offer_type == "service"))),
+        key=str.casefold,
+    )
 
 
 def matching_proofs(session: Session, campaign: Campaign) -> list[ProofCard]:

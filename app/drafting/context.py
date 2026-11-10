@@ -37,6 +37,7 @@ def email_context(
                     InboxMessage.conversation_id == conversation.id,
                     InboxMessage.mailbox_id == mailbox_id,
                     InboxMessage.sender == contact.email,
+                    InboxMessage.classification.not_in(["automatic", "bounce", "delivery_delayed"]),
                 )
                 .order_by(InboxMessage.received_at.desc())
                 .limit(6)

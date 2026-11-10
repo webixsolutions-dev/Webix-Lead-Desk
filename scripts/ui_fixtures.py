@@ -19,7 +19,8 @@ from app.db.migrate import migrate
 from app.db.research_models import AICall, BudgetAccount
 from app.db.session import create_database
 from app.main import create_app
-from scripts.ui_seed import seed_review
+from app.playbook.bundles import install_templates
+from scripts.ui_seed import seed_conversation_review, seed_review
 
 
 def main() -> None:
@@ -39,6 +40,8 @@ def main() -> None:
         password = secrets.token_urlsafe(24)
         owner = create_user(db, "synthetic@example.test", "Demo Owner", password, "owner")
         editor_url, approval_url = seed_review(db, owner.id)
+        with db.sessions.begin() as session:
+            install_templates(session, owner.id)
         now = utc_now()
         with db.sessions.begin() as session:
             session.add(
@@ -120,6 +123,27 @@ def main() -> None:
                     result = client.get(path)
                     assert result.status_code == 200, (path, result.status_code)
                     (target / f"{name}-{size}.html").write_text(result.text, encoding="utf-8")
+            reply_url = seed_conversation_review(db, owner.id, approval_url)
+            for version, size in enumerate(("normal", "large"), start=2):
+                save_preferences(
+                    db,
+                    Preferences(
+                        workspace_name="Demo Lead Desk",
+                        display_timezone="Asia/Karachi",
+                        sending_timezone="America/Edmonton",
+                        preview_enabled=True,
+                        text_size=size,
+                    ),
+                    version,
+                    owner.id,
+                    utc_now(),
+                )
+                result = client.get(reply_url)
+                assert result.status_code == 200
+                (target / f"reply-{size}.html").write_text(result.text, encoding="utf-8")
+                research = client.get(editor_url.split("/draft")[0])
+                assert research.status_code == 200
+                (target / f"research-{size}.html").write_text(research.text, encoding="utf-8")
         db.engine.dispose()
 
 

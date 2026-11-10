@@ -217,7 +217,7 @@ def test_reply_cancels_action_and_reconciliation_cannot_resume_sequence(
         db,
         reply.id,
         owner,
-        "Thanks for your reply. Which part of the booking process would you like to discuss?",
+        "I can send details on the booking process through LinkedIn. Which part would be useful?",
     )
     approve(db, copy.id, copy.digest, owner.user.id)
     plan_day(db, START + timedelta(days=1))

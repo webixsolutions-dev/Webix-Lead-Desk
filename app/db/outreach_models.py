@@ -104,8 +104,17 @@ class Offer(Base):
     # Legacy column names are retained for older workers. Currency is explicit; no FX conversion.
     setup_cad_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     recurring_cad_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Empty preserves the active flag used by workers released before v0.27.
+    availability: Mapped[str] = mapped_column(String(20), default="", server_default="")
+    offer_type: Mapped[str] = mapped_column(String(12), default="service", server_default="service")
+    components: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     version: Mapped[int] = mapped_column(Integer, default=1)
+
+    @property
+    def status(self) -> str:
+        """Resolve legacy offers without treating discovery as a deliverable promise."""
+        return self.availability or ("available" if self.active else "paused")
 
 
 class ProofCard(Base):

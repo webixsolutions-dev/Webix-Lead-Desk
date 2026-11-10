@@ -1,0 +1,11 @@
+# Conversation review and next actions
+
+The same bounded, exact-person context feeds AI and review checks. Shared terms, sentence similarity, answered-question candidates and meeting signals are deliberately labelled heuristics. They are not semantic guarantees, identity verification or proof that a prospect needs a service. External messages remain untrusted data. A connection acceptance is an observation, not a meaningful reply.
+
+AI suggestions with flags are rejected before saving. Human copy can be saved with visible flags; owner approval requires a reason recorded against the exact immutable draft. Stop requests and existing content/identity/suppression restrictions cannot be overridden. Reviewed context and catalogue status are fingerprinted; changed history or availability makes the revision stale. Delegated approval rejects flagged follow-ups. Owner-enabled pricing applies only to that reply and still binds the exact content; it does not require a meeting. Provider-confirmed usage is charged even if content validation rejects the result; unknown usage retains its reservation.
+
+The 25-conversation offline evaluation covers email/LinkedIn and client/partner examples: short/casual/long replies, price, portfolio, wrong person, covered, stop, hostility and unavailable services. This is a deterministic regression set, not a claim of semantic accuracy on all conversations.
+
+New assessments preserve legacy recommend/abstain records and support ask_first, research_more with named checks, revisit_later with a date and no_clear_opportunity with reasons. Research/revisit/no-opportunity results do not enqueue messages. Opening priority is explicit need, then observed friction, then a discovery question. No missing closing-spec document is assumed.
+
+Offer availability is separate from the legacy active flag. Discovery and bundle records always keep active=false so older code cannot treat them as deliverable individual offers. Bundle templates are installed once by an owner action without overwriting later edits. Matches need a recorded service assessment; all components still require discovery. Templates include no prices. Migration 0023 marks inbound AI voice discovery-only and preserves other existing availability. Deployment and worker versions must match the Alembic head.

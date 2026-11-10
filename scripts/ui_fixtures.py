@@ -1,0 +1,80 @@
+"""Render synthetic authenticated pages for offline browser accessibility checks in CI."""
+
+import re
+import secrets
+import shutil
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from fastapi.testclient import TestClient
+from pydantic import SecretStr
+
+from app.core.auth import create_user
+from app.core.clock import utc_now
+from app.core.config import Settings
+from app.core.preferences import Preferences, save_preferences
+from app.db.migrate import migrate
+from app.db.session import create_database
+from app.main import create_app
+
+
+def main() -> None:
+    """Write disposable fixture HTML only; never load environment or production settings."""
+    target = Path("screenshots/ui-fixtures")
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copytree("app/ui/static", target / "static", dirs_exist_ok=True)
+    with TemporaryDirectory() as folder:
+        config = Settings(
+            _env_file=None,
+            database_url=f"sqlite:///{folder}/ui.sqlite",
+            data_dir=Path(folder),
+            session_secret=SecretStr(secrets.token_urlsafe(48)),
+        )
+        migrate(config)
+        db = create_database(config)
+        password = secrets.token_urlsafe(24)
+        owner = create_user(db, "synthetic@example.test", "Demo Owner", password, "owner")
+        with TestClient(create_app(config), follow_redirects=False) as client:
+            login = client.get("/login")
+            token = re.search(r'name="csrf_token" value="([^"]+)"', login.text)
+            assert token
+            assert (
+                client.post(
+                    "/login",
+                    data={"email": owner.email, "password": password, "csrf_token": token[1]},
+                ).status_code
+                == 303
+            )
+            routes = {
+                "today": "/",
+                "leads": "/leads",
+                "outbox": "/outbox",
+                "pipeline": "/pipeline",
+                "settings": "/settings",
+                "linkedin": "/linkedin/plan",
+                "usage": "/settings/ai-usage",
+            }
+            (target / "login.html").write_text(login.text, encoding="utf-8")
+            for version, size in enumerate(("normal", "large")):
+                save_preferences(
+                    db,
+                    Preferences(
+                        workspace_name="Demo Lead Desk",
+                        display_timezone="Asia/Karachi",
+                        sending_timezone="America/Edmonton",
+                        preview_enabled=True,
+                        text_size=size,
+                    ),
+                    version,
+                    owner.id,
+                    utc_now(),
+                )
+                for name, path in routes.items():
+                    result = client.get(path)
+                    assert result.status_code == 200, (path, result.status_code)
+                    (target / f"{name}-{size}.html").write_text(result.text, encoding="utf-8")
+        db.engine.dispose()
+
+
+if __name__ == "__main__":
+    main()

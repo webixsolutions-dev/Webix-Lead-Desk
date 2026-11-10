@@ -51,3 +51,7 @@ package-lock.json
 packaging/windows/webix.ico
 *.exe
 *.dat
+
+# Pinned test-only browser dependencies
+!ui-tests/package.json
+!ui-tests/package-lock.json

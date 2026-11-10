@@ -29,6 +29,34 @@ jobs:
       - run: uv run pytest -m "not postgres" --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
       - run: uv run python scripts/check_coverage.py
 
+  accessibility:
+    name: Desktop and mobile readability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: "0.13.5"
+      - run: uv sync --frozen --group dev
+      - run: uv run python -m scripts.ui_fixtures
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+        working-directory: ui-tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: ui-tests
+      - run: npm test
+        working-directory: ui-tests
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: synthetic-readability-captures
+          path: screenshots/ui-checks/
+          retention-days: 14
+          if-no-files-found: error
+
   postgres:
     name: PostgreSQL migrations
     runs-on: ubuntu-latest
@@ -159,7 +187,7 @@ jobs:
 
   phase-tag:
     name: Tag verified phase
-    needs: [quality, postgres, windows, secrets, installer]
+    needs: [quality, postgres, windows, secrets, installer, accessibility]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 3

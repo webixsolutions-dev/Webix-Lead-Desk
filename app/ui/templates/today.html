@@ -45,5 +45,6 @@
     {% if held_count or failed_jobs %}<a class="quick-action" href="/outbox"><span class="action-symbol">{{ icon('activity', 19) }}</span><span><strong>Needs attention</strong><small>{{ held_count }} held sends · {{ failed_jobs }} failed jobs</small></span>{{ icon('chevron', 17) }}</a>{% endif %}
   </section>
 </div>
+{% include "ai_usage_card.html" %}
 {% if leads %}<details class="panel work-panel"><summary>Explore fictional examples</summary><p class="muted">These sample businesses do not count toward your results.</p><div class="button-row">{% for lead in leads %}<a class="button secondary" href="/leads/preview/{{ lead.id }}">{{ lead.name }}</a>{% endfor %}</div></details>{% endif %}
 {% endblock %}

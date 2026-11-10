@@ -274,3 +274,9 @@ See [Writing and offers](docs/writing-and-offers.md) for reusable packages, cust
 ## Review, conversation and booking workflow (v0.24)
 
 See [the operator guide](docs/review-workflow.md). Default approval remains manual; the owner may explicitly delegate new cold outreach per campaign, while every incoming-reply response remains owner-approved. Industry and conversation guidance are versioned configuration, not model training.
+
+### Readability and AI usage
+
+Settings → Workspace preferences offers Normal or Large text. The owner-only header AI meter links to `/settings/ai-usage`. It reads the local cost ledger without provider calls. Confirmed charges, uncertain reservations and expiry remain separate; funding expiry never resets the allowance. Monthly categories retain their existing Calgary boundaries and spending gates.
+
+CI runs pinned Playwright/axe checks on synthetic desktop and mobile pages and retains the screenshots as run artifacts. Run `uv run python -m scripts.ui_fixtures`, then `cd ui-tests`, `npm ci`, `npx playwright install chromium` and `npm test` for the same checks.

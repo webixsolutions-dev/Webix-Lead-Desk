@@ -1,0 +1,25 @@
+{% macro offer_form(item=none) %}
+<form method="post" action="/settings/offers" class="work-form">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+{% if item %}<input type="hidden" name="offer_id" value="{{ item.id }}"><input type="hidden" name="version" value="{{ item.version }}">{% endif %}
+<div class="form-columns">
+<label>Service family<input name="service" list="saved-services" value="{{ item.service if item else '' }}" maxlength="120" required {% if item %}readonly{% endif %}><small>Reuse the same family for packages of the same service.</small></label>
+<label>Package name<input name="name" value="{{ item.name if item else '' }}" maxlength="120" placeholder="For example: Website launch"></label>
+</div>
+<label>Scope, fit and exclusions<textarea name="description" minlength="10" maxlength="2000" rows="4" required>{{ item.description if item else '' }}</textarea></label>
+<div class="form-columns"><label>Pricing<select name="pricing_mode"><option value="quote" {% if not item or item.pricing_mode == 'quote' %}selected{% endif %}>Custom quote · price not set</option><option value="fixed" {% if item and item.pricing_mode == 'fixed' %}selected{% endif %}>Fixed price</option></select></label>
+<label>Currency<select name="currency">{% for code in currencies %}<option {% if code == (item.currency if item else 'CAD') %}selected{% endif %}>{{ code }}</option>{% endfor %}</select><small>Offer currency only. Reporting remains CAD; no automatic conversion.</small></label></div>
+<details {% if item and item.pricing_mode == 'fixed' %}open{% endif %}><summary>Fixed price amounts</summary><p class="small muted">Fill both amounts only for Fixed price. Use 0 for a confirmed no-charge component. Custom quote ignores these fields and stores no price.</p>
+<div class="form-columns"><label>One-time setup<input name="setup_cad" type="number" min="0" max="1000000" step="0.01" value="{{ '%.2f'|format(item.setup_cad_cents / 100) if item and item.setup_cad_cents is not none else '' }}"></label>
+<label>Recurring amount<input name="recurring_cad" type="number" min="0" max="1000000" step="0.01" value="{{ '%.2f'|format(item.recurring_cad_cents / 100) if item and item.recurring_cad_cents is not none else '' }}"></label>
+<label>Recurring period<select name="billing_period">{% for period in billing_periods %}<option {% if period == (item.billing_period if item else 'monthly') %}selected{% endif %}>{{ period }}</option>{% endfor %}</select></label></div></details>
+<label class="checkbox-row"><input name="active" type="checkbox" value="true" {% if not item or item.active %}checked{% endif %}>Available for new drafts</label>
+{% if user.role == 'owner' %}<button class="button secondary">{{ 'Update offer' if item else 'Save offer' }}</button>{% endif %}
+</form>
+{% endmacro %}
+<datalist id="saved-services">{% for service in service_names %}<option value="{{ service }}">{% endfor %}</datalist>
+<section class="panel work-panel" id="offers"><h2>Services &amp; offers <span class="count-pill">{{ offers|length }}</span></h2>
+<p class="small muted">Keep a reusable catalogue. Add any number of packages per service, each with its own scope and price. Choose relevant services in each campaign; city and industry belong to targeting. Outreach drafts do not include prices.</p>
+{% for item in offers %}<details class="work-panel"><summary>{{ item.service }}{% if item.name %} · {{ item.name }}{% endif %} · {{ 'Available' if item.active else 'Paused' }} · {{ 'Custom quote' if item.pricing_mode == 'quote' else item.currency }}</summary>{{ offer_form(item) }}</details>{% endfor %}
+{% if user.role == 'owner' %}<details><summary>Add another offer</summary>{{ offer_form() }}</details>{% endif %}
+</section>

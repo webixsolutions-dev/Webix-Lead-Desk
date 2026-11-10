@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.23.0 — Reusable service offers and scoped proof
+
+- Save multiple packages per service with optional custom-quote pricing, explicit currency and billing period.
+- Keep uncertain prices empty, preserve existing CAD rates, and reject fractional-cent or non-finite amounts.
+- Match verified proof to campaign service and optional industry, with explicit project attribution and reviewed edits.
+- Select saved service families in campaign targeting; show country at creation and city/state/province labels.
+- Clarify global, partner and campaign guidance and optional local meeting profiles.
+- Migrate through Alembic; keep real workspace service data out of the repository.
+
+
 ## 0.22.0 — 2026-11-09
 
 - Per-mailbox HTML signatures with a safe preview and a generated text alternative.

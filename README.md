@@ -234,7 +234,7 @@ This release does not provision accounts, configure production secrets or enable
 
 ## Windows desktop setup
 
-Use the v0.22.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
+Use the v0.23.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
 
 ### Dashboard navigation
 
@@ -268,3 +268,5 @@ The updated worker sends multipart email and keeps the existing outreach unsubsc
 Customer signatures stay in private settings storage. No schema migration or new environment
 variable is needed; update the PC companion to send the new HTML format. Saving a signature does
 not send mail or enable outreach. See [the design decision](docs/decisions/0022-mailbox-signatures.md).
+
+See [Writing and offers](docs/writing-and-offers.md) for reusable packages, custom quotes and service-specific proof.

@@ -5,9 +5,10 @@ import json
 from sqlalchemy import select
 
 from app.db.lead_models import Campaign, Company
-from app.db.outreach_models import Offer, ProofCard
+from app.db.outreach_models import Offer
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.playbook.catalog import matching_proofs
 from app.playbook.partner import local_members
 from app.playbook.service import current_guidance
 
@@ -34,7 +35,7 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
                 .limit(12)
             )
         )
-        proofs = list(session.scalars(select(ProofCard).limit(5)))
+        proofs = matching_proofs(session, campaign)
         members = local_members(session, company, campaign)
     guidance = current_guidance(db, campaign_id)
     return (
@@ -61,10 +62,18 @@ def build_brief(db: Database, company_id: str, campaign_id: str) -> str:
                 else "Offer a video call; owner should add a local team member if available",
                 "services": campaign.services,
                 "offer_scope_without_prices": [
-                    {"service": item.service, "scope": item.description} for item in offers
+                    {"service": item.service, "offer": item.name, "scope": item.description}
+                    for item in offers
                 ],
                 "verified_proofs_use_only_if_relevant": [
-                    {"fact": item.fact, "source": item.source_url} for item in proofs
+                    {
+                        "fact": item.fact,
+                        "source": item.source_url,
+                        "attribution": item.attribution,
+                        "services": item.services,
+                        "industries": item.industries,
+                    }
+                    for item in proofs
                 ],
                 "evidence": [
                     {"id": item.id, "url": item.source_url, "facts": item.facts}

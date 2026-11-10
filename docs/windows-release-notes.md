@@ -1,8 +1,11 @@
-v0.22 adds saved HTML signatures to approved test emails and outreach messages. Update the
-Windows companion to send the signature shown in the dashboard preview. Existing test approvals
-remain one-time requests; no email is automatically sent by this update. Outreach remains off.
-Saved desktop settings are preserved and no
-database migration is required. Stop the worker before running the updated installer.
+v0.23 adds reusable service packages, custom quotes, offer currencies and proof matched to
+campaign services and industries. It retains v0.22 HTML mailbox signatures.
+
+Stop the worker and install this version once. Saved settings remain. The new schema is
+required; start the updated companion to run the versioned migration before using the dashboard.
+An older companion cannot migrate the newer schema. Future edits to offers, proof and guidance
+are saved in the shared database and do not require another installation. No outreach is enabled
+or sent by this update. New country sending rules and currency conversion are not included.
 
 Install the bundled Windows worker without Python, uv, Git or terminal setup.
 

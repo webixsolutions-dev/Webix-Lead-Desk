@@ -79,7 +79,7 @@ def test_quote_and_separate_currency_packages(
     assert (
         "Custom quote" in page
         and "Scoped build" in page
-        and "Other services" in client.get("/leads").text
+        and "Other services" in client.get("/leads/campaigns").text
     )
 
 

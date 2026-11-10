@@ -14,16 +14,16 @@ def test_six_pages_and_preview_detail_render(client: TestClient, owner: Account)
     for path in [
         "/",
         "/leads",
-        "/outbox",
+        "/conversations/drafts",
         "/pipeline",
-        "/demos",
+        "/pipeline/demos",
         "/settings",
         "/leads/preview/prairie",
     ]:
         response = client.get(path)
         assert response.status_code == 200
-        assert "Workspace preview" in response.text
-        assert "Sample cards are fictional" in response.text
+        assert "Preview" in response.text
+        assert "Preview examples are fictional" in response.text
     assert client.get("/leads/preview/unknown").status_code == 404
 
 
@@ -91,7 +91,7 @@ def test_reviewer_cannot_mutate_owner_state(
 def test_health_click_is_deduplicated(client: TestClient, owner: Account, db: Database) -> None:
     """Double-clicking the local health action creates one durable task."""
     sign_in(client, owner)
-    token = csrf_from(client.get("/outbox").text)
+    token = csrf_from(client.get("/conversations/drafts").text)
     for _ in range(2):
         assert client.post("/jobs/health", data={"csrf_token": token}).status_code == 303
     with db.sessions() as session:

@@ -17,6 +17,7 @@ from app.api import (
     auth,
     bookings,
     calls,
+    command,
     dashboard,
     delivery,
     demos,
@@ -136,6 +137,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(approval_policy.router)
+    app.include_router(command.router)
     app.include_router(bookings.router)
     app.include_router(acquisition.router)
     app.include_router(calls.router)

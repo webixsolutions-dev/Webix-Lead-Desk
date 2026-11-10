@@ -18,6 +18,12 @@ def daily_plan(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Review the member's persistent plan without exposing an unapproved action."""
     context = dashboard_context(request, principal, "today")
     context["planned_tasks"] = planned_tasks(services(request).db, principal.user, utc_now())
+    if request.query_params.get("profile"):
+        context["planned_tasks"] = [
+            row
+            for row in context["planned_tasks"]
+            if row["profile"].id == request.query_params["profile"]
+        ]
     return render(request, "linkedin_plan.html", context)
 
 

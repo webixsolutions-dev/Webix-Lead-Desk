@@ -3,8 +3,8 @@
 Owner authorized the complete update on 2026-11-10. Work proceeds in five reviewed PRs.
 Sending remains manual by default; this work does not approve prospect messages or AI purchases.
 
-1. Readability and ledger-backed AI credit meter — in progress.
-2. Command Center, six-section navigation, activity, settings and display hardcodes — pending.
+1. Readability and ledger-backed AI credit meter — merged in PR #26, v0.25.0.
+2. Command Center, six-section navigation, activity, settings and display hardcodes — in progress.
 3. Conversation checks, lead outcomes, bundles and discovery-only offers — pending.
 4. Meeting packs and owner-reviewed proposals — pending.
 5. Optional owner authenticator and device-session management — pending.
@@ -19,3 +19,7 @@ Corrections that take precedence over the supplied documents:
 The supplied command-center and conversation documents are the implementation brief.
 Referenced engineering/closing documents were not included; existing AGENTS.md governs engineering.
 No claims are made about an unseen proposal template.
+
+Part 1 validation: 478 offline tests, four PostgreSQL tests, 83.40% coverage; strict mypy/Ruff/Gitleaks, Windows installer and Playwright/axe desktop/mobile checks passed. Synthetic captures were visually reviewed. Merge: 4705450e447e75c49c1a89c0bae86de2f6ecf5ea.
+
+Part 2 implementation: ordered work queue, native review panel, exact-recipient conversations, canonical navigation/redirects, activity/progress, three settings groups and Calgary source guard. Local route/identity/role checks pass; full regression and CI browser/Windows verification are in progress. No schema or live configuration changes.

@@ -35,8 +35,21 @@ def today(request: Request, principal: CurrentUser) -> HTMLResponse:
 
     context["ai_usage"] = usage_report(services(request).db, utc_now())
     from app.calls.board import call_list
+    from app.reporting.activity import activity
+    from app.reporting.work_queue import queue
 
-    context["call_count"] = len(call_list(services(request).db))
+    calls = call_list(services(request).db)
+    context["call_count"] = len(calls)
+    context.update(
+        queue(
+            services(request).db,
+            utc_now(),
+            context["preferences"].display_timezone,
+            calls,
+            context["hosted_status"]["warnings"] if context["hosted_status"] else [],
+        )
+    )
+    context.update(activity(services(request).db, utc_now()))
     return render(request, "today.html", context)
 
 
@@ -59,7 +72,6 @@ def preview_lead(request: Request, principal: CurrentUser, lead_id: str) -> HTML
     return render(request, "lead_detail.html", context)
 
 
-@router.get("/outbox", response_class=HTMLResponse)
 def outbox(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show a non-sendable sample queue and real health-job status."""
     from app.api.drafts import outbox_context
@@ -80,7 +92,6 @@ def pipeline(request: Request, principal: CurrentUser) -> HTMLResponse:
     return render(request, "pipeline.html", context)
 
 
-@router.get("/demos", response_class=HTMLResponse)
 def demos(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Show future demo types without generating or sending artifacts."""
     from sqlalchemy import select
@@ -113,6 +124,9 @@ def settings(request: Request, principal: Owner) -> HTMLResponse:
     context.update(learning_data(request))
     if principal.user.role == "owner":
         context.update(operations_data(request))
+    from app.pilot.readiness import readiness
+
+    context["setup_checks"] = readiness(services(request).db, services(request).settings)
     context["saved"] = request.query_params.get("saved") == "1"
     return render(request, "settings.html", context)
 

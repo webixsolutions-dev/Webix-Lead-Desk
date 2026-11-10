@@ -280,3 +280,9 @@ See [the operator guide](docs/review-workflow.md). Default approval remains manu
 Settings → Workspace preferences offers Normal or Large text. The owner-only header AI meter links to `/settings/ai-usage`. It reads the local cost ledger without provider calls. Confirmed charges, uncertain reservations and expiry remain separate; funding expiry never resets the allowance. Monthly categories retain their existing Calgary boundaries and spending gates.
 
 CI runs pinned Playwright/axe checks on synthetic desktop and mobile pages and retains the screenshots as run artifacts. Run `uv run python -m scripts.ui_fixtures`, then `cd ui-tests`, `npm ci`, `npx playwright install chromium` and `npm test` for the same checks.
+
+### Daily Command Center
+
+Today orders replies before meetings, proposals, drafts, calls and research. Start my day opens in-place review. In the panel, J/K moves between queue items, A submits the exact approval form only after its required review checks, and S focuses the skip reason. Typing in an editor never activates shortcuts. Changes require the existing role, CSRF and content-version checks.
+
+Conversations groups only confirmed recipient identities. LinkedIn and email merge only through an explicit Person.contact_id link; unmatched incoming senders remain separate for review. Activity refreshes every 20 seconds from persisted events; it does not call AI. Sending/call schedules still follow America/Edmonton. The campaign clock is display-only and marks other unconfigured local timezones explicitly.

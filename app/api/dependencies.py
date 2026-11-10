@@ -37,7 +37,7 @@ def require_user(request: Request) -> Principal:
                 user = session.get(User, stored.user_id)
                 if user is not None and user.active:
                     if user.role != "owner" and not re.fullmatch(
-                        r"/|/logout|/status/worker|/calls(?:/[^/]+/(?:outcome|notes))?"
+                        r"/|/logout|/status/worker|/leads/calls|/calls(?:/[^/]+/(?:outcome|notes))?"
                         r"|/linkedin/(?:plan|queue)|/linkedin/tasks/[^/]+(?:/(?:start|complete))?"
                         r"|/people/[^/]+/(?:reply|event)"
                         r"|/linkedin/results(?:/(?:profiles|posts)/[^/]+)?"

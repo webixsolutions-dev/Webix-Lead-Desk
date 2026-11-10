@@ -18,9 +18,11 @@ router = APIRouter()
 @router.get("/bookings", response_class=HTMLResponse)
 def board(request: Request, principal: Owner) -> HTMLResponse:
     """Show real proposals, plus existing pipeline meetings awaiting migration/review."""
-    context = dashboard_context(request, principal, "bookings")
+    context = dashboard_context(request, principal, "pipeline")
     with services(request).db.sessions() as session:
         rows = list(session.scalars(select(Booking).order_by(Booking.starts_at.desc()).limit(200)))
+        if request.query_params.get("booking"):
+            rows = [row for row in rows if row.id == request.query_params["booking"]]
         context.update(
             bookings=[
                 {

@@ -20,13 +20,17 @@ router = APIRouter()
 @router.get("/calls", response_class=HTMLResponse)
 def calls_page(request: Request, principal: CurrentUser) -> HTMLResponse:
     """Display a mobile and print-ready call list without opening Settings."""
-    context = dashboard_context(request, principal, "today")
+    context = dashboard_context(request, principal, "leads")
     context.update(
         call_cards=call_list(services(request).db, principal.user),
         call_history=call_history(services(request).db, actor=principal.user),
         outcomes=OUTCOMES,
         ai_enabled=services(request).settings.openai_enabled,
     )
+    if request.query_params.get("company"):
+        context["call_cards"] = [
+            c for c in context["call_cards"] if c["company"].id == request.query_params["company"]
+        ]
     from sqlalchemy import select
 
     from app.db.linkedin_models import LinkedInProfile

@@ -119,6 +119,9 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
             selected_lane=lane,
             search=search,
         )
+    context["calgary_campaigns"] = [
+        c for c in context["campaigns"] if c.country == "CA" and "calgary" in c.area.lower()
+    ]
     return context
 
 
@@ -193,6 +196,8 @@ async def import_calgary(request: Request, principal: Owner) -> RedirectResponse
         campaign = session.get(Campaign, campaign_id)
         if campaign is None or not campaign.active:
             raise HTTPException(422, "Choose an active campaign")
+    if campaign.country != "CA" or "calgary" not in campaign.area.lower():
+        raise HTTPException(422, "Open Calgary licence data requires a Calgary campaign")
     category = fields.get("category", "").strip()
     if not 2 <= len(category) <= 80:
         raise HTTPException(422, "Enter a city licence category")

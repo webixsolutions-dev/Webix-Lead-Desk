@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="/static/styles.css?v=0.22">
   <link rel="stylesheet" href="/static/workspace.css?v=0.20">
   <link rel="stylesheet" href="/static/readability.css?v=0.25">
+  <link rel="stylesheet" href="/static/command.css?v=0.26">
+  <script src="/static/command.js?v=0.26" defer></script>
   <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"historyCacheSize":0}'>
   <script src="/static/vendor/htmx.min.js" defer></script>
   <script src="/static/app.js?v=0.20" defer></script>
@@ -22,7 +24,7 @@
   <span class="nav-caption">Your workspace</span>
   <nav aria-label="Main navigation">
     {% for key, url, label, symbol in navigation %}
-    {% if key == 'demos' %}<span class="nav-caption nav-divider">Tools &amp; setup</span>{% endif %}
+
     <a href="{{ url }}" class="nav-link{% if page == key %} active{% endif %}" {% if page == key %}aria-current="page"{% endif %}>{{ icon(symbol, 19) }}<span>{{ label }}</span>{% if key == 'leads' and lead_count %}<span class="nav-count">{{ lead_count }}</span>{% endif %}</a>
     {% endfor %}
   </nav>
@@ -33,14 +35,15 @@
 </aside>
 <button class="nav-backdrop" id="nav-backdrop" aria-label="Close navigation" tabindex="-1" hidden></button>
 <div class="app-shell">
-  <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="nav-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">{{ icon('menu') }}</button><span class="breadcrumb">Lead Desk <span>/</span> {% for key, url, label, symbol in navigation %}{% if key == page %}<strong>{{ label }}</strong>{% endif %}{% endfor %}</span></div><div class="topbar-right">{% if ai_allowance %}{% include "ai_chip.html" %}{% endif %}<span class="timezone-clock">{{ icon('clock', 15) }} Calgary {{ calgary_time }}</span><span class="workspace-private">{{ icon('shield', 15) }} Private workspace</span></div></header>
+  <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="nav-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">{{ icon('menu') }}</button><span class="breadcrumb">Lead Desk <span>/</span> {% for key, url, label, symbol in navigation %}{% if key == page %}<strong>{{ label }}</strong>{% endif %}{% endfor %}</span></div><div class="topbar-right">{% if ai_allowance %}{% include "ai_chip.html" %}{% endif %}<span class="timezone-clock">{{ icon('clock', 15) }} {{ preferences.display_timezone }} {{ local_time }}{% if campaign_clock %}<small>{{ campaign_clock }}</small>{% endif %}</span><details class="workspace-chip {{ 'needs-attention' if hosted_status and hosted_status.warnings else 'ready' }}"><summary>{{ "Preview" if preferences.preview_enabled else "Workspace" }} · {{ "Needs attention" if hosted_status and hosted_status.warnings else "Ready" }}{% if hosted_status and hosted_status.warnings %} ({{ hosted_status.warnings|length }}){% endif %}</summary><div>{% if preferences.preview_enabled %}<p>Preview examples are fictional.</p>{% endif %}{% if hosted_status %}{% for warning in hosted_status.warnings %}<p>{{ warning }}</p>{% endfor %}{% endif %}<a href="/settings#operations">View system status</a></div></details><span class="workspace-private">{{ icon('shield', 15) }} Private workspace</span></div></header>
   <main id="main-content">
-    <div class="page-heading"><div><p class="eyebrow">{% block eyebrow %}WEBIX Lead Desk{% endblock %}</p><h1>{% block heading %}Today{% endblock %}</h1><p class="page-description">{% block description %}{% endblock %}</p></div>{% block heading_action %}{% endblock %}</div>
-    {% if preferences.preview_enabled %}<div class="preview-banner"><span>{{ icon('window', 17) }} <strong>Workspace preview</strong> <span class="banner-description">Sample cards are fictional. Real records require their own review and approval.</span></span>{% if user.role == 'owner' %}<a href="/settings#workspace">Manage preview {{ icon('arrow', 15) }}</a>{% endif %}</div>{% endif %}
-    {% if hosted_status and hosted_status.warnings and page != 'settings' %}<details class="health-notice" open><summary>{{ icon('activity', 17) }} Workspace needs attention <span class="count-pill">{{ hosted_status.warnings|length }}</span></summary>{% for warning in hosted_status.warnings %}<p role="status">{{ warning }}</p>{% endfor %}<a class="text-link" href="/settings#operations">View system status {{ icon('arrow', 14) }}</a></details>{% endif %}
+    <div class="page-heading"><div><p class="eyebrow">{% block eyebrow %}Webix Lead Desk{% endblock %}</p><h1>{% block heading %}Today{% endblock %}</h1><p class="page-description">{% block description %}{% endblock %}</p></div>{% block heading_action %}{% endblock %}</div>
+    {% include 'section_tabs.html' %}
+    {% if delegation.mode != 'manual' %}<p class="delegation-state" role="status">Automatic outreach: {{ delegation.mode }} · {{ delegation.daily_limit }} per day · {{ delegation_names|join(', ') }}. Replies still need your approval. <a href="/settings#approval-policy">Manage</a></p>{% endif %}
     {% block content %}{% endblock %}
-    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.25</span></footer>
+    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.26</span></footer>
   </main>
 </div>
+{% if user.role == 'owner' %}<dialog id="review-panel" aria-labelledby="review-panel-title"><header class="review-toolbar"><h2 id="review-panel-title" tabindex="-1">Review work</h2><button type="button" class="button secondary" data-panel-previous>Previous</button><button type="button" class="button secondary" data-panel-next>Next</button><button type="button" class="button secondary" data-panel-close>Close</button></header><p class="panel-shortcuts">J / K: next / previous · A: approve reviewed content · S: skip reason · Escape: close</p><p id="panel-status" role="status"></p><div id="review-panel-content"></div></dialog>{% endif %}
 </body>
 </html>

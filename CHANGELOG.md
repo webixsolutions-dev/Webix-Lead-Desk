@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.0
+- Bring replies, bookings, drafts, calls and research into an ordered Command Center with in-place review.
+- Consolidate navigation into six sections, recipient conversations, three settings groups and canonical bookmark redirects.
+- Show recorded activity and distinct-business campaign progress with read-only 20-second polling.
+- Preserve exact approval gates, staff isolation and Calgary sending windows; restrict Open Calgary discovery to Calgary campaigns.
+- Reuse one editable desktop dashboard default.
+
 ## 0.25.0
 - Improve workspace typography, form controls and contrast, with Normal/Large text preferences.
 - Add owner-only AI allowance and monthly usage views, separating confirmed spend, pending reservations and expiry without resetting credit.

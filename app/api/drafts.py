@@ -40,6 +40,17 @@ def outbox_context(request: Request, principal: Principal) -> dict[str, Any]:
         context["intents"] = list(
             session.scalars(select(SendIntent).order_by(SendIntent.due_at).limit(100))
         )
+    if request.query_params.get("sent") == "today":
+        from app.sending.window import CALGARY
+
+        start = utc_now().astimezone(CALGARY).replace(hour=0, minute=0, second=0, microsecond=0)
+        context["intents"] = [
+            item
+            for item in context["intents"]
+            if item.state == "accepted" and item.accepted_at and item.accepted_at >= start
+        ]
+        visible = {item.draft_id for item in context["intents"]}
+        context["drafts"] = [item for item in context["drafts"] if item.id in visible]
     context["review_briefs"] = briefs_for_drafts(services(request).db, context["drafts"])
     return context
 

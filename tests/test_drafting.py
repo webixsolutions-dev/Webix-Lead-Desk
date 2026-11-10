@@ -306,7 +306,7 @@ def test_editor_and_approval_routes(
         ).status_code
         == 303
     )
-    assert "approved" in client.get("/outbox").text
+    assert "approved" in client.get("/conversations/drafts").text
     assert (
         client.post(
             url,

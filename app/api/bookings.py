@@ -1,7 +1,5 @@
 """Owner booking board with proposed slots and explicit confirmation."""
 
-from zoneinfo import ZoneInfo
-
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -9,6 +7,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from app.api.dependencies import Owner, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.bookings.service import decide, save
+from app.core.timezones import zone
 from app.db.booking_models import Booking
 from app.db.lead_models import Company
 from app.db.pipeline_models import Opportunity
@@ -26,10 +25,10 @@ def board(request: Request, principal: Owner) -> HTMLResponse:
             bookings=[
                 {
                     "item": item,
-                    "local": item.starts_at.astimezone(ZoneInfo(item.timezone)).strftime(
+                    "local": item.starts_at.astimezone(zone(item.timezone)).strftime(
                         "%d %b %Y · %H:%M"
                     ),
-                    "edit_time": item.starts_at.astimezone(ZoneInfo(item.timezone)).strftime(
+                    "edit_time": item.starts_at.astimezone(zone(item.timezone)).strftime(
                         "%Y-%m-%dT%H:%M"
                     ),
                     "minutes": int((item.ends_at - item.starts_at).total_seconds() / 60),

@@ -2,12 +2,13 @@
 
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfoNotFoundError
 
 from sqlalchemy import func, select, update
 from sqlalchemy.engine import CursorResult
 
 from app.core.clock import utc_now
+from app.core.timezones import zone
 from app.db.booking_models import Booking
 from app.db.lead_models import Company
 from app.db.models import AuditEvent, User
@@ -18,7 +19,7 @@ def local_start(value: str, timezone: str) -> datetime:
     """Reject nonexistent and ambiguous local times rather than guessing a DST offset."""
     try:
         naive = datetime.fromisoformat(value)
-        tz = ZoneInfo(timezone)
+        tz = zone(timezone)
     except (ValueError, ZoneInfoNotFoundError) as error:
         raise ValueError("Choose a date/time and a valid IANA timezone") from error
     if naive.tzinfo:

@@ -214,8 +214,9 @@ def test_booking_proposal_confirmation_conflict_and_reschedule(
 @pytest.mark.parametrize(
     "value,timezone",
     [
-        ("2026-11-01T01:30", "America/Edmonton"),
-        ("2027-03-14T02:30", "America/Edmonton"),
+        # Historical transitions remain stable when a region changes future DST rules.
+        ("2024-11-03T01:30", "America/Edmonton"),
+        ("2024-03-10T02:30", "America/Edmonton"),
         ("2027-05-03T10:00", "Invalid/Timezone"),
     ],
 )

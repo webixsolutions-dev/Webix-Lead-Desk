@@ -64,7 +64,11 @@ def allowance_summary(db: Database, now: datetime) -> dict[str, Any]:
         # The funding gate is authoritative if a historical ledger discrepancy exists.
         committed = max(confirmed + reserved, account.committed if account else 0)
         expiry = account.expires_at if account else None
-    percent = min(100, committed * 100 // allowance) if allowance else 0
+    percent = (
+        min(Decimal(100), Decimal(committed) * 100 / allowance)
+        if allowance
+        else (100 if committed else 0)
+    )
     expired = expiry is not None and expiry <= now
     return {
         "allowance": allowance,

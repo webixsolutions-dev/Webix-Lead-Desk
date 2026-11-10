@@ -180,3 +180,21 @@ def test_money_rounding_and_empty_report(db: Database) -> None:
     report = usage_report(db, NOW)
     assert len(report["days"]) == 7
     assert report["per_lead"] is None and report["projection"] == 0
+
+
+def test_meter_thresholds_include_fractional_percentage(db: Database, owner: Account) -> None:
+    """A commitment above 90 percent is red even when its integer part is still 90."""
+    with db.sessions.begin() as session:
+        session.add(
+            BudgetAccount(
+                key="primary",
+                allowance=1_000_000,
+                committed=901_000,
+                expires_at=NOW + timedelta(days=1),
+                verified_by=owner.user.id,
+            )
+        )
+    report = allowance_summary(db, NOW)
+    assert report["percent"] == Decimal("90.1")
+    assert report["tone"] == "red"
+    assert report["reconciliation"] == 901_000

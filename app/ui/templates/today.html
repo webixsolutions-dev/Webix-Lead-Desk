@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import icon, badge, empty %}
 {% block title %}Today · {{ preferences.workspace_name }}{% endblock %}
-{% block eyebrow %}{{ today_date|upper }}{% endblock %}
+{% block eyebrow %}{{ today_date }}{% endblock %}
 {% block heading %}Your day, at a glance.{% endblock %}
 {% block description %}Find a good fit. Start a conversation. Keep it moving.{% endblock %}
 {% block heading_action %}<a class="button secondary" href="/leads">{{ icon('search', 17) }} Browse leads</a>{% endblock %}
 {% block content %}
 <section class="day-start">
   <div class="next-action">
-    <span class="eyebrow">YOUR NEXT STEP</span>
+    <span class="eyebrow">Your next step</span>
     {% if review_count %}
     <h2>{{ review_count }} {{ 'message is' if review_count == 1 else 'messages are' }} ready for your review.</h2><p>Check the business, the recipient and the message. Approve only what you want to send.</p><a class="button primary" href="/outbox">Review messages {{ icon('arrow', 17) }}</a>
     {% elif company_count %}

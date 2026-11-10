@@ -3,6 +3,7 @@
 import re
 import secrets
 import shutil
+from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -14,6 +15,7 @@ from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.preferences import Preferences, save_preferences
 from app.db.migrate import migrate
+from app.db.research_models import AICall, BudgetAccount
 from app.db.session import create_database
 from app.main import create_app
 
@@ -34,6 +36,40 @@ def main() -> None:
         db = create_database(config)
         password = secrets.token_urlsafe(24)
         owner = create_user(db, "synthetic@example.test", "Demo Owner", password, "owner")
+        now = utc_now()
+        with db.sessions.begin() as session:
+            session.add(
+                BudgetAccount(
+                    key="primary",
+                    allowance=170_000_000,
+                    committed=13_400_000,
+                    expires_at=now + timedelta(days=25),
+                    verified_by=owner.id,
+                )
+            )
+            for day in range(7):
+                session.add(
+                    AICall(
+                        request_key=f"synthetic-{day}",
+                        model="demo-model",
+                        category="audits",
+                        state="complete",
+                        charged=(day + 1) * 300_000,
+                        reserved=(day + 1) * 300_000,
+                        created_at=now - timedelta(days=day),
+                    )
+                )
+            session.add(
+                AICall(
+                    request_key="synthetic-pending",
+                    model="demo-model",
+                    category="enrichment",
+                    state="uncertain",
+                    charged=None,
+                    reserved=5_000_000,
+                    created_at=now,
+                )
+            )
         with TestClient(create_app(config), follow_redirects=False) as client:
             login = client.get("/login")
             token = re.search(r'name="csrf_token" value="([^"]+)"', login.text)
@@ -53,6 +89,7 @@ def main() -> None:
                 "settings": "/settings",
                 "linkedin": "/linkedin/plan",
                 "usage": "/settings/ai-usage",
+                "message": "/leads/preview/prairie",
             }
             (target / "login.html").write_text(login.text, encoding="utf-8")
             for version, size in enumerate(("normal", "large")):

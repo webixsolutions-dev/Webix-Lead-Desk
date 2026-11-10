@@ -1,5 +1,6 @@
 """Render synthetic authenticated pages for offline browser accessibility checks in CI."""
 
+import json
 import re
 import secrets
 import shutil
@@ -18,6 +19,7 @@ from app.db.migrate import migrate
 from app.db.research_models import AICall, BudgetAccount
 from app.db.session import create_database
 from app.main import create_app
+from scripts.ui_seed import seed_review
 
 
 def main() -> None:
@@ -36,6 +38,7 @@ def main() -> None:
         db = create_database(config)
         password = secrets.token_urlsafe(24)
         owner = create_user(db, "synthetic@example.test", "Demo Owner", password, "owner")
+        editor_url, approval_url = seed_review(db, owner.id)
         now = utc_now()
         with db.sessions.begin() as session:
             session.add(
@@ -83,14 +86,21 @@ def main() -> None:
             )
             routes = {
                 "today": "/",
+                "editor": editor_url,
                 "leads": "/leads",
-                "outbox": "/outbox",
+                "outbox": "/conversations/drafts",
                 "pipeline": "/pipeline",
+                "conversations": "/conversations",
+                "campaigns": "/leads/campaigns",
+                "bookings": "/pipeline/bookings",
                 "settings": "/settings",
                 "linkedin": "/linkedin/plan",
                 "usage": "/settings/ai-usage",
                 "message": "/leads/preview/prairie",
             }
+            (target / "routes.json").write_text(
+                json.dumps({"editor": editor_url, "approval": approval_url})
+            )
             (target / "login.html").write_text(login.text, encoding="utf-8")
             for version, size in enumerate(("normal", "large")):
                 save_preferences(

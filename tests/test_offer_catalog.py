@@ -79,7 +79,7 @@ def test_quote_and_separate_currency_packages(
     assert (
         "Custom quote" in page
         and "Scoped build" in page
-        and "Other services" in client.get("/leads").text
+        and "Other services" in client.get("/leads/campaigns").text
     )
 
 
@@ -266,5 +266,5 @@ def test_campaign_service_picker_preserves_multiple_choices(
         "/campaigns", content=body, headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 303
-    page = client.get("/partners").text
+    page = client.get("/leads/campaigns").text
     assert "Austin, Texas" in page and "CRM, Website" in page

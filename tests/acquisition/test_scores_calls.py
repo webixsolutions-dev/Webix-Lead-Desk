@@ -164,7 +164,7 @@ def test_reviewer_calls_ui_without_settings(
     company, campaign = business(db, owner)
     _assign_member(db, owner, reviewer, company.id)
     sign_in(client, reviewer)
-    page = client.get("/calls")
+    page = client.get("/leads/calls")
     assert page.status_code == 200 and company.name in page.text
     assert 'href="/settings"' not in page.text
     assert client.get("/settings").status_code == 403
@@ -184,7 +184,7 @@ def test_reviewer_calls_ui_without_settings(
         },
     )
     assert saved.status_code == 303
-    assert "No answer today" in client.get("/calls").text
+    assert "No answer today" in client.get("/leads/calls").text
 
 
 def test_event_projection_stops_and_pending_followup() -> None:

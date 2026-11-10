@@ -13,7 +13,7 @@ from app.audit.usage import allowance_summary, dollars
 from app.core.clock import utc_now
 from app.core.preferences import get_preferences
 from app.core.timezones import zone
-from app.db.lead_models import Company
+from app.db.lead_models import Campaign, Company
 from app.db.models import Job, WorkerInstance
 from app.ui.preview import LEADS, NAVIGATION
 
@@ -45,6 +45,12 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
             session.scalar(select(func.count()).select_from(Job).where(Job.state == "succeeded"))
             or 0
         )
+        from app.sending.delegation import read_policy
+
+        policy, _ = read_policy(session)
+        campaign = session.get(Campaign, request.query_params.get("campaign", ""))
+        active_campaigns = list(session.scalars(select(Campaign).where(Campaign.active.is_(True))))
+        policy_names = [c.name for c in active_campaigns if c.id in policy.get("campaigns", [])]
         latest_job = session.scalar(select(Job).order_by(Job.created_at.desc()).limit(1))
     runtime = worker.runtime_config or {} if worker else {}
     delivery = runtime.get("live_send_enabled") if worker_online else None
@@ -57,6 +63,16 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
     )
     return {
         "hosted_status": hosted,
+        "delegation": policy if principal.user.role == "owner" else {"mode": "manual"},
+        "delegation_names": policy_names if principal.user.role == "owner" else [],
+        "campaign_clock": campaign.area
+        + " · "
+        + now.astimezone(zone("America/Edmonton")).strftime("%I:%M %p")
+        if campaign and campaign.country == "CA" and "calgary" in campaign.area.lower()
+        else (campaign.area + " · timezone not configured" if campaign else ""),
+        "daily_target": sum(c.daily_limit for c in active_campaigns),
+        "clock_campaigns": active_campaigns if principal.user.role == "owner" else [],
+        "clock_selection": campaign.id if campaign else "",
         "ai_allowance": allowance_summary(app.db, now) if principal.user.role == "owner" else None,
         "linkedin_action_labels": {
             "invite": "Connection request",
@@ -68,12 +84,19 @@ def dashboard_context(request: Request, principal: Principal, page: str) -> dict
         },
         "user": principal.user,
         "csrf": principal.csrf_token,
-        "page": "settings" if page in {"learning", "partners", "operations"} else page,
+        "page": {
+            "learning": "settings",
+            "operations": "settings",
+            "partners": "leads",
+            "bookings": "pipeline",
+            "demos": "pipeline",
+            "outbox": "conversations",
+        }.get(page, page),
         "navigation": [item for item in NAVIGATION if principal.user.role == "owner"]
         if principal.user.role == "owner"
         else [
             ("today", "/", "Today", "grid"),
-            ("calls", "/calls", "Calls", "phone"),
+            ("calls", "/leads/calls", "Calls", "phone"),
             ("linkedin", "/linkedin/queue", "LinkedIn", "send"),
         ],
         "preferences": prefs,

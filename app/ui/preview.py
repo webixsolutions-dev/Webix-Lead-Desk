@@ -64,10 +64,8 @@ LEADS: list[PreviewLead] = [
 NAVIGATION = [
     ("today", "/", "Today", "grid"),
     ("leads", "/leads", "Leads", "search"),
-    ("outbox", "/outbox", "Outbox", "send"),
-    ("pipeline", "/pipeline", "Pipeline", "chat"),
-    ("bookings", "/bookings", "Bookings", "calendar"),
+    ("conversations", "/conversations", "Conversations", "chat"),
+    ("pipeline", "/pipeline", "Pipeline", "calendar"),
     ("linkedin", "/linkedin/activity", "LinkedIn", "people"),
-    ("demos", "/demos", "Demos", "window"),
     ("settings", "/settings", "Settings", "sliders"),
 ]

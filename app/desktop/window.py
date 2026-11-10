@@ -5,7 +5,7 @@ import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from app.desktop.config import DesktopConfig, load_config, save_config
+from app.desktop.config import DEFAULT_DASHBOARD_URL, DesktopConfig, load_config, save_config
 from app.desktop.controller import WorkerController
 from app.desktop.platform import set_startup
 
@@ -79,7 +79,7 @@ class DesktopWindow:
         ).grid(row=1, column=0, sticky="w", pady=(0, 12))
         self.database = tk.StringVar()
         self.encryption = tk.StringVar()
-        self.dashboard = tk.StringVar(value="https://webix-lead-desk.vercel.app")
+        self.dashboard = tk.StringVar(value=DEFAULT_DASHBOARD_URL)
         self.backup = tk.StringVar(value=str(directory / "backups"))
         self.startup = tk.BooleanVar()
         for row, label, variable, hidden in (
@@ -238,7 +238,7 @@ class DesktopWindow:
         if self.config:
             webbrowser.open(self.config.settings(self.directory).public_base_url)
         else:
-            webbrowser.open("https://webix-lead-desk.vercel.app")
+            webbrowser.open(DEFAULT_DASHBOARD_URL)
 
     def close(self) -> None:
         """Never destroy the process while a worker job is still in flight."""

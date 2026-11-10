@@ -104,8 +104,10 @@ def test_gmail_profile_and_workflow_tabs(client: TestClient, owner: Account, db:
     with db.sessions() as session:
         box = session.scalar(select(Mailbox).where(Mailbox.email == "synthetic@gmail.com"))
         assert box and box.provider == "gmail" and not box.enabled
-    assert {"/bookings", "/linkedin/activity"}.issubset({item[1] for item in NAVIGATION})
-    assert all(path in page.text for path in ['href="#learning"', 'href="#operations"'])
+    assert {"/pipeline", "/conversations", "/linkedin/activity"}.issubset(
+        {item[1] for item in NAVIGATION}
+    )
+    assert all(path in page.text for path in ['id="learning"', 'id="operations"'])
 
 
 def test_four_followups_remain_in_same_thread_then_reply_stops(

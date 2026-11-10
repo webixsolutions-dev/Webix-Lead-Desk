@@ -1,50 +1,5 @@
-{% extends 'base.html' %}
-{% from 'macros.html' import icon, badge, empty %}
-{% block title %}Today · {{ preferences.workspace_name }}{% endblock %}
-{% block eyebrow %}{{ today_date }}{% endblock %}
-{% block heading %}Your day, at a glance.{% endblock %}
-{% block description %}Find a good fit. Start a conversation. Keep it moving.{% endblock %}
-{% block heading_action %}<a class="button secondary" href="/leads">{{ icon('search', 17) }} Browse leads</a>{% endblock %}
-{% block content %}
-<section class="day-start">
-  <div class="next-action">
-    <span class="eyebrow">Your next step</span>
-    {% if review_count %}
-    <h2>{{ review_count }} {{ 'message is' if review_count == 1 else 'messages are' }} ready for your review.</h2><p>Check the business, the recipient and the message. Approve only what you want to send.</p><a class="button primary" href="/outbox">Review messages {{ icon('arrow', 17) }}</a>
-    {% elif company_count %}
-    <h2>Turn a good lead into a conversation.</h2><p>Open a business, check what it needs and prepare a personal introduction.</p><a class="button primary" href="/leads">Choose a lead {{ icon('arrow', 17) }}</a>
-    {% else %}
-    <h2>Start with your first businesses.</h2><p>Choose an industry and a location, then find or import businesses you want to work with.</p><a class="button primary" href="/leads#add-leads">Add your first leads {{ icon('arrow', 17) }}</a>
-    {% endif %}
-    <div class="workflow-path" aria-label="Outreach workflow"><span class="{{ 'current' if not review_count else '' }}">01 &nbsp; Find leads</span>{{ icon('chevron', 14) }}<span class="{{ 'current' if review_count else '' }}">02 &nbsp; Review messages</span>{{ icon('chevron', 14) }}<span>03 &nbsp; Follow conversations</span></div>
-  </div>
-  <aside class="day-status">
-    <div class="section-title"><h2>Workspace status</h2>{{ icon('activity', 18) }}</div>
-    <div class="health-row"><span>PC worker</span><strong class="{{ 'positive' if worker_online else 'muted' }}"><span class="status-dot {{ 'green-dot' if worker_online else '' }}"></span> {{ 'Online' if worker_online else 'Offline' }}</strong></div>
-    <div class="health-row"><span>Email sending</span><strong>{{ worker_delivery_label }}</strong></div>
-    <div class="health-row"><span>Encrypted backup</span><strong>{{ hosted_status.backup_at.strftime('%d %b, %H:%M UTC') if hosted_status and hosted_status.backup_at else 'Not recorded' }}</strong></div>
-    <p class="small muted">{% if worker_online %}Keep the worker app open while jobs run.{% else %}Start the desktop app to process queued work.{% endif %}</p>
-    <a class="text-link" href="/settings#operations">View setup &amp; status {{ icon('arrow', 15) }}</a>
-  </aside>
-</section>
-<div class="metrics-grid">
-  <a class="metric-card" href="/leads"><div><span>Total businesses</span>{{ icon('search', 18) }}</div><strong>{{ company_count }}</strong><small>In your lead list</small></a>
-  <a class="metric-card" href="/outbox"><div><span>To review</span>{{ icon('folder', 18) }}</div><strong>{{ review_count }}</strong><small>Messages awaiting approval</small></a>
-  <a class="metric-card" href="/outbox"><div><span>Sent today</span>{{ icon('send', 18) }}</div><strong>{{ sent_today }}</strong><small>Accepted by sender · Calgary day</small></a>
-  <a class="metric-card" href="/inbox"><div><span>Replies</span>{{ icon('chat', 18) }}</div><strong>{{ reply_count }}</strong><small>Recorded in your inbox</small></a>
-</div>
-<div class="today-grid">
-  <section class="panel approval-panel"><div class="panel-heading"><div><h2>Messages to review <span class="count-pill">{{ review_count }}</span></h2><p>Your personal introductions, ready for a final look.</p></div><a class="text-link" href="/outbox">View all {{ icon('arrow', 15) }}</a></div>
-    {% for draft in review_drafts %}<article class="review-row"><div><strong>{{ draft.snapshot.subject }}</strong><p>{{ draft.snapshot.recipient }} · Revision {{ draft.revision }}</p></div><a class="button secondary" href="/leads/{{ draft.snapshot.company_id }}/draft?step={{ draft.sequence_step if draft.kind == 'follow_up' else draft.step }}&amp;kind={{ draft.kind }}">Review {{ icon('arrow', 14) }}</a></article>
-    {% else %}<div class="review-empty"><span class="empty-symbol">{{ icon('check', 26) }}</span><h3>You're all caught up</h3><p>Messages appear here after you research a lead and save a draft.</p><a class="text-link" href="/leads">Explore your leads {{ icon('arrow', 15) }}</a></div>{% endfor %}
-  </section>
-  <section class="panel quick-actions"><div class="panel-heading"><h2>Keep things moving</h2></div>
-    <a href="/calls" class="quick-action"><span class="action-symbol">{{ icon('phone', 19) }}</span><span><strong>Call list</strong><small>{{ call_count }} businesses ready to review</small></span>{{ icon('chevron', 17) }}</a>
-    <a href="/linkedin/plan" class="quick-action"><span class="action-symbol">{{ icon('people', 19) }}</span><span><strong>LinkedIn plan</strong><small>Daily tasks and conversations</small></span>{{ icon('chevron', 17) }}</a>
-    <a href="/pilot" class="quick-action"><span class="action-symbol">{{ icon('shield', 19) }}</span><span><strong>Launch checklist</strong><small>Check your setup before outreach</small></span>{{ icon('chevron', 17) }}</a>
-    {% if held_count or failed_jobs %}<a class="quick-action" href="/outbox"><span class="action-symbol">{{ icon('activity', 19) }}</span><span><strong>Needs attention</strong><small>{{ held_count }} held sends · {{ failed_jobs }} failed jobs</small></span>{{ icon('chevron', 17) }}</a>{% endif %}
-  </section>
-</div>
-{% include "ai_usage_card.html" %}
-{% if leads %}<details class="panel work-panel"><summary>Explore fictional examples</summary><p class="muted">These sample businesses do not count toward your results.</p><div class="button-row">{% for lead in leads %}<a class="button secondary" href="/leads/preview/{{ lead.id }}">{{ lead.name }}</a>{% endfor %}</div></details>{% endif %}
+{% extends 'base.html' %}{% block title %}Today · {{ preferences.workspace_name }}{% endblock %}{% block eyebrow %}{{ today_date }}{% endblock %}{% block heading %}Your Command Center{% endblock %}{% block description %}Replies first. Then meetings, proposals and new conversations.{% endblock %}{% block heading_action %}<button class="button primary" id="start-day" {% if not work_count %}disabled{% endif %}>Start my day</button>{% endblock %}{% block content %}
+{% if clock_campaigns %}<form class="campaign-clock-picker" method="get" action="/"><label>Campaign clock <select name="campaign"><option value="">Select campaign</option>{% for campaign in clock_campaigns %}<option value="{{ campaign.id }}" {% if clock_selection==campaign.id %}selected{% endif %}>{{ campaign.name }}</option>{% endfor %}</select></label><button class="button secondary">Show local time</button></form>{% endif %}
+<div class="command-metrics"><a href="/leads"><strong>{{ company_count }}</strong> Businesses</a><a href="/conversations?tab=drafts"><strong>{{ review_count }}</strong> To review</a><a href="/conversations/drafts?sent=today"><strong>{{ sent_today }} / {{ daily_target }}</strong> Sent / campaign caps today</a><a href="/#queue-replies"><strong>{{ reply_count }}</strong> Replies waiting</a><a href="/pipeline/bookings"><strong>{{ meetings_week }}</strong> Meetings this week</a></div>
+<div class="command-layout"><section aria-label="Your work queue" id="work-queue">{% include 'command_queue.html' %}</section><aside class="command-aside"><section class="panel work-panel"><h2>Recent activity</h2><p class="small">Recorded events · refreshes every 20 seconds</p><div id="command-activity">{% include 'command_activity.html' %}</div></section><section class="panel work-panel"><h2>AI allowance</h2><div class="allowance-summary meter-{{ ai_allowance.tone }}"><strong>{{ ai_allowance.available|dollars }} <small>available</small></strong><progress max="100" value="{{ ai_allowance.percent }}" aria-label="Allowance committed"></progress></div><p class="small">{{ ai_allowance.confirmed|dollars }} confirmed · {{ ai_allowance.reserved|dollars }} reserved</p><p class="small">{% if ai_allowance.expires_at %}Expires on {{ ai_allowance.expires_at.strftime('%d %b %Y') }}{% else %}No verified funding{% endif %}</p><a href="#today-usage">Usage breakdown</a></section></aside></div><div id="today-usage">{% include 'ai_usage_card.html' %}</div>
 {% endblock %}

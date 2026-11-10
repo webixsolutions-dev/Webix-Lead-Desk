@@ -64,7 +64,7 @@ def test_credentials_readiness_scheduling_and_inbox_forms(
             client.post(f"/drafts/{draft.id}/schedule", data={"csrf_token": csrf}).status_code
             == 303
         )
-        assert "scheduled" in client.get("/outbox").text
+        assert "scheduled" in client.get("/conversations/drafts").text
         record_reply(
             db,
             drafting_setup["mailbox_id"],
@@ -72,8 +72,8 @@ def test_credentials_readiness_scheduling_and_inbox_forms(
             "1",
             NOW,
         )
-        assert "&lt;script&gt;" in client.get("/inbox").text
-        assert "<script>bad" not in client.get("/inbox").text
+        assert "&lt;script&gt;" in client.get("/conversations/inbox").text
+        assert "<script>bad" not in client.get("/conversations/inbox").text
         assert (
             client.post(
                 f"/conversations/{draft.conversation_id}/stop",

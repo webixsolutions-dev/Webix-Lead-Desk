@@ -165,7 +165,7 @@ def test_delay_review_never_schedules_or_overrides_a_reply(
     assert record_reply(db, item.mailbox_id, raw, "delay", NOW)
     sign_in(client, owner)
     fields = {
-        "csrf_token": csrf_from(client.get("/inbox").text),
+        "csrf_token": csrf_from(client.get("/conversations/inbox").text),
         "reviewed": "true",
         "note": "Checked synthetic mailbox delivery status.",
     }

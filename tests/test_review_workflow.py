@@ -234,12 +234,12 @@ def test_business_brief_exact_message_and_booking_pages(
     draft = make_draft(db, setup)
     assessment(db, setup)
     sign_in(client, owner)
-    page = client.get("/outbox")
+    page = client.get("/conversations/drafts")
     assert page.status_code == 200 and "Why approach this business?" in page.text
     assert draft.snapshot["body"] in page.text and "https://example.com/services" in page.text
     assert "Not checked / needs evidence" in page.text
     for path in [
-        "/bookings",
+        "/pipeline/bookings",
         "/linkedin/activity",
         "/settings?scope=conversation",
         "/settings?scope=industry:contractors",
@@ -249,7 +249,7 @@ def test_business_brief_exact_message_and_booking_pages(
     fields = booking_fields(setup)
     fields["csrf_token"] = csrf_from(page.text)
     assert client.post("/bookings", data=fields).status_code == 303
-    assert "Scope discussion" in client.get("/bookings").text
+    assert "Scope discussion" in client.get("/pipeline/bookings").text
 
 
 def test_batch_approval_only_selected_exact_revisions(
@@ -258,7 +258,7 @@ def test_batch_approval_only_selected_exact_revisions(
     """A modified digest fails independently and does not implicitly schedule anything."""
     draft = make_draft(db, drafting_setup)
     sign_in(client, owner)
-    csrf = csrf_from(client.get("/outbox").text)
+    csrf = csrf_from(client.get("/conversations/drafts").text)
     body = urlencode(
         [("csrf_token", csrf), ("reviewed", "true"), ("selected", draft.id + ":" + ("0" * 64))]
     )

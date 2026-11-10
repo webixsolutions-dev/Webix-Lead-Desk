@@ -49,7 +49,7 @@ def test_lead_filters_detail_sources_and_owner_settings(
     )
     assert "Score over time" in detail.text and "https://example.com/listing" in detail.text
     assert "Skip for now: score below" not in detail.text
-    assert "No-website leads" in client.get("/partners").text
+    assert "No-website leads" in client.get("/leads/results").text
     settings = client.get("/settings")
     assert (
         settings.status_code == 200

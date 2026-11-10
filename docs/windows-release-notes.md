@@ -1,7 +1,7 @@
-# Webix Lead Desk v0.25.0
+# Webix Lead Desk v0.26.0
 
-The dashboard now includes clearer typography, a Normal/Large text option, and a ledger-backed AI allowance view. Confirmed charges and pending reservations are separate, and funding shows an expiry date rather than a reset date.
+Today is now a Command Center for replies, bookings, drafts, calls and research. Review work in a side panel with exact-message approvals, rewrite notes and keyboard navigation. Six main navigation sections replace scattered pages; old bookmarks redirect.
 
-These dashboard improvements take effect on the website without reinstalling the worker. This release also provides the matching Windows package. Existing settings and encrypted backups remain in the Windows account's application-data folder during upgrades.
+Activity and campaign progress read existing records and do not spend AI credits. Email and LinkedIn merge only for explicitly linked people. Calgary sending and call windows remain unchanged; automatic outreach remains off unless the owner has explicitly configured it.
 
-No sending or paid AI is enabled by this update. Authenticator security and the remaining Command Center features are separate upcoming implementation parts.
+Dashboard changes appear on the website without reinstalling the Windows worker. This matching Windows package consolidates the editable dashboard URL default and preserves saved configuration on upgrade. Conversation checks, meeting packs, proposals and optional authenticator enrollment follow in separate implementation parts.

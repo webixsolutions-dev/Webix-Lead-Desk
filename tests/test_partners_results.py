@@ -243,7 +243,7 @@ def test_partner_and_form_routes_require_owner_review(
 ) -> None:
     """The actual dashboard exposes targeting, copy review and explicit manual action labels."""
     sign_in(client, owner)
-    page = client.get("/partners")
+    page = client.get("/leads/results")
     assert page.status_code == 200 and "cash collected" in page.text
     page = client.get(f"/leads/{drafting_setup['company_id']}/form")
     assert page.status_code == 200

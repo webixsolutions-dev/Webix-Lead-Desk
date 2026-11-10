@@ -34,7 +34,7 @@ def test_owner_review_forms_show_exact_revision_and_require_csrf(
     )
     assert client.get("/linkedin/queue").status_code == 200
     assert client.get("/pipeline").status_code == 200
-    assert "LinkedIn approvals" in client.get("/outbox").text
+    assert "LinkedIn approvals" in client.get("/conversations/drafts").text
 
 
 def test_reviewer_cannot_read_other_tasks_global_lists_or_calls(
@@ -48,7 +48,7 @@ def test_reviewer_cannot_read_other_tasks_global_lists_or_calls(
     for url in ["/leads", "/outbox", "/pipeline", "/inbox", "/demos", "/settings"]:
         assert client.get(url).status_code == 403
     assert client.get("/linkedin/tasks/" + task_id).status_code == 404
-    assert company.name not in client.get("/calls").text
+    assert company.name not in client.get("/leads/calls").text
     assert (
         client.post(
             f"/calls/{company.id}/outcome",
@@ -75,6 +75,6 @@ def test_reviewer_cannot_read_other_tasks_global_lists_or_calls(
         db, company.id, owner.user.id, "Owner reassigns the synthetic company to the reviewer."
     )
     assign_calls(db, company.id, profile.id, owner.user.id)
-    page = client.get("/calls")
+    page = client.get("/leads/calls")
     assert page.status_code == 200 and company.name in page.text
-    assert 'href="/calls"' in page.text and 'href="/settings"' not in page.text
+    assert 'href="/leads/calls"' in page.text and 'href="/settings"' not in page.text

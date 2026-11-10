@@ -13,6 +13,8 @@ from sqlalchemy.engine import make_url
 from app.core.config import Settings
 from app.desktop.platform import protect
 
+DEFAULT_DASHBOARD_URL = "https://webix-lead-desk.vercel.app"
+
 
 class DesktopConfig(BaseModel):
     """Only desktop setup fields; sending and paid integrations remain disabled."""
@@ -24,7 +26,7 @@ class DesktopConfig(BaseModel):
     session_secret: SecretStr = Field(default_factory=lambda: SecretStr(secrets.token_urlsafe(48)))
     backup_key: SecretStr = Field(default_factory=lambda: SecretStr(Fernet.generate_key().decode()))
     backup_directory: str
-    dashboard_url: str = "https://webix-lead-desk.vercel.app"
+    dashboard_url: str = DEFAULT_DASHBOARD_URL
     autostart: bool = False
 
     def settings(self, root: Path) -> Settings:

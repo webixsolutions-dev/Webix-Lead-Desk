@@ -38,6 +38,7 @@ def enqueue(
         "find_owner",
         "linkedin_draft",
         "linkedin_post",
+        "whatsapp",
     }:
         raise ValueError("Unknown job kind")
     if not 1 <= len(unique_key) <= 128:
@@ -63,6 +64,7 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         "live_send_enabled": settings.live_send_enabled,
         "mailbox_tests": settings.mailbox_tests_enabled and settings.app_mode != "VERCEL",
         "email_signatures": 1,
+        "whatsapp_agent": 1,
     }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:
@@ -135,6 +137,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "call_notes",
                         "score",
                         "mailbox_test",
+                        "whatsapp",
                     ]
                 ),
                 Job.state == "running",

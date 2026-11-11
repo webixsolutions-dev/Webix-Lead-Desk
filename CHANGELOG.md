@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.0 — Native WhatsApp owner agent
+
+- Owner-only encrypted API-key settings and one-time private-chat pairing.
+- Paced draft and incoming-email alerts with summary-only/full-detail sharing choice.
+- Explicit per-version APPROVE/REJECT commands; EDIT opens the existing editor/rewrite flow.
+- Replay/expiry/stale-review checks reuse email approval and scheduling policy.
+- Durable poll cursor, conservative uncertain-send handling, immediate local disconnect.
+- Paired sessions and review codes do not transfer in backups; reconnect after restore.
+
+
 ## 0.29.0
 - Add optional owner-only authenticator enrollment, password-first sign-in challenges and private single-use recovery codes. Existing accounts remain unenrolled.
 - Require password and existing factor for security changes; revoke other devices while preserving the current session. Never make MFA a sending gate.

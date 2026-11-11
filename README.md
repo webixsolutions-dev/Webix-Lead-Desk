@@ -292,3 +292,11 @@ Conversation review, lead outcomes and internal offer bundles: [design and opera
 Meeting and proposal workflow: [decision 0028](docs/decisions/0028-meeting-proposals.md).
 
 Optional owner security: Settings → System → Account security. Authenticator enrollment is off until the owner verifies a code; it never changes sending approval. Manage your own devices and save recovery codes privately. See [security design and recovery](docs/decisions/0029-optional-owner-security.md).
+
+### WhatsApp owner alerts
+
+Settings → Sending → WhatsApp Agent connects the native WhatsApp Settings → Agents API.
+Install worker v0.30 or newer, save the key privately, and send the one-time LINK code.
+Summary-only alerts are the default; full-detail sharing enables exact-version APPROVE/REJECT
+commands. EDIT returns the dashboard editor. No key is needed in chat or environment files.
+See [WhatsApp setup and behavior](docs/whatsapp-agent.md).

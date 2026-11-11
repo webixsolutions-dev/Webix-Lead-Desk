@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block heading %}WhatsApp Agent{% endblock %}
+{% block description %}Private owner notifications and exact-message approvals.{% endblock %}
+{% block content %}
+<p><a href="/settings#sending">← Back to settings</a></p>
+<section class="panel work-panel">
+<h2>Connect your own agent</h2>
+<p>In WhatsApp, open <strong>Settings → Agents → Add an agent</strong>. Name it Webix Lead Desk and copy its API key here. This is the native WhatsApp agent key, not a Business Cloud API key.</p>
+<p><strong>Worker:</strong> {{ 'Online · WhatsApp ready' if worker_online and whatsapp_worker else 'Update to v0.30 or newer and start the Windows worker' }}.</p>
+<p><strong>Connection:</strong> {{ connection.status|replace('_', ' ') if connection else 'Not configured' }}{% if connection and connection.last_poll %} · checked {{ connection.last_poll.strftime('%d %b %H:%M UTC') }}{% endif %}.</p>
+{% if pair_code %}
+<div class="panel work-panel" role="status"><h3>Finish pairing within 15 minutes</h3><p>Send this exact message to your new agent in WhatsApp:</p><p><code>LINK {{ pair_code }}</code></p><p>Keep the worker running. Refresh this page to confirm “connected”. This code is shown once; saving a key again creates a new one.</p></div>
+{% endif %}
+<p>WhatsApp agent chats are not end-to-end encrypted. Summary-only alerts omit business and message details; full review alerts share them with WhatsApp. Your API key is encrypted in this workspace and is never shown again.</p>
+<form method="post" action="/settings/whatsapp" class="work-form">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<label>WhatsApp Agent API key<input type="password" name="api_key" autocomplete="new-password" maxlength="4096" required></label>
+<label class="checkbox-row"><input type="checkbox" name="share_details" value="true">Send business details, incoming email previews and draft content to my WhatsApp agent; allow explicit approval commands.</label>
+<label class="checkbox-row"><input type="checkbox" name="confirmed" value="true" required>This is my own private agent. I want notifications while the worker runs.</label>
+<button class="button primary">Save encrypted key and pair</button>
+</form>
+{% if connection and connection.enabled %}<form method="post" action="/settings/whatsapp/disconnect" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="button secondary">Disconnect and revoke review codes</button></form>{% endif %}
+</section>
+<section class="panel work-panel"><h2>How review works</h2>
+<p>Each pending draft gets its own 24-hour code. Full alerts include the business, website, evidence excerpt, sender, recipient and email text. Open the review link to inspect the complete research, signature and any attachment before approving.</p>
+<ul><li><strong>APPROVE code</strong> — approve and schedule that exact revision, subject to all current checks and sending limits.</li><li><strong>REJECT code</strong> — reject that unsent draft.</li><li><strong>EDIT code</strong> — get its dashboard editor, where you can edit or request a rewrite.</li></ul>
+<p>Editing, a changed conversation or expired code requires fresh review. Replies always need owner approval. Reactions, “yes”, voice notes and bulk commands never approve messages. Summary-only or oversized previews require dashboard approval.</p>
+<p>New incoming emails create notifications. This integration does not send prospect emails itself, enable live sending, or read your other WhatsApp chats. Notifications are paced at one per worker poll; larger queues take longer.</p>
+</section>
+<section class="panel work-panel"><h2>Recent notification status</h2>
+<p>“Sent” means accepted by WhatsApp, not read. “Uncertain” or “sending” after a worker interruption needs dashboard review; it is not automatically resent.</p>
+{% for notice in notices %}<p>{{ notice.created_at.strftime('%d %b %H:%M UTC') }} · {{ notice.kind }} · {{ notice.state }}{% if notice.action %} · {{ notice.action|replace('_', ' ') }}{% endif %}</p>{% else %}<p>No notifications yet.</p>{% endfor %}
+</section>
+{% endblock %}

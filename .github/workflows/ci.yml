@@ -45,7 +45,8 @@ jobs:
           node-version: "24"
       - run: npm ci --ignore-scripts
         working-directory: ui-tests
-      - run: npx playwright install --with-deps chromium
+      # The hosted Ubuntu image already includes Chromium's system libraries.
+      - run: npx playwright install chromium --only-shell
         working-directory: ui-tests
       - run: npm test
         working-directory: ui-tests

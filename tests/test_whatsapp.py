@@ -211,14 +211,14 @@ def test_reaction_edit_and_reject_paths(
         item.message_id = "wamid.review"
     handle(db, factor_settings, generation, reaction("✏️", "wamid.review"))
     with db.sessions() as session:
-        item = session.get(Draft, draft.id)
-        assert item and item.state == "draft"
+        draft_item = session.get(Draft, draft.id)
+        assert draft_item and draft_item.state == "draft"
         assert not session.get(DraftApproval, draft.id)
         assert any("Edit or rewrite" in n.body for n in session.scalars(select(WhatsAppNotice)))
     handle(db, factor_settings, generation, reaction("👎", "wamid.review"))
     with db.sessions() as session:
-        item = session.get(Draft, draft.id)
-        assert item and item.state == "rejected"
+        draft_item = session.get(Draft, draft.id)
+        assert draft_item and draft_item.state == "rejected"
 
 
 @pytest.mark.parametrize(

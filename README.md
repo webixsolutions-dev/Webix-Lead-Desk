@@ -234,7 +234,7 @@ This release does not provision accounts, configure production secrets or enable
 
 ## Windows desktop setup
 
-Use the v0.23.0 Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
+Use the latest Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
 
 ### Dashboard navigation
 
@@ -296,7 +296,9 @@ Optional owner security: Settings → System → Account security. Authenticator
 ### WhatsApp owner alerts
 
 Settings → Sending → WhatsApp Agent connects the native WhatsApp Settings → Agents API.
-Install worker v0.30 or newer, save the key privately, and send the one-time LINK code.
-Summary-only alerts are the default; full-detail sharing enables exact-version APPROVE/REJECT
-commands. EDIT returns the dashboard editor. No key is needed in chat or environment files.
+Install worker v0.30.1 or newer, save the key privately, and send the one-time LINK code.
+Summary-only alerts are the default. Full-detail draft notifications show tap-friendly
+reactions: 👍 approves and schedules the exact revision, 👎 rejects it, and ✏️ returns the
+dashboard editor. Typed APPROVE/REJECT/EDIT codes remain a fallback. No key is needed in chat
+or environment files.
 See [WhatsApp setup and behavior](docs/whatsapp-agent.md).

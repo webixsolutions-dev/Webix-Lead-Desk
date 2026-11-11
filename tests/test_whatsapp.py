@@ -39,6 +39,23 @@ def incoming(text: str, *, sender: str = "user:12345", mid: str = "") -> dict[st
     }
 
 
+def reaction(
+    emoji: str,
+    parent: str,
+    *,
+    sender: str = "user:12345",
+    mid: str = "",
+) -> dict[str, Any]:
+    """Build a synthetic reaction tied to one exact outbound provider message."""
+    return {
+        "id": mid or secrets.token_hex(8),
+        "from": sender,
+        "type": "reaction",
+        "reaction": {"message_id": parent, "emoji": emoji},
+        "timestamp": str(int(utc_now().timestamp())),
+    }
+
+
 def paired(db: Database, settings: Settings, owner: Account, details: bool = True) -> str:
     """Exercise real pairing without contacting WhatsApp."""
     settings.public_base_url = "https://example.org"
@@ -120,6 +137,88 @@ def test_exact_approval_schedules_once(
         assert session.scalar(select(func.count()).select_from(SendIntent)) == 1
         item = session.get(WhatsAppNotice, ticket.id)
         assert item and item.action == "approved"
+
+
+def test_reaction_approval_schedules_exact_revision_once(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+) -> None:
+    """A suggested thumbs-up is bound to the exact delivered review notification."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    ticket = review_ticket(db, factor_settings, generation)
+    assert "👍 Approve" in ticket.body and "👎 Reject" in ticket.body and "✏️ Open" in ticket.body
+    with db.sessions.begin() as session:
+        item = session.get(WhatsAppNotice, ticket.id)
+        assert item
+        item.message_id = "wamid.review"
+    command = reaction("👍", "wamid.review")
+    handle(db, factor_settings, generation, command)
+    handle(db, factor_settings, generation, command)
+    handle(db, factor_settings, generation, reaction("👍", "wamid.review"))
+    with db.sessions() as session:
+        approval = session.get(DraftApproval, draft.id)
+        assert approval and approval.digest == draft.digest and approval.source == "owner"
+        assert session.scalar(select(func.count()).select_from(SendIntent)) == 1
+        item = session.get(WhatsAppNotice, ticket.id)
+        assert item and item.action == "approved"
+
+
+@pytest.mark.parametrize("case", ["wrong_sender", "wrong_message", "unsupported", "summary"])
+def test_reaction_shortcuts_cannot_escape_review_binding(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+    case: str,
+) -> None:
+    """Only a documented reaction from the paired owner on an actionable notice authorizes."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner, details=case != "summary")
+    ticket = review_ticket(db, factor_settings, generation)
+    with db.sessions.begin() as session:
+        item = session.get(WhatsAppNotice, ticket.id)
+        assert item
+        item.message_id = "wamid.review"
+    command = reaction("👍", "wamid.review")
+    if case == "wrong_sender":
+        command["from"] = "user:9876"
+    elif case == "wrong_message":
+        command["reaction"]["message_id"] = "wamid.other"
+    elif case == "unsupported":
+        command["reaction"]["emoji"] = "❤️"
+    handle(db, factor_settings, generation, command)
+    with db.sessions() as session:
+        assert not session.get(DraftApproval, draft.id)
+        assert session.scalar(select(func.count()).select_from(SendIntent)) == 0
+
+
+def test_reaction_edit_and_reject_paths(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+) -> None:
+    """Pencil opens review without approval; thumbs-down rejects the unsent revision."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    ticket = review_ticket(db, factor_settings, generation)
+    with db.sessions.begin() as session:
+        item = session.get(WhatsAppNotice, ticket.id)
+        assert item
+        item.message_id = "wamid.review"
+    handle(db, factor_settings, generation, reaction("✏️", "wamid.review"))
+    with db.sessions() as session:
+        draft_item = session.get(Draft, draft.id)
+        assert draft_item and draft_item.state == "draft"
+        assert not session.get(DraftApproval, draft.id)
+        assert any("Edit or rewrite" in n.body for n in session.scalars(select(WhatsAppNotice)))
+    handle(db, factor_settings, generation, reaction("👎", "wamid.review"))
+    with db.sessions() as session:
+        draft_item = session.get(Draft, draft.id)
+        assert draft_item and draft_item.state == "rejected"
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.30.1 — WhatsApp reaction shortcuts
+
+- Show tap-friendly reaction choices on every actionable full-detail draft notification.
+- Accept 👍 to approve and schedule the exact saved revision, 👎 to reject it, or ✏️ to open its editor.
+- Bind every reaction to the paired owner and exact outbound WhatsApp message ID; stale, changed, expired, summary-only and already-used notices stay blocked.
+- Keep typed APPROVE/REJECT/EDIT codes as a fallback; unsupported reactions, voice notes and free-form messages remain non-authorizing.
+
 ## 0.30.0 — Native WhatsApp owner agent
 
 - Owner-only encrypted API-key settings and one-time private-chat pairing.

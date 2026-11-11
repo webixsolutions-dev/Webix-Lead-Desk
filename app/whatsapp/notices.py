@@ -3,6 +3,7 @@
 import secrets
 from datetime import timedelta
 
+from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
@@ -13,7 +14,6 @@ from app.db.lead_models import Company
 from app.db.outreach_models import Draft
 from app.db.research_models import Evidence
 from app.db.session import Database
-from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 
 
 def add_notice(
@@ -84,8 +84,11 @@ def draft_message(
         f"Subject: {data['subject']}\n\n{message_text}\n\n"
         f"Full review, signature, attachments and research:\n{link}\n\n"
         "Review the full message at that link, including its saved signature/attachments. "
-        f"Then send APPROVE {code} to approve and schedule this version only.\n"
-        f"REJECT {code} to hold it, or EDIT {code} for the editor.\n"
+        "Quick actions — react directly to this WhatsApp message:\n"
+        "👍 Approve and schedule this exact version\n"
+        "👎 Reject and hold it\n"
+        "✏️ Open the editor/rewrite page\n"
+        f"Typed fallback: APPROVE {code}, REJECT {code}, or EDIT {code}.\n"
         "Code expires in 24 hours. Sending limits and current checks still apply."
     )
     if len(text) > 4096:

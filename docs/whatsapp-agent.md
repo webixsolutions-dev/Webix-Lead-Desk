@@ -29,13 +29,15 @@ will delay alerts. No transport runs inside Vercel HTTP requests.
 Full-detail notices include the business, website, a bounded evidence excerpt, sender,
 recipient, subject and exact plain-text message including signature text/footer. The
 review link shows the complete research, rendered signature and attachments. Review
-that full message before entering its explicit `APPROVE <code>` command. That action
-approves and schedules exactly the bound digest through the existing email services.
+that full message before reacting to the notification. React 👍 to approve and schedule
+exactly the bound digest through the existing email services, 👎 to reject it, or ✏️ to
+open its editor/rewrite page. The typed `APPROVE/REJECT/EDIT <code>` commands remain
+available as a fallback.
 Live sending still depends on worker controls, limits, suppression and contact checks.
 
-`REJECT <code>` rejects the unsent revision. `EDIT <code>` returns the dashboard editor,
-including its existing rewrite and owner price controls. Free-form WhatsApp rewrites,
-voice commands, reactions and bulk approvals are not supported. “Yes” does nothing.
+Free-form WhatsApp rewrites, voice commands, arbitrary reactions and bulk approvals are
+not supported. “Yes” does nothing. A supported reaction is accepted only when it targets
+the provider message ID of a current, full-detail draft notice from the paired owner.
 
 Codes expire after 24 hours. Edited/superseded content, new replies, changed signatures,
 suppression or other current eligibility failures cannot bypass existing review policy.
@@ -69,7 +71,8 @@ approval session. Other encrypted credentials retain the existing backup behavio
 - `GET /updates`: persisted `next_offset`; `offset=0` during pairing; bounded batches.
 - `POST /messages`: text only, max 4096 characters, no URL previews, opaque `user:` recipient.
 - 12 message requests/minute and 15 poll requests/minute; worker pacing stays below both.
-- Receive-only reactions are intentionally ignored for authorization.
+- Reactions are receive-only. The worker binds 👍/👎/✏️ to the exact outbound draft
+  notification message ID; the API does not offer native buttons or list menus.
 
 Offline tests use synthetic payloads and never contact WhatsApp or email prospects. Live
 pairing/delivery can only be verified after the owner adds their own key in the dashboard.

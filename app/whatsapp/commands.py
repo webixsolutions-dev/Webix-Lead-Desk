@@ -5,6 +5,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -14,10 +15,11 @@ from app.core.security import token_hash
 from app.db.models import AuditEvent, User
 from app.db.outreach_models import Draft
 from app.db.session import Database
-from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
 from app.drafting.service import approve
 from app.sending.schedule import schedule
 from app.whatsapp.notices import add_notice
+
+REACTION_ACTIONS = {"👍": "APPROVE", "👎": "REJECT", "✏️": "EDIT"}
 
 
 def handle(db: Database, settings: Settings, generation: str, message: dict[str, Any]) -> None:
@@ -29,6 +31,9 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
         if message.get("type") == "text" and isinstance(payload, dict)
         else ""
     )
+    reaction = message.get("reaction")
+    if message.get("type") != "reaction" or not isinstance(reaction, dict):
+        reaction = {}
     if not isinstance(mid, str) or not 1 <= len(mid) <= 300 or not isinstance(text, str):
         return
     if not isinstance(sender, str) or not re.fullmatch(r"user:[0-9]{1,80}", sender):
@@ -68,35 +73,57 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
                         "paired",
                         "status",
                         "Webix Lead Desk connected. Alerts arrive while your worker runs. "
-                        "Only explicit APPROVE codes authorize email. Replies always need "
-                        "your approval. Open dashboard to edit or rewrite a draft.",
+                        "For a draft notification, react 👍 to approve, 👎 to reject or "
+                        "✏️ to edit. Typed commands remain available. Replies always need "
+                        "your approval.",
                     )
                     session.add(AuditEvent(actor_id=actor.id, action="whatsapp.paired"))
                 return
             if sender != connection.recipient:
                 return
             match = re.fullmatch(r"(APPROVE|REJECT|EDIT) ([A-F0-9]{16})", text.strip())
-            if not match:
-                # No LLM interpretations, reaction approvals, quoted text or bulk commands.
+            emoji = reaction.get("emoji")
+            parent_id = reaction.get("message_id")
+            reaction_action = REACTION_ACTIONS.get(emoji) if isinstance(emoji, str) else None
+            if not match and (
+                not reaction_action
+                or not isinstance(parent_id, str)
+                or not 1 <= len(parent_id) <= 300
+            ):
+                # No LLM interpretations, quoted text, arbitrary emoji or bulk commands.
                 return
-            action, code = match.groups()
-            notice = session.scalar(
-                select(WhatsAppNotice).where(
-                    WhatsAppNotice.code == code,
-                    WhatsAppNotice.generation == generation,
-                    WhatsAppNotice.kind == "draft",
-                    WhatsAppNotice.state == "sent",
-                    WhatsAppNotice.action == "",
-                    WhatsAppNotice.expires_at > now,
+            if match:
+                action, code = match.groups()
+                notice = session.scalar(
+                    select(WhatsAppNotice).where(
+                        WhatsAppNotice.code == code,
+                        WhatsAppNotice.generation == generation,
+                        WhatsAppNotice.kind == "draft",
+                        WhatsAppNotice.state == "sent",
+                        WhatsAppNotice.action == "",
+                        WhatsAppNotice.expires_at > now,
+                    )
                 )
-            )
+            else:
+                action = reaction_action
+                notice = session.scalar(
+                    select(WhatsAppNotice).where(
+                        WhatsAppNotice.message_id == parent_id,
+                        WhatsAppNotice.message_id != "",
+                        WhatsAppNotice.generation == generation,
+                        WhatsAppNotice.kind == "draft",
+                        WhatsAppNotice.state == "sent",
+                        WhatsAppNotice.action == "",
+                        WhatsAppNotice.expires_at > now,
+                    )
+                )
             if not notice or not notice.draft_id or when < notice.created_at - timedelta(seconds=5):
                 add_notice(
                     session,
                     connection,
                     "command:" + command_id,
                     "status",
-                    "That code is expired, already used or unavailable. Review the current "
+                    "That action is expired, already used or unavailable. Review the current "
                     f"draft in {settings.public_base_url}/outbox",
                 )
                 return

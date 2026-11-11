@@ -1,11 +1,15 @@
-# Webix Lead Desk v0.29.0
+# Webix Lead Desk v0.30.0
 
-The complete Command Center update includes business evidence and exact-message review, conversation checks, reusable service bundles, meeting briefs, reviewed proposals and optional owner security.
+Connect your own native WhatsApp agent for private owner alerts and exact-version email approvals.
 
-Settings → System → Account security now offers an optional authenticator, private single-use recovery codes, signed-in devices and sign-out of other devices. The owner chooses whether to enable it. It starts off and does not change sending approval or worker readiness.
+1. Stop the Windows companion, install this release once, then Start Worker. Existing encrypted desktop settings stay with the same Windows account.
+2. In the dashboard, open Settings → Sending → WhatsApp Agent. Paste the API key from WhatsApp → Settings → Agents. Keys are encrypted and never shown again.
+3. Choose summary-only alerts or explicitly share business/email details to enable WhatsApp approvals. Save, then send the displayed LINK code to your agent within 15 minutes.
 
-Today prioritizes replies and meeting/proposal work. Each reply still requires owner approval. Proposal Word export does not send mail: record actual manual delivery separately, then review day 2, 5 and 9 reminders. LinkedIn conversations and invitation results still require the supported manual workflow; no automatic chat connection is implied. Bookings are internal confirmed records, not external calendar synchronization.
+Full-detail alerts show the business, website, evidence excerpt, exact email text and a complete dashboard review link. After reviewing the full message, signature and attachments, send APPROVE followed by its code to approve and schedule that version. REJECT holds the unsent draft; EDIT opens the dashboard editor/rewrite flow. Codes expire after 24 hours and stale revisions cannot bypass current checks.
 
-Migration 0025 adds private owner security records. Stop the Windows companion, install this matching release once, then Start Worker. Existing encrypted desktop settings are retained in the same Windows account. Normal guidance, offers, campaign and sender edits in the dashboard do not require reinstalling. Future worker-code/schema changes may require another worker update.
+New incoming emails trigger alerts while the worker runs. Every reply still requires owner approval. This integration does not enable live email sending, paid AI or LinkedIn automation. WhatsApp agent chats are not end-to-end encrypted; summary-only sharing is the default. Reactions, voice notes, bulk approvals and free-form WhatsApp rewrites are not approval commands.
 
-The AI meter keeps confirmed spend, reservations and expiry separate; credits never reset automatically. No paid providers or outreach were activated by this update. Sending/call windows remain unchanged.
+Migration 0026 adds private agent pairing, notification and replay records. Backups omit agent pairing sessions, so reconnect after restoring a backup. API-key and normal dashboard settings changes do not require reinstalling; future worker-code/schema updates may require another worker update.
+
+The existing Command Center, meeting/proposal tools and optional owner authenticator remain available. Live WhatsApp delivery must be tested after the owner supplies their own key and completes pairing.

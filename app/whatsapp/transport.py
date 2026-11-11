@@ -23,7 +23,7 @@ class AgentError(Exception):
         self.code = code
 
 
-def request(token: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+def request(token: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """Send only to the official origin; never forward credentials on a redirect."""
     if not token or any(c in token for c in "\r\n"):
         raise AgentError("invalid_key")
@@ -34,6 +34,8 @@ def request(token: str, path: str, payload: dict[str, Any] | None = None) -> dic
     )
     try:
         with urllib.request.build_opener(NoRedirect()).open(req, timeout=45) as response:
+            if response.status == 204 and payload is None:
+                return None
             raw = response.read(1_000_001)
         if len(raw) > 1_000_000:
             raise AgentError("invalid_response")
@@ -55,12 +57,14 @@ def request(token: str, path: str, payload: dict[str, Any] | None = None) -> dic
         raise AgentError("invalid_response") from None
 
 
-def updates(token: str, offset: int | None) -> tuple[int, list[dict[str, Any]]]:
+def updates(token: str, offset: int | None) -> tuple[int | None, list[dict[str, Any]]]:
     """Short-poll with a durable offset; no-offset first request deliberately skips history."""
     params = {"limit": 20, "timeout": 0}
     if offset is not None:
         params["offset"] = offset
     data = request(token, "/updates?" + urllib.parse.urlencode(params))
+    if data is None:
+        return offset, []
     cursor = data.get("next_offset")
     if type(cursor) is not int or cursor < 0 or (offset is not None and cursor < offset):
         raise AgentError("invalid_response")
@@ -92,6 +96,8 @@ def send(token: str, recipient: str, body: str) -> str:
             "text": {"body": body, "preview_url": False},
         },
     )
+    if data is None:
+        raise AgentError("delivery_unknown")
     try:
         message_id = data["messages"][0]["id"]
         if not isinstance(message_id, str) or not 1 <= len(message_id) <= 300:

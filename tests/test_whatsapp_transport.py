@@ -14,21 +14,30 @@ import pytest
 from app.whatsapp import transport
 
 
+class Response(io.BytesIO):
+    """Minimal urllib response with an HTTP status."""
+
+    status = 200
+
+
 class Opener:
     """Record only synthetic requests and return a bounded in-memory response."""
 
     def __init__(self, body: bytes, error: Exception | None = None) -> None:
         self.body, self.error = body, error
+        self.status = 200
         self.request: Any = None
 
     @contextmanager
-    def open(self, request: Any, timeout: int) -> Iterator[io.BytesIO]:
+    def open(self, request: Any, timeout: int) -> Iterator[Response]:
         """Emulate urllib's response context without a socket."""
         self.request = request
         assert timeout == 45
         if self.error:
             raise self.error
-        yield io.BytesIO(self.body)
+        with Response(self.body) as response:
+            response.status = self.status
+            yield response
 
 
 def test_fixed_origin_and_bounded_body(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -86,3 +95,23 @@ def test_invalid_shapes_and_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     opener.error = TimeoutError("private details")
     with pytest.raises(transport.AgentError, match="connection_unknown"):
         transport.updates("synthetic", 0)
+
+
+@pytest.mark.parametrize("offset", [None, 0, 42])
+def test_idle_poll_preserves_offset(monkeypatch: pytest.MonkeyPatch, offset: int | None) -> None:
+    """An empty 204 is a successful idle poll, retaining the last update position."""
+    opener = Opener(b"")
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *args: opener)
+    opener.status = 204
+    assert transport.updates("synthetic", offset) == (offset, [])
+
+
+def test_empty_body_does_not_mask_invalid_responses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only a no-content poll can succeed with an empty body."""
+    opener = Opener(b"")
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *args: opener)
+    with pytest.raises(transport.AgentError, match="invalid_response"):
+        transport.updates("synthetic", 0)
+    opener.status = 204
+    with pytest.raises(transport.AgentError, match="invalid_response"):
+        transport.send("synthetic", "user:1234", "test")

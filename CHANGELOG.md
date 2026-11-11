@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.2 — WhatsApp idle polling
+
+- Treat WhatsApp's empty HTTP 204 update response as a normal idle poll, keep the last update offset and continue checking for pairing messages and queued notifications.
+
 ## 0.30.1 — WhatsApp reaction shortcuts
 
 - Show tap-friendly reaction choices on every actionable full-detail draft notification.

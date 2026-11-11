@@ -1,4 +1,6 @@
-# Webix Lead Desk v0.30.1
+# Webix Lead Desk v0.30.2
+
+This update fixes “invalid response” when the WhatsApp chat is idle. If your agent is already paired, stop the worker, install this version, then start the worker again. Your existing pairing and key are retained.
 
 Connect your own native WhatsApp agent for private owner alerts and exact-version email approvals.
 

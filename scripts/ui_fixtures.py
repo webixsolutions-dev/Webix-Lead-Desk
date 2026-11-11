@@ -102,6 +102,7 @@ def main() -> None:
                 "bookings": "/pipeline/bookings",
                 "settings": "/settings",
                 "security": "/settings/security",
+                "whatsapp": "/settings/whatsapp",
                 "linkedin": "/linkedin/plan",
                 "usage": "/settings/ai-usage",
                 "message": "/leads/preview/prairie",

@@ -154,6 +154,9 @@ def run_worker(
 
                 delegation_tick(db, settings)
                 plan_jobs(db, settings, utc_now())
+                from app.whatsapp.worker import plan as plan_whatsapp
+
+                plan_whatsapp(db, settings, utc_now())
                 if stop_event is not None and stop_event.is_set():
                     break
                 run_once(db, settings, owner, handler=lambda job: dispatch_job(db, job, settings))
@@ -193,6 +196,10 @@ def run_worker(
 
 def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> str:
     """Run an explicitly registered handler; imports are idempotent by source key."""
+    if settings is not None and job.kind == "whatsapp":
+        from app.whatsapp.worker import dispatch as whatsapp_dispatch
+
+        return whatsapp_dispatch(db, settings, job.payload["generation"])
     if job.kind == "health":
         return health_handler(job)
     if settings is not None and job.kind == "linkedin_post":

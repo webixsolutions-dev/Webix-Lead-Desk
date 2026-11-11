@@ -1,0 +1,350 @@
+"""Native-agent pairing, exact approval, privacy and interrupted-delivery regression checks."""
+
+import secrets
+from datetime import timedelta
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+
+from app.core.clock import utc_now
+from app.core.config import Settings
+from app.core.vault import read_secret
+from app.db.delivery_models import InboxMessage, IntegrationSecret, SendIntent
+from app.db.models import Job
+from app.db.outreach_models import Conversation, Draft, DraftApproval
+from app.db.session import Database
+from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
+from app.operations.portable import table_rows
+from app.whatsapp import transport
+from app.whatsapp.commands import handle
+from app.whatsapp.notices import collect
+from app.whatsapp.settings import KEY, configure, disconnect
+from app.whatsapp.worker import deliver_one, dispatch, plan
+from tests.conftest import Account, csrf_from, sign_in
+from tests.test_drafting import BODY, make_draft
+from tests.test_drafting import drafting_setup as drafting_setup
+from tests.test_research import research_company as research_company
+
+
+def incoming(text: str, *, sender: str = "user:12345", mid: str = "") -> dict[str, Any]:
+    """Build a synthetic provider text message with an independent ID."""
+    return {
+        "id": mid or secrets.token_hex(8),
+        "from": sender,
+        "type": "text",
+        "text": {"body": text},
+        "timestamp": str(int(utc_now().timestamp())),
+    }
+
+
+def paired(db: Database, settings: Settings, owner: Account, details: bool = True) -> str:
+    """Exercise real pairing without contacting WhatsApp."""
+    settings.public_base_url = "https://example.org"
+    code = configure(db, settings, owner.user.id, secrets.token_urlsafe(32), details)
+    with db.sessions() as session:
+        item = session.get(WhatsAppConnection, "primary")
+        assert item
+        generation = item.generation
+    handle(db, settings, generation, incoming("LINK " + code))
+    with db.sessions.begin() as session:
+        item = session.get(WhatsAppConnection, "primary")
+        assert item and item.recipient == "user:12345"
+        # Treat the greeting as delivered so tests focus on the selected draft.
+        for notice in session.scalars(select(WhatsAppNotice)):
+            notice.state = "sent"
+    return generation
+
+
+def review_ticket(db: Database, settings: Settings, generation: str) -> WhatsAppNotice:
+    """Create the actual full draft preview and mark its provider acceptance."""
+    collect(db, settings, generation)
+    with db.sessions.begin() as session:
+        item = session.scalar(select(WhatsAppNotice).where(WhatsAppNotice.kind == "draft"))
+        assert item
+        item.state = "sent"
+        return item
+
+
+def test_pairing_private_key_rotation_and_backup(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+) -> None:
+    """Only a fresh pairing code connects; backups cannot transfer an approval session."""
+    key = secrets.token_urlsafe(32)
+    code = configure(db, factor_settings, owner.user.id, key, True)
+    with db.sessions() as session:
+        conn = session.get(WhatsAppConnection, "primary")
+        secret = session.get(IntegrationSecret, KEY)
+        assert conn and secret and key not in secret.ciphertext
+        generation = conn.generation
+    assert read_secret(db, factor_settings, KEY) == key
+    handle(db, factor_settings, generation, incoming("hello"))
+    with db.sessions() as session:
+        conn = session.get(WhatsAppConnection, "primary")
+        assert conn and not conn.recipient
+    handle(db, factor_settings, generation, incoming("LINK " + code))
+    with db.engine.connect() as connection:
+        rows = table_rows(connection)
+        assert rows["whatsapp_connections"] == rows["whatsapp_notices"] == []
+    configure(db, factor_settings, owner.user.id, key, False)
+    handle(db, factor_settings, generation, incoming("LINK " + code))
+    with db.sessions() as session:
+        conn = session.get(WhatsAppConnection, "primary")
+        assert conn and not conn.recipient and conn.generation != generation
+    disconnect(db, owner.user.id)
+    with pytest.raises(ValueError, match="missing"):
+        read_secret(db, factor_settings, KEY)
+
+
+def test_exact_approval_schedules_once(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+) -> None:
+    """The same WhatsApp command cannot approve/send twice or bypass the email service."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    ticket = review_ticket(db, factor_settings, generation)
+    assert BODY in ticket.body and draft.snapshot["recipient"] in ticket.body
+    command = incoming("APPROVE " + ticket.code)
+    handle(db, factor_settings, generation, command)
+    handle(db, factor_settings, generation, command)
+    handle(db, factor_settings, generation, incoming("APPROVE " + ticket.code))
+    with db.sessions() as session:
+        approval = session.get(DraftApproval, draft.id)
+        assert approval and approval.digest == draft.digest and approval.source == "owner"
+        assert session.scalar(select(func.count()).select_from(SendIntent)) == 1
+        item = session.get(WhatsAppNotice, ticket.id)
+        assert item and item.action == "approved"
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "wrong_sender",
+        "reaction",
+        "expired",
+        "edited",
+        "reply",
+        "summary",
+        "disconnected",
+        "ambiguous",
+    ],
+)
+def test_approval_cannot_bypass_current_state(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+    case: str,
+) -> None:
+    """Every stale, ambiguous, unpaired or non-reviewed action leaves mail unapproved."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner, details=case != "summary")
+    ticket = review_ticket(db, factor_settings, generation)
+    command = incoming("APPROVE " + ticket.code)
+    if case == "wrong_sender":
+        command["from"] = "user:9876"
+    elif case == "reaction":
+        command["type"] = "reaction"
+    elif case == "expired":
+        with db.sessions.begin() as session:
+            item = session.get(WhatsAppNotice, ticket.id)
+            assert item
+            item.expires_at = utc_now() - timedelta(seconds=1)
+    elif case == "edited":
+        make_draft(db, drafting_setup, previous_id=draft.id, body=BODY + " Thank you.")
+    elif case == "reply":
+        with db.sessions.begin() as session:
+            conversation = session.get(Conversation, draft.conversation_id)
+            assert conversation
+            conversation.state = "replied"
+    elif case == "disconnected":
+        disconnect(db, owner.user.id)
+    elif case == "ambiguous":
+        command["text"]["body"] = "yes approve all"
+    handle(db, factor_settings, generation, command)
+    with db.sessions() as session:
+        assert not session.get(DraftApproval, draft.id)
+        assert session.scalar(select(func.count()).select_from(SendIntent)) == 0
+
+
+def test_edit_then_reject(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+) -> None:
+    """Edit returns a link without approving; reject cancels the unsent revision."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    ticket = review_ticket(db, factor_settings, generation)
+    handle(db, factor_settings, generation, incoming("EDIT " + ticket.code))
+    with db.sessions() as session:
+        item = session.get(Draft, draft.id)
+        assert item and item.state == "draft"
+        assert any("Edit or rewrite" in n.body for n in session.scalars(select(WhatsAppNotice)))
+    handle(db, factor_settings, generation, incoming("REJECT " + ticket.code))
+    with db.sessions() as session:
+        item = session.get(Draft, draft.id)
+        assert item and item.state == "rejected"
+
+
+def test_poll_deduplicates_replies_and_paces_sends(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One poll sends one notification; new replies are alerted once with bounded context."""
+    make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    with db.sessions.begin() as session:
+        session.add(
+            InboxMessage(
+                mailbox_id=drafting_setup["mailbox_id"],
+                provider_key="test",
+                dedupe_key="synthetic",
+                sender="owner@example.com",
+                subject="A real reply",
+                body="Please share your portfolio.",
+            )
+        )
+    sent: list[str] = []
+    monkeypatch.setattr(transport, "updates", lambda *args: (10, []))
+
+    def fake_send(key: str, to: str, body: str) -> str:
+        sent.append(body)
+        return "wamid.1"
+
+    monkeypatch.setattr(transport, "send", fake_send)
+    plan(db, factor_settings, utc_now())
+    plan(db, factor_settings, utc_now())
+    assert "checked" in dispatch(db, factor_settings, generation)
+    assert len(sent) == 1 and "portfolio" in sent[0]
+    dispatch(db, factor_settings, generation)
+    assert len(sent) == 2 and "APPROVE" in sent[1]
+    with db.sessions() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(WhatsAppNotice)
+                .where(WhatsAppNotice.kind == "reply")
+            )
+            == 1
+        )
+        assert (
+            session.scalar(select(func.count()).select_from(Job).where(Job.kind == "whatsapp")) == 1
+        )
+        conn = session.get(WhatsAppConnection, "primary")
+        assert conn and conn.offset == 10
+
+
+def test_uncertain_send_is_not_retried(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A provider timeout reserves the notification instead of risking a duplicate."""
+    make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    collect(db, factor_settings, generation)
+    calls: list[int] = []
+
+    def fail(*args: Any) -> str:
+        calls.append(1)
+        raise transport.AgentError("connection_unknown")
+
+    monkeypatch.setattr(transport, "send", fail)
+    with pytest.raises(transport.AgentError):
+        deliver_one(db, "synthetic", generation)
+    deliver_one(db, "synthetic", generation)
+    assert calls == [1]
+    with db.sessions() as session:
+        notice = session.scalar(select(WhatsAppNotice).where(WhatsAppNotice.kind == "draft"))
+        assert notice and notice.state == "uncertain"
+
+
+def test_owner_ui_and_csrf(
+    client: TestClient,
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    reviewer: Account,
+) -> None:
+    """Key settings require an owner session/CSRF and never reflect the secret."""
+    assert client.get("/settings/whatsapp").status_code == 303
+    sign_in(client, reviewer)
+    assert client.get("/settings/whatsapp").status_code == 403
+    sign_in(client, owner)
+    page = client.get("/settings/whatsapp")
+    key = secrets.token_urlsafe(32)
+    assert client.post("/settings/whatsapp", data={"api_key": key}).status_code == 403
+    response = client.post(
+        "/settings/whatsapp",
+        data={
+            "csrf_token": csrf_from(page.text),
+            "api_key": key,
+            "confirmed": "true",
+            "share_details": "true",
+        },
+    )
+    assert response.status_code == 200 and "LINK " in response.text
+    assert key not in response.text and key not in client.get("/settings/whatsapp").text
+    assert (
+        client.post(
+            "/settings/whatsapp/disconnect", data={"csrf_token": csrf_from(response.text)}
+        ).status_code
+        == 303
+    )
+
+
+def test_transport_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Parse the official nesting and reject malformed offsets without provider traffic."""
+    calls: list[tuple[str, Any]] = []
+
+    def fake(token: str, path: str, payload: Any = None) -> dict[str, Any]:
+        calls.append((path, payload))
+        if path.startswith("/updates"):
+            return {
+                "next_offset": 4,
+                "entry": [{"changes": [{"value": {"messages": [incoming("hello")]}}]}],
+            }
+        return {"messages": [{"id": "wamid.fake"}]}
+
+    monkeypatch.setattr(transport, "request", fake)
+    offset, messages = transport.updates("synthetic", 0)
+    assert offset == 4 and messages[0]["text"]["body"] == "hello"
+    assert transport.send("synthetic", "user:12345", "hello") == "wamid.fake"
+    assert calls[1][1]["text"]["preview_url"] is False
+    with pytest.raises(transport.AgentError):
+        transport.send("synthetic", "https://localhost", "hello")
+    with pytest.raises(transport.AgentError):
+        transport.updates("synthetic", 5)
+
+
+def test_interrupted_poll_is_recoverable(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+) -> None:
+    """A crashed polling job cannot permanently block future WhatsApp notifications."""
+    from app.jobs.queue import acquire_worker, claim_next
+
+    generation = paired(db, factor_settings, owner)
+    now = utc_now()
+    plan(db, factor_settings, now)
+    assert acquire_worker(db, factor_settings, "test-worker", now)
+    job = claim_next(db, factor_settings, "test-worker", now)
+    assert job and job.kind == "whatsapp" and job.payload["generation"] == generation
+    later = now + timedelta(seconds=factor_settings.job_lease_seconds + 1)
+    assert acquire_worker(db, factor_settings, "replacement-worker", later)
+    recovered = claim_next(db, factor_settings, "replacement-worker", later)
+    assert recovered and recovered.id == job.id and recovered.claim_token != job.claim_token

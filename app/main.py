@@ -43,6 +43,7 @@ from app.api import (
     research,
     signatures,
     sources,
+    whatsapp,
 )
 from app.core.config import Settings
 from app.core.context import Services
@@ -139,6 +140,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse({"status": "ready"})
 
     app.include_router(auth.router)
+    app.include_router(whatsapp.router)
     app.include_router(account_security.router)
     app.include_router(approval_policy.router)
     app.include_router(command.router)

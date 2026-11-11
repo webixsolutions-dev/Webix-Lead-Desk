@@ -19,6 +19,9 @@ OMIT_SESSION_TABLES = {
     "linkedin_oauth_states",
     "backup_status",
     "mfa_challenges",
+    "whatsapp_connections",
+    "whatsapp_notices",
+    "whatsapp_commands",
 }
 
 

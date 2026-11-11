@@ -5,9 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
-from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
-from app.whatsapp.settings import KEY, configure, disconnect
-from app.whatsapp.worker import deliver_one, dispatch, plan
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
@@ -18,10 +15,13 @@ from app.db.delivery_models import InboxMessage, IntegrationSecret, SendIntent
 from app.db.models import Job
 from app.db.outreach_models import Conversation, Draft, DraftApproval
 from app.db.session import Database
+from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 from app.operations.portable import table_rows
 from app.whatsapp import transport
 from app.whatsapp.commands import handle
 from app.whatsapp.notices import collect
+from app.whatsapp.settings import KEY, configure, disconnect
+from app.whatsapp.worker import deliver_one, dispatch, plan
 from tests.conftest import Account, csrf_from, sign_in
 from tests.test_drafting import BODY, make_draft
 from tests.test_drafting import drafting_setup as drafting_setup

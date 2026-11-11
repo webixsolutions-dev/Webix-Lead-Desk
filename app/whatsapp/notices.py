@@ -3,7 +3,6 @@
 import secrets
 from datetime import timedelta
 
-from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
@@ -14,6 +13,7 @@ from app.db.lead_models import Company
 from app.db.outreach_models import Draft
 from app.db.research_models import Evidence
 from app.db.session import Database
+from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 
 
 def add_notice(

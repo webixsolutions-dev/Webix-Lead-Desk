@@ -5,7 +5,6 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -15,6 +14,7 @@ from app.core.security import token_hash
 from app.db.models import AuditEvent, User
 from app.db.outreach_models import Draft
 from app.db.session import Database
+from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
 from app.drafting.service import approve
 from app.sending.schedule import schedule
 from app.whatsapp.notices import add_notice

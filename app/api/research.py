@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
-from starlette.responses import RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
 from app.core.clock import utc_now
@@ -14,6 +14,20 @@ from app.jobs.queue import enqueue
 from app.sources.validation import domain_of, website_url
 
 router = APIRouter()
+
+
+@router.get("/leads/{company_id}/qualification-brief", response_class=PlainTextResponse)
+def copy_qualification_brief(
+    request: Request, principal: Owner, company_id: str, campaign_id: str
+) -> PlainTextResponse:
+    """Open a private research brief for use in the owner's own ChatGPT session."""
+    from app.audit.ai import qualification_brief
+
+    try:
+        text = qualification_brief(services(request).db, company_id, campaign_id)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    return PlainTextResponse(text)
 
 
 @router.post("/leads/{company_id}/audit")

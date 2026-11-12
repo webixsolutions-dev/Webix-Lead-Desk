@@ -5,6 +5,7 @@
 - Apply an owner-published service qualification playbook to assessments and campaign drafts.
 - Record support, intake, self-service and commerce link paths in public website audits.
 - Screen current catalogue services across each business. Services outside the campaign appear as review alternatives.
+- Provide a copyable lead qualification brief for manual ChatGPT use without an API call.
 
 ## 0.30.5 — Website qualification and shared campaign sender
 

@@ -28,5 +28,14 @@
   {% endfor %}
 </section>
 {% endif %}
-{% if user.role == 'owner' and campaigns %}<form method="post" action="/leads/{{ company_record.id }}/assess" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Campaign<select name="campaign_id">{% for item in campaigns %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></label><button class="button secondary">Queue AI hypothesis</button><p class="small muted">Requires an enabled API, verified funding and configured rates. A ChatGPT subscription is separate.</p></form>{% endif %}
+{% if user.role == 'owner' and campaigns %}
+{% if evidence %}
+<details class="work-panel">
+  <summary>Assess this lead in your own ChatGPT session</summary>
+  <p class="small muted">Open a campaign brief and copy it into ChatGPT. Lead Desk makes no API call.</p>
+  <ul>{% for campaign in campaigns %}<li><a href="/leads/{{ company_record.id }}/qualification-brief?campaign_id={{ campaign.id }}" target="_blank" rel="noopener noreferrer">{{ campaign.name }} qualification brief ↗</a></li>{% endfor %}</ul>
+</details>
+{% endif %}
+<form method="post" action="/leads/{{ company_record.id }}/assess" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Campaign<select name="campaign_id">{% for item in campaigns %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></label><button class="button secondary">Queue AI hypothesis</button><p class="small muted">Requires an enabled API, verified funding and configured rates. A ChatGPT subscription is separate.</p></form>
+{% endif %}
 </section>

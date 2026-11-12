@@ -3,6 +3,7 @@
 import json
 import math
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -16,7 +17,7 @@ from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import openai_key
 from app.db.lead_models import Campaign, CampaignLead
-from app.db.research_models import Assessment
+from app.db.research_models import Assessment, Evidence
 from app.db.session import Database
 from app.integrations.openai import ModelUnavailable, create_response
 from app.playbook.catalog import qualification_offers
@@ -59,6 +60,96 @@ INSTRUCTIONS = (
 )
 
 
+@dataclass(frozen=True)
+class QualificationInput:
+    """One evidence and catalogue snapshot for assessment and review."""
+
+    data: dict[str, Any]
+    evidence: list[Evidence]
+    enabled: list[str]
+    discovery: list[str]
+    catalogue: list[str]
+
+
+def qualification_input(
+    db: Database, company_id: str, campaign_id: str, *, require_active: bool = True
+) -> QualificationInput:
+    """Gather the current playbook, observed facts and eligible service options."""
+    with db.sessions() as session:
+        campaign = session.get(Campaign, campaign_id)
+        membership = session.scalar(
+            select(CampaignLead.id).where(
+                CampaignLead.company_id == company_id, CampaignLead.campaign_id == campaign_id
+            )
+        )
+        from app.audit.coverage import coverage, evidence_bundle
+        from app.playbook.industries import context as industry_context
+
+        evidence = evidence_bundle(session, company_id)
+        if (
+            not campaign
+            or (require_active and not campaign.active)
+            or not membership
+            or not evidence
+        ):
+            if require_active:
+                raise ValueError("An active campaign and stored evidence are required")
+            raise ValueError("Choose a campaign linked to this business and record evidence first")
+        qualification = latest_guidance(session, QUALIFICATION_SCOPE)
+        catalogue = qualification_offers(session)
+        offers = [offer for offer in catalogue if offer.service in campaign.services]
+        catalogue_services = sorted({offer.service for offer in catalogue})
+        enabled = sorted({offer.service for offer in offers})
+        discovery = sorted(set(enabled) - {o.service for o in offers if o.status == "available"})
+        industry = industry_context(session, campaign.industry)
+    data: dict[str, Any] = {
+        "enabled_services": enabled,
+        "campaign_lane": campaign.lane,
+        "today_utc": utc_now().date().isoformat(),
+        "discovery_only_rule": ("Use ask_first only; do not recommend these as ready delivery"),
+        "available_offers": [
+            {
+                "service": o.service,
+                "name": o.name,
+                "scope": o.description,
+                "status": o.status,
+            }
+            for o in offers
+        ],
+        "outside_campaign_offers_for_review": [
+            {"service": o.service, "name": o.name, "status": o.status}
+            for o in catalogue
+            if o.service not in enabled
+        ],
+        "industry_prior": industry,
+        "owner_service_qualification": qualification.guidance if qualification else "",
+        "coverage": coverage(evidence),
+        "evidence": [
+            {
+                "id": item.id,
+                "kind": item.kind,
+                "source_url": item.source_url,
+                "observed_at": item.observed_at.isoformat(),
+                "facts": item.facts,
+            }
+            for item in evidence
+        ],
+    }
+    return QualificationInput(data, evidence, enabled, discovery, catalogue_services)
+
+
+def qualification_brief(db: Database, company_id: str, campaign_id: str) -> str:
+    """Provide a copyable assessment brief without contacting a model provider."""
+    source = qualification_input(db, company_id, campaign_id, require_active=False)
+    return (
+        INSTRUCTIONS
+        + "\n\nReturn the decision, one eligible service if appropriate, the observed evidence, "
+        "what to confirm, one buyer question and any outside-campaign ideas for review. "
+        "Assess the business only. Do not draft or send an outreach message.\n\n"
+        + json.dumps(source.data, ensure_ascii=False, indent=2)
+    )
+
+
 def assess(
     db: Database,
     settings: Settings,
@@ -81,68 +172,13 @@ def assess(
         api_key = openai_key(db, settings)
     except ValueError as error:
         raise BudgetBlocked("Save a valid OpenAI connection before enabling AI") from error
-    with db.sessions() as session:
-        campaign = session.get(Campaign, campaign_id)
-        membership = session.scalar(
-            select(CampaignLead.id).where(
-                CampaignLead.company_id == company_id, CampaignLead.campaign_id == campaign_id
-            )
-        )
-        from app.audit.coverage import coverage, evidence_bundle
-        from app.playbook.industries import context as industry_context
-
-        evidence = evidence_bundle(session, company_id)
-        if not campaign or not campaign.active or not membership or not evidence:
-            raise ValueError("An active campaign and stored evidence are required")
-        qualification = latest_guidance(session, QUALIFICATION_SCOPE)
-        catalogue = qualification_offers(session)
-        offers = [offer for offer in catalogue if offer.service in campaign.services]
-        catalogue_services = sorted({offer.service for offer in catalogue})
-        enabled = sorted({offer.service for offer in offers})
-        discovery = sorted(set(enabled) - {o.service for o in offers if o.status == "available"})
-        industry = industry_context(session, campaign.industry)
+    source = qualification_input(db, company_id, campaign_id)
     payload: dict[str, Any] = {
         "model": settings.openai_model,
         "store": False,
         "instructions": INSTRUCTIONS,
         "max_output_tokens": settings.openai_max_output_tokens,
-        "input": json.dumps(
-            {
-                "enabled_services": enabled,
-                "campaign_lane": campaign.lane,
-                "today_utc": utc_now().date().isoformat(),
-                ("discovery_only_rule"): (
-                    "Use ask_first only; do not recommend these as ready delivery"
-                ),
-                "available_offers": [
-                    {
-                        "service": o.service,
-                        "name": o.name,
-                        "scope": o.description,
-                        "status": o.status,
-                    }
-                    for o in offers
-                ],
-                "outside_campaign_offers_for_review": [
-                    {"service": o.service, "name": o.name, "status": o.status}
-                    for o in catalogue
-                    if o.service not in enabled
-                ],
-                "industry_prior": industry,
-                "owner_service_qualification": qualification.guidance if qualification else "",
-                "coverage": coverage(evidence),
-                "evidence": [
-                    {
-                        "id": item.id,
-                        "kind": item.kind,
-                        "source_url": item.source_url,
-                        "observed_at": item.observed_at.isoformat(),
-                        "facts": item.facts,
-                    }
-                    for item in evidence
-                ],
-            }
-        ),
+        "input": json.dumps(source.data),
         "text": {
             "format": {
                 "type": "json_schema",
@@ -201,10 +237,10 @@ def assess(
             raise ModelUnavailable("Model returned no single structured result")
         result = validate_recommendation(
             Recommendation.model_validate_json(texts[0]),
-            evidence,
-            enabled,
-            discovery_services=discovery,
-            catalogue_services=catalogue_services,
+            source.evidence,
+            source.enabled,
+            discovery_services=source.discovery,
+            catalogue_services=source.catalogue,
         )
         settle(db, call.id, actual, result.model_dump_json())
         with db.sessions.begin() as session:

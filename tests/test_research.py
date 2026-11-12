@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import func, select
 
-from app.audit.ai import assess
+from app.audit.ai import assess, qualification_brief
 from app.audit.budget import BudgetBlocked, reserve, settle
 from app.audit.classify import Recommendation, validate_recommendation
 from app.audit.extract import extract
@@ -473,6 +473,9 @@ def test_ai_structure_budget_and_invented_source_guard(
     brief = build_brief(db, company.id, campaign.id)
     assert rubric in brief
     assert outside_service not in brief
+    manual_brief = qualification_brief(db, company.id, campaign.id)
+    assert rubric in manual_brief
+    assert outside_service in manual_brief
     with pytest.raises(ValueError, match="Select one enabled service"):
         validate_recommendation(
             Recommendation.model_validate({**result, "service": outside_service}),
@@ -525,7 +528,7 @@ def test_research_routes_require_role_csrf_and_source(
     db: Database, client: TestClient, owner: Account, research_company: tuple[Company, Campaign]
 ) -> None:
     """The lead page exposes real evidence, owner queuing and attributable manual review."""
-    company, _ = research_company
+    company, campaign = research_company
     sign_in(client, owner)
     page = client.get(f"/leads/{company.id}")
     assert "Evidence before outreach" in page.text
@@ -544,10 +547,20 @@ def test_research_routes_require_role_csrf_and_source(
         ).status_code
         == 303
     )
+    page = client.get(f"/leads/{company.id}")
+    assert "Assess this lead in your own ChatGPT session" in page.text
+    response = client.get(
+        f"/leads/{company.id}/qualification-brief", params={"campaign_id": campaign.id}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert response.headers["cache-control"] == "no-store"
+    assert "The service menu is visible on mobile." in response.text
     assert client.post(f"/leads/{company.id}/audit", data={"csrf_token": ""}).status_code == 403
     assert client.post(f"/leads/{company.id}/assess", data={"csrf_token": csrf}).status_code == 422
     with db.sessions() as session:
         assert session.scalar(select(Evidence.reviewed_by)) == owner.user.id
+        assert session.scalar(select(func.count()).select_from(AICall)) == 0
     assert (
         client.post(
             "/settings/ai-funding",

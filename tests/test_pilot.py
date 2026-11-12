@@ -260,7 +260,7 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
             "mailbox_tests": False,
             "email_signatures": 1,
             "whatsapp_agent": 1,
-            "campaign_sender_policy": 1,
+            "campaign_sender_policy": 2,
         }
 
 

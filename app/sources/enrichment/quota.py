@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit.budget import BudgetBlocked, reserve_in_session, settle
+from app.audit.provider_pause import pause, paused_event
 from app.core.timezones import zone
 from app.db.acquisition_models import SearchBucket, SearchRecord
 from app.db.session import Database
@@ -83,6 +84,10 @@ def reserve_search(
                 )
                 if not changed:
                     raise BudgetBlocked("Daily/monthly search quota or monthly cost cap reached")
+            if places and paused_event(session, "google_places"):
+                raise BudgetBlocked(
+                    "Google Places is paused after a failed request; review it in Settings"
+                )
             if session.scalar(
                 select(SearchRecord.id)
                 .where(
@@ -138,6 +143,8 @@ def settle_search(db: Database, record: SearchRecord, actual: int | None) -> Non
             .values(state="complete" if actual is not None else "uncertain")
             .returning(SearchRecord.id)
         )
+        if changed and actual is None and record.provider == "google_places":
+            pause(session, "google_places", record.id)
         if changed and actual is not None:
             for key in bucket_keys(record.provider, record.created_at):
                 session.execute(

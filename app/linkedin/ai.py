@@ -203,6 +203,6 @@ def generate(
         )
         settle(db, call.id, actual, saved.id)
         return "A new unapproved LinkedIn suggestion is ready for review."
-    except Exception:
-        settle(db, call.id, actual)
+    except Exception as error:
+        settle(db, call.id, actual, provider_failed=isinstance(error, ModelUnavailable))
         raise

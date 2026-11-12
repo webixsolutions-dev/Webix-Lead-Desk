@@ -52,8 +52,8 @@
       {% endif %}
       {% if campaign.id in campaign_sender_requirements %}
         {% set sender = campaign_sender_requirements[campaign.id] %}
-        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · @{{ sender.domain }}</p>
-        {% if not draft_only %}<p class="small muted">Start worker v0.30.4 or newer before activating this campaign.</p>{% endif %}
+        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · {{ sender.email or ('@' ~ sender.domain) }}</p>
+        {% if not draft_only %}<p class="small muted">Start worker v0.30.5 or newer before activating this campaign.</p>{% endif %}
       {% endif %}
       <form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">

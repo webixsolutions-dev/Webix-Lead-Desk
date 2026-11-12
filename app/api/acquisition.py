@@ -10,12 +10,15 @@ from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
+from app.audit.provider_pause import PROVIDERS, paused_event
 from app.calls.listing import ListingReview, review_listing
 from app.core.clock import utc_now
 from app.core.preferences import SettingsConflict
 from app.core.vault import store_secret
 from app.db.acquisition_models import SearchRecord
+from app.db.delivery_models import IntegrationSecret
 from app.db.lead_models import Campaign, CampaignLead, Company
+from app.db.models import AuditEvent
 from app.db.outreach_models import Draft, Offer
 from app.jobs.queue import enqueue
 from app.scoring.service import LABELS, Rules, current_rules, save_rules
@@ -28,13 +31,45 @@ def settings_data(request: Request) -> dict[str, Any]:
     """Return non-secret current search configuration and versioned scoring rules."""
     config, version = get_config(services(request).db)
     rules, rules_version = current_rules(services(request).db)
+    with services(request).db.sessions() as session:
+        paused = [
+            {"provider": key, "label": label, "id": event.id, "at": event.created_at}
+            for key, label in PROVIDERS.items()
+            if (event := paused_event(session, key))
+        ]
+        pagespeed_connected = session.get(IntegrationSecret, "pagespeed") is not None
     return {
         "search_config": config,
         "search_version": version,
         "score_rules": rules.model_dump(),
         "score_version": rules_version,
         "score_labels": LABELS,
+        "paused_providers": paused,
+        "pagespeed_connected": pagespeed_connected,
     }
+
+
+@router.post("/settings/api-resume")
+async def resume_api(request: Request, principal: Owner) -> RedirectResponse:
+    """Acknowledge a failure for new requests without rerunning any failed jobs."""
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    provider = fields.get("provider", "")
+    if provider not in PROVIDERS:
+        raise HTTPException(422, "Choose a paused provider")
+    with services(request).db.sessions.begin() as session:
+        event = paused_event(session, provider)
+        if not event or event.id != fields.get("pause_id"):
+            raise HTTPException(409, "Provider state changed; reload before resuming")
+        session.add(
+            AuditEvent(
+                actor_id=principal.user.id,
+                action="api.resumed",
+                entity_id=provider,
+                details={"pause_id": event.id},
+            )
+        )
+    return RedirectResponse("/settings#acquisition", 303)
 
 
 @router.post("/settings/acquisition")

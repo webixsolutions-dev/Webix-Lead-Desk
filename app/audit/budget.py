@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit.provider_pause import pause, paused_event
 from app.db.research_models import AICall, BudgetAccount
 from app.db.session import Database
 
@@ -73,6 +74,8 @@ def reserve_in_session(
     )
     if not changed:
         raise BudgetBlocked("Verified funding is missing, expired or at its spending limit")
+    if paused_event(session, "openai"):
+        raise BudgetBlocked("OpenAI is paused after a failed request; review it in Settings")
     from app.audit.monthly import check
 
     check(session, category, maximum, now)
@@ -90,7 +93,14 @@ def reserve_in_session(
     return call
 
 
-def settle(db: Database, call_id: str, actual: int | None, result: str | None = None) -> None:
+def settle(
+    db: Database,
+    call_id: str,
+    actual: int | None,
+    result: str | None = None,
+    *,
+    provider_failed: bool = False,
+) -> None:
     """Release only proven unused cost; an unknown provider outcome holds its full reserve."""
     with db.sessions.begin() as session:
         call = session.get(AICall, call_id)
@@ -108,6 +118,8 @@ def settle(db: Database, call_id: str, actual: int | None, result: str | None = 
             .values(state=state, charged=actual, result=result)
             .returning(AICall.id)
         )
+        if changed and (actual is None or provider_failed):
+            pause(session, "openai", call.id)
         if changed and actual is not None:
             session.execute(
                 update(BudgetAccount)

@@ -2,19 +2,25 @@
 
 from sqlalchemy.orm import Session
 
+from app.db.lead_models import Campaign
 from app.db.models import WorkspaceSetting
 from app.db.outreach_models import Mailbox
 
 SENDER_KEY_PREFIX = "campaign_sender:"
 WORKER_CAPABILITY = "campaign_sender_policy"
+WORKER_POLICY_VERSION = 2
 
 
-def sender_matches(session: Session, campaign_id: str, mailbox: Mailbox) -> bool:
-    """Reject a mailbox that differs from the campaign's required brand or domain."""
-    requirement = session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id)
+def sender_matches(session: Session, campaign: Campaign, mailbox: Mailbox) -> bool:
+    """Require the assigned lane or an explicitly shared, exact business address."""
+    same_lane = mailbox.lane == campaign.lane
+    requirement = session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign.id)
     if requirement is None:
-        return True
+        return same_lane
+    email = str(requirement.value.get("email", "")).strip().casefold()
     return (
-        mailbox.email.rpartition("@")[2].casefold() == requirement.value.get("domain")
+        (same_lane or (bool(email) and requirement.value.get("shared") is True))
+        and (not email or mailbox.email.casefold() == email)
+        and mailbox.email.rpartition("@")[2].casefold() == requirement.value.get("domain")
         and mailbox.brand.strip().casefold() == str(requirement.value.get("brand", "")).casefold()
     )

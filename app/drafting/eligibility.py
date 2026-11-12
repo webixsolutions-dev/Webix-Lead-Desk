@@ -80,7 +80,15 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
         if (
             company
             and campaign
-            and (reason := meeting_block(session, company, campaign, snapshot["body"]))
+            and (
+                reason := meeting_block(
+                    session,
+                    company,
+                    campaign,
+                    f"{snapshot['subject']}\n{snapshot['body']}",
+                    kind=draft.kind,
+                )
+            )
         ):
             reasons.append(reason)
         if (
@@ -100,9 +108,7 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             or conversation.campaign_id != snapshot["campaign_id"]
         ):
             reasons.append("Conversation routing changed")
-        if campaign and mailbox and campaign.lane != mailbox.lane:
-            reasons.append("Sender lane does not match the campaign")
-        if campaign and mailbox and not sender_matches(session, campaign.id, mailbox):
+        if campaign and mailbox and not sender_matches(session, campaign, mailbox):
             reasons.append("Sender domain or brand does not match the campaign")
         if (
             not mailbox

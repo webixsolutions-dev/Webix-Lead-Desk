@@ -236,7 +236,7 @@ async def save_local_member(request: Request, principal: Owner) -> RedirectRespo
     if (
         not 2 <= len(name) <= 120
         or len(city) > 120
-        or country not in {"CA", "US"}
+        or country not in {"CA", "US", "AE", "NZ"}
         or fields.get("confirmed") != "true"
     ):
         raise HTTPException(422, "Confirm a real person's name and city/country")

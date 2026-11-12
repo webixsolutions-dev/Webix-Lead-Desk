@@ -246,10 +246,8 @@ def advance(db: Database, settings: Settings, job: Job) -> str:
         contacts = list(session.scalars(select(Contact).where(Contact.company_id == company_id)))
         mailboxes = [
             mailbox
-            for mailbox in session.scalars(
-                select(Mailbox).where(Mailbox.lane == campaign.lane, Mailbox.enabled.is_(True))
-            )
-            if sender_matches(session, campaign.id, mailbox)
+            for mailbox in session.scalars(select(Mailbox).where(Mailbox.enabled.is_(True)))
+            if sender_matches(session, campaign, mailbox)
         ]
         conversation = session.scalar(
             select(Conversation.id).where(Conversation.company_id == company_id)

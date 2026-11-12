@@ -126,6 +126,17 @@ def test_partner_seed_and_local_meeting_are_owner_data(
         assert not meeting_block(
             session, company, campaign, "Example Person can meet you in person."
         )
+        campaign.country, member.country = "NZ", "NZ"
+        session.flush()
+        assert not meeting_block(
+            session, company, campaign, "We can arrange a local meeting.", kind="first_touch"
+        )
+        assert meeting_block(
+            session, company, campaign, "Example Person can meet you in person.", kind="first_touch"
+        )
+        assert not meeting_block(
+            session, company, campaign, "Example Person can meet you in person.", kind="reply"
+        )
         member.city = "Unrelated city"
         assert meeting_block(session, company, campaign, "Example Person can meet you in person.")
         member.city = ""

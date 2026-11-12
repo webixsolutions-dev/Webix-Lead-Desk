@@ -1,6 +1,7 @@
 """Deterministic HTML extraction; script contents and commands are never executed."""
 
 import re
+from contextlib import suppress
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlsplit
@@ -20,6 +21,11 @@ class Extractor(HTMLParser):
         self.title: list[str] = []
         self.text: list[str] = []
         self.description = ""
+        self.canonical = ""
+        self.robots: dict[str, str] = {}
+        self.heading_count = 0
+        self.images_missing_alt = 0
+        self.structured_data_blocks = 0
         self.viewport = False
         self.forms = 0
         self.links: list[str] = []
@@ -29,6 +35,8 @@ class Extractor(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Read HTML attributes as untrusted data with no browser side effects."""
         data = dict(attrs)
+        if not self.ignored and tag == "script" and data.get("type") == "application/ld+json":
+            self.structured_data_blocks += 1
         if tag in {"script", "style", "template", "noscript"}:
             self.ignored += 1
         if self.ignored:
@@ -41,6 +49,23 @@ class Extractor(HTMLParser):
                 self.description = (data.get("content") or "")[:500]
             if name == "viewport":
                 self.viewport = True
+            if name in {"robots", "googlebot"}:
+                self.robots[name] = (data.get("content") or "")[:300]
+        if (
+            tag == "link"
+            and not self.canonical
+            and "canonical" in (data.get("rel") or "").lower().split()
+        ):
+            with suppress(ValueError):
+                self.canonical = (
+                    website_url(urljoin(self.url, data.get("href") or ""))
+                    if data.get("href")
+                    else ""
+                )
+        if tag == "h1":
+            self.heading_count += 1
+        if tag == "img" and "alt" not in data:
+            self.images_missing_alt += 1
         if tag == "form":
             self.forms += 1
         if tag == "a":
@@ -96,6 +121,16 @@ class Extractor(HTMLParser):
         return {
             "title": " ".join(self.title)[:300],
             "description": self.description,
+            "seo": {
+                "scope": "Public HTML of this page",
+                "title_present": bool("".join(self.title).strip()),
+                "meta_description_present": bool(self.description.strip()),
+                "canonical_declared": self.canonical,
+                "robots_meta": self.robots,
+                "main_heading_elements": self.heading_count,
+                "images_missing_alt_attribute": self.images_missing_alt,
+                "json_ld_blocks": self.structured_data_blocks,
+            },
             "viewport_declared": self.viewport,
             "form_elements": self.forms,
             "emails": sorted(self.emails)[:10],

@@ -83,15 +83,14 @@ def save_draft(
                 or not contact
                 or contact.company_id != company_id
                 or not mailbox
-                or mailbox.lane != campaign.lane
                 or not member
             ):
                 raise ValueError("Choose a contact and sender matching this business and campaign")
-            if not sender_matches(session, campaign.id, mailbox):
+            if not sender_matches(session, campaign, mailbox):
                 raise ValueError("Choose the business email and brand required by this campaign")
             company = session.get(Company, company_id)
             assert company
-            if reason := meeting_block(session, company, campaign, body):
+            if reason := meeting_block(session, company, campaign, f"{subject}\n{body}", kind=kind):
                 raise ValueError(reason)
             if campaign.lane == "partner" and (
                 mailbox.provider != "hostinger" or mailbox.brand.casefold() != "webix solutions"

@@ -43,7 +43,7 @@ def evidence_bundle(session: Session, company_id: str) -> list[Evidence]:
 
 def coverage(rows: list[Evidence]) -> list[dict[str, Any]]:
     """A stored page does not claim a visual, social, paid-ad or operational audit."""
-    return [
+    coverage_rows = [
         {
             "area": area.replace("_", " "),
             "status": "Evidence recorded; review scope"
@@ -52,3 +52,18 @@ def coverage(rows: list[Evidence]) -> list[dict[str, Any]]:
         }
         for area, kinds in AREAS.items()
     ]
+    coverage_rows.extend(
+        {"area": label, "status": "Evidence recorded; review scope" if checked else "Not checked"}
+        for label, checked in (
+            ("technical SEO", any(row.kind == "page" and row.facts.get("seo") for row in rows)),
+            (
+                "mobile lab performance",
+                any(
+                    row.kind == "performance" and row.facts.get("status") == "measured"
+                    for row in rows
+                ),
+            ),
+            ("visual design", any(row.kind == "visual" and row.reviewed_by for row in rows)),
+        )
+    )
+    return coverage_rows

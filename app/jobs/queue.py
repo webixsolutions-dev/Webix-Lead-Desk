@@ -10,7 +10,7 @@ from app.core.config import Settings
 from app.db.models import Job, JobAttempt, WorkerInstance, new_id
 from app.db.session import Database
 from app.operations.control import maintenance_enabled
-from app.sending.campaign_sender import WORKER_CAPABILITY
+from app.sending.campaign_sender import WORKER_CAPABILITY, WORKER_POLICY_VERSION
 
 
 def enqueue_health(db: Database, unique_key: str, now: datetime) -> Job:
@@ -66,7 +66,7 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         "mailbox_tests": settings.mailbox_tests_enabled and settings.app_mode != "VERCEL",
         "email_signatures": 1,
         "whatsapp_agent": 1,
-        WORKER_CAPABILITY: 1,
+        WORKER_CAPABILITY: WORKER_POLICY_VERSION,
     }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
     with db.sessions.begin() as session:

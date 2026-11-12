@@ -18,24 +18,40 @@ PREVIEW_CSP = (
 )
 
 
-@router.post("/settings/mailboxes/{mailbox_id}/signature")
-async def edit_signature(request: Request, principal: Owner, mailbox_id: str) -> RedirectResponse:
-    """Store only sanitized owner-approved settings; never approve or send a message."""
+async def _save_signature(
+    request: Request, principal: Owner, target_id: str, *, campaign_override: bool = False
+) -> None:
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         save_signature(
             services(request).db,
-            mailbox_id,
+            target_id,
             fields.get("html", ""),
             int(fields.get("version", "-1")),
             principal.user.id,
+            campaign_override=campaign_override,
         )
     except SettingsConflict as error:
         raise HTTPException(409, str(error)) from error
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
+
+
+@router.post("/settings/mailboxes/{mailbox_id}/signature")
+async def edit_signature(request: Request, principal: Owner, mailbox_id: str) -> RedirectResponse:
+    """Save the mailbox default without approving or sending a message."""
+    await _save_signature(request, principal, mailbox_id)
     return RedirectResponse("/settings#signature-" + mailbox_id, 303)
+
+
+@router.post("/campaigns/{campaign_id}/signature")
+async def edit_campaign_signature(
+    request: Request, principal: Owner, campaign_id: str
+) -> RedirectResponse:
+    """Save the owner-reviewed signature for an assigned campaign sender."""
+    await _save_signature(request, principal, campaign_id, campaign_override=True)
+    return RedirectResponse("/leads/campaigns#campaign-signature-" + campaign_id, 303)
 
 
 @router.get("/settings/mailboxes/{mailbox_id}/signature-preview")

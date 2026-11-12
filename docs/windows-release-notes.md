@@ -1,6 +1,6 @@
-# Webix Lead Desk v0.30.6
+# Webix Lead Desk v0.30.7
 
-This release adds service qualification guidance, public workflow link observations and catalogue-wide research. Keep the existing dashboard and local account. Stop the worker, install v0.30.6, then select Start Worker. This companion runs approved mailbox tests and the existing research functions.
+This release supports campaign email signatures for shared business mailboxes. Keep the existing dashboard and local account. Stop the worker, install v0.30.7, then select Start Worker. This companion runs approved mailbox tests and the existing research functions.
 
 The WhatsApp idle polling fix from v0.30.2 is included. If you choose to upgrade the worker, stop it first and start it after installing. Your existing pairing and key are retained.
 

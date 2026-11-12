@@ -172,6 +172,7 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
     from app.api.sources import lead_context
     from app.reporting.service import campaign_results
     from app.sending.campaign_sender import SENDER_KEY_PREFIX
+    from app.sending.signatures import CAMPAIGN_SIGNATURE_PREFIX
     from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
 
     context = lead_context(request, principal)
@@ -183,6 +184,14 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
             item.key.removeprefix(SENDER_KEY_PREFIX): item.value
             for item in session.scalars(
                 select(WorkspaceSetting).where(WorkspaceSetting.key.startswith(SENDER_KEY_PREFIX))
+            )
+        }
+        context["campaign_signatures"] = {
+            item.key.removeprefix(CAMPAIGN_SIGNATURE_PREFIX): item
+            for item in session.scalars(
+                select(WorkspaceSetting).where(
+                    WorkspaceSetting.key.startswith(CAMPAIGN_SIGNATURE_PREFIX)
+                )
             )
         }
     return render(request, "campaigns.html", context)

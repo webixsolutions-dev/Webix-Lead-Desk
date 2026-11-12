@@ -9,6 +9,7 @@ from app.db.outreach_models import Conversation, Draft
 from app.db.session import Database
 from app.sending.campaign_sender import SENDER_KEY_PREFIX, WORKER_CAPABILITY, WORKER_POLICY_VERSION
 from app.sending.sequences import validate_days
+from app.sending.signatures import CAMPAIGN_SIGNATURE_PREFIX, require_campaign_signature_worker
 
 CAMPAIGN_COUNTRIES = {
     "CA": "Canada",
@@ -48,7 +49,8 @@ def edit_campaign(
             "until local sending is supported"
         )
     with db.sessions.begin() as session:
-        actor, campaign = session.get(User, actor_id), session.get(Campaign, campaign_id)
+        actor = session.get(User, actor_id)
+        campaign = session.get(Campaign, campaign_id, with_for_update=True)
         if not actor or not actor.active or actor.role != "owner" or not campaign:
             raise ValueError("An active owner must edit an existing campaign")
         if active and session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id) is not None:
@@ -58,6 +60,10 @@ def edit_campaign(
                 or (worker.runtime_config or {}).get(WORKER_CAPABILITY) != WORKER_POLICY_VERSION
             ):
                 raise ValueError("Start worker v0.30.5 or newer before activating this campaign")
+        if active:
+            signature = session.get(WorkspaceSetting, CAMPAIGN_SIGNATURE_PREFIX + campaign_id)
+            if signature and signature.value.get("html"):
+                require_campaign_signature_worker(session)
         if not 1 <= daily_limit <= (5 if campaign.lane == "partner" else 50):
             raise ValueError("Use a daily limit of 1–5 for partners or 1–50 for clients")
         if followup_days is not None:

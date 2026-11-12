@@ -10,13 +10,16 @@ from fastapi.testclient import TestClient
 
 from app.core.preferences import SettingsConflict
 from app.db.delivery_models import SendIntent
-from app.db.models import WorkerInstance, new_id
+from app.db.lead_models import Campaign
+from app.db.models import WorkerInstance, WorkspaceSetting, new_id
+from app.db.outreach_models import Mailbox
 from app.db.session import Database
 from app.drafting.service import approval_blocks, approve
 from app.integrations.smtp import SMTPResult
 from app.jobs.queue import acquire_worker, claim_next
 from app.main import create_app
 from app.sending import diagnostic_worker
+from app.sending.campaign_sender import SENDER_KEY_PREFIX
 from app.sending.diagnostics import request_test
 from app.sending.reservations import wire_message
 from app.sending.signature_html import (
@@ -124,6 +127,53 @@ def test_signature_edit_invalidates_approval_and_freezes_html(
     assert any("signature changed" in reason for reason in approval_blocks(db, draft))
     assert "Example Owner" in html_message(draft.snapshot)
     assert "Updated signature" not in html_message(draft.snapshot)
+
+
+def test_campaign_signature_uses_exact_sender_and_invalidates_stale_approval(
+    db: Database, drafting_setup: dict[str, str]
+) -> None:
+    """A shared mailbox keeps its default while the campaign binds a distinct signature."""
+    box, actor = drafting_setup["mailbox_id"], drafting_setup["actor_id"]
+    campaign_id = drafting_setup["campaign_id"]
+    save_signature(db, box, SIGNATURE, 0, actor)
+    with db.sessions.begin() as session:
+        mailbox = session.get(Mailbox, box)
+        campaign = session.get(Campaign, campaign_id)
+        assert mailbox and campaign
+        campaign.active = False
+        session.add(
+            WorkspaceSetting(
+                key=SENDER_KEY_PREFIX + campaign_id,
+                value={
+                    "email": mailbox.email,
+                    "domain": mailbox.email.split("@")[1],
+                    "brand": mailbox.brand,
+                },
+            )
+        )
+    save_signature(db, campaign_id, "<p>Campaign signature</p>", 0, actor, campaign_override=True)
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        assert campaign
+        campaign.active = True
+        assert "Example Owner" in get_signature(session, box)["text"]
+        assert "Campaign signature" in get_signature(session, box, campaign_id=campaign_id)["text"]
+        assert not get_signature(session, "other-mailbox", campaign_id=campaign_id)["html"]
+    draft = make_draft(db, drafting_setup)
+    assert "Campaign signature" in html_message(draft.snapshot)
+    assert not approval_blocks(db, draft)
+    approve(db, draft.id, draft.digest, actor)
+    save_signature(db, box, "<p>New default</p>", 1, actor)
+    assert not approval_blocks(db, draft)
+    with pytest.raises(ValueError, match="worker v0.30.7"):
+        save_signature(db, campaign_id, "", 1, actor, campaign_override=True)
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        assert campaign
+        campaign.active = False
+    save_signature(db, campaign_id, "", 1, actor, campaign_override=True)
+    assert any("signature changed" in reason for reason in approval_blocks(db, draft))
+    assert "Campaign signature" in html_message(draft.snapshot)
 
 
 def test_signed_test_requires_updated_worker_and_exact_signature(

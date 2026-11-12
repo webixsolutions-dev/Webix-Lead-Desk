@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.30.7 — Campaign email signatures
+
+- Allow an owner to use a separate signature for a campaign with an assigned sender address.
+- Draft approval and delivery recheck the effective signature. Mailbox tests use the mailbox default.
+
 ## 0.30.6 — Evidence-led service qualification
 
 - Apply an owner-published service qualification playbook to assessments and campaign drafts.

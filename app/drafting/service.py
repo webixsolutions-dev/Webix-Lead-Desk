@@ -245,7 +245,7 @@ def save_draft(
                 "allow_price": allow_price,
                 "body": body.strip(),
                 "footer": footer(mailbox),
-                "signature": get_signature(session, mailbox_id),
+                "signature": get_signature(session, mailbox_id, campaign_id=campaign_id),
                 "evidence_ids": sorted(found),
                 "playbook_ids": [item.id for item in guidance],
                 "attachments": attachments,

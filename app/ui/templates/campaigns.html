@@ -76,6 +76,19 @@
           <a class="button secondary" href="/settings?scope={{ campaign.id }}">Campaign guidance</a>
         </div>
       </form>
+      {% if campaign.id in campaign_sender_requirements and campaign_sender_requirements[campaign.id].email %}
+        {% set signature = campaign_signatures.get(campaign.id) %}
+        <details id="campaign-signature-{{ campaign.id }}">
+          <summary>Campaign email signature{% if signature and signature.value.html %} · saved{% endif %}</summary>
+          <p class="small muted">Used for this campaign and its assigned email. Leave blank to use the mailbox signature.</p>
+          <form method="post" action="/campaigns/{{ campaign.id }}/signature" class="work-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf }}">
+            <input type="hidden" name="version" value="{{ signature.version if signature else 0 }}">
+            <label>Signature HTML<textarea name="html" rows="6" maxlength="10000" spellcheck="false">{{ signature.value.html if signature else '' }}</textarea></label>
+            <button class="button secondary">Save campaign signature</button>
+          </form>
+        </details>
+      {% endif %}
     </details>
   {% endfor %}
 </div>

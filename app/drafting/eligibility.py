@@ -51,9 +51,9 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append(block)
         contact = session.get(Contact, snapshot["contact_id"])
         mailbox = session.get(Mailbox, snapshot["mailbox_id"])
-        if get_signature(session, snapshot["mailbox_id"]) != snapshot.get(
-            "signature", {"html": "", "text": "", "version": 0}
-        ):
+        if get_signature(
+            session, snapshot["mailbox_id"], campaign_id=snapshot["campaign_id"]
+        ) != snapshot.get("signature", {"html": "", "text": "", "version": 0}):
             reasons.append("Sender signature changed; save and review a new revision")
         campaign = session.get(Campaign, snapshot["campaign_id"])
         if (

@@ -11,6 +11,7 @@ from app.db.models import Job, JobAttempt, WorkerInstance, new_id
 from app.db.session import Database
 from app.operations.control import maintenance_enabled
 from app.sending.campaign_sender import WORKER_CAPABILITY, WORKER_POLICY_VERSION
+from app.sending.signatures import CAMPAIGN_SIGNATURE_CAPABILITY
 
 
 def enqueue_health(db: Database, unique_key: str, now: datetime) -> Job:
@@ -65,6 +66,7 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         "live_send_enabled": settings.live_send_enabled,
         "mailbox_tests": settings.mailbox_tests_enabled and settings.app_mode != "VERCEL",
         "email_signatures": 1,
+        CAMPAIGN_SIGNATURE_CAPABILITY: 1,
         "whatsapp_agent": 1,
         WORKER_CAPABILITY: WORKER_POLICY_VERSION,
     }

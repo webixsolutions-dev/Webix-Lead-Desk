@@ -12,6 +12,7 @@ from app.db.lead_models import Campaign
 from app.db.learning_models import LearningProposal
 from app.db.outreach_models import PlaybookVersion
 from app.learning.service import apply_proposal, dismiss_proposal, rollback
+from app.playbook.industries import catalog
 
 router = APIRouter()
 
@@ -40,19 +41,29 @@ def learning_data(request: Request) -> dict[str, Any]:
                 select(PlaybookVersion).order_by(PlaybookVersion.created_at.desc()).limit(100)
             )
         )
+        proposals = list(
+            session.scalars(
+                select(LearningProposal).order_by(LearningProposal.created_at.desc()).limit(100)
+            )
+        )
+        scope_names = {
+            "global": "Global guidance",
+            "partner": "Partner guidance",
+            "conversation": "Conversation & replies",
+            "linkedin": "LinkedIn conversation guidance",
+            **{f"industry:{item['slug']}": f"Industry · {item['title']}" for item in catalog()},
+            **{item.id: f"Campaign · {item.name}" for item in session.scalars(select(Campaign))},
+        }
+        for scope in {item.scope for item in history} | {item.scope for item in proposals}:
+            if scope.startswith("industry:"):
+                scope_names.setdefault(scope, f"Archived industry · {scope[9:].replace('-', ' ')}")
+            else:
+                scope_names.setdefault(scope, f"Archived guidance · {scope}")
         context.update(
-            proposals=list(
-                session.scalars(
-                    select(LearningProposal).order_by(LearningProposal.created_at.desc()).limit(100)
-                )
-            ),
+            proposals=proposals,
             current_guidance=current,
-            history=history[:100],
-            scope_names={
-                "global": "Global guidance",
-                "partner": "Partner guidance",
-                **{item.id: item.name for item in session.scalars(select(Campaign))},
-            },
+            history=history,
+            scope_names=scope_names,
         )
     return context
 

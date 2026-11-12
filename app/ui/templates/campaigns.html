@@ -1,2 +1,70 @@
-{% extends 'base.html' %}{% block heading %}Campaigns{% endblock %}{% block description %}Choose the audience and services for each campaign.{% endblock %}{% block content %}<details id="create-campaign" {% if not campaigns %}open{% endif %}><summary>1. Create a campaign</summary><p class="notice neutral">Sending times follow Calgary time (America/Edmonton).</p><form method="post" action="/campaigns" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><div class="form-columns"><label>Name<input name="name" maxlength="120" required></label><label>Industry<input name="industry" placeholder="HVAC & plumbing" maxlength="120" required></label><label>City / state or province<input name="area" placeholder="Calgary, Alberta" maxlength="120" required></label><label>Country<select name="country"><option value="CA">Canada</option><option value="US">United States</option></select></label>{% set selected_services = [] %}{% include "service_picker.html" %}<label>Campaign type<select name="lane"><option value="client">Camzio client outreach</option><option value="partner">Webix partners</option></select></label><label>Daily target<input name="daily_limit" type="number" min="1" max="50" value="10" required></label></div><button class="button primary">Create campaign</button></form></details>{% if user.role == 'owner' %}<h2>Targeting</h2><p>Edits affect future research. Import history, existing conversation routing and approved message content stay recorded.</p><div class="settings-grid">{% for row in results %}{% set campaign = row.campaign %}<details class="panel work-panel"><summary>{{ campaign.name }} · {{ campaign.lane }}</summary><p class="notice neutral">Sending times follow Calgary time (America/Edmonton).</p><form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version" value="{{ campaign.version }}"><label>Name<input name="name" maxlength="120" value="{{ campaign.name }}" required></label><label>Industry<input name="industry" maxlength="120" value="{{ campaign.industry }}" required></label><label>City / state or province<input name="area" maxlength="120" value="{{ campaign.area }}" required></label><label>Country<select name="country"><option value="CA" {% if campaign.country=='CA' %}selected{% endif %}>Canada</option><option value="US" {% if campaign.country=='US' %}selected{% endif %}>United States</option></select></label>{% set selected_services = campaign.services %}{% include "service_picker.html" %}<label>Follow-up days from first contact<input name="followup_days" value="{{ (campaign.followup_days if campaign.followup_days is not none else [4,10] if campaign.lane == 'partner' else [3,7,12,20])|join(',') }}"></label><label>Daily email cap<input type="number" name="daily_limit" min="1" max="{{ 5 if campaign.lane=='partner' else 50 }}" value="{{ campaign.daily_limit }}" required></label><label class="checkbox-row"><input type="checkbox" name="active" value="true" {% if campaign.active %}checked{% endif %}>Active</label><button class="button primary">Save targeting</button></form></details>{% endfor %}</div>{% endif %}
+{% extends 'base.html' %}
+{% block heading %}Campaigns{% endblock %}
+{% block description %}Choose the audience and services for each campaign.{% endblock %}
+{% block content %}
+<details id="create-campaign" {% if not campaigns %}open{% endif %}>
+  <summary>Create a campaign</summary>
+  <p class="notice neutral">Canada and US sends follow Calgary time. New Zealand campaigns are saved as paused drafts.</p>
+  <form method="post" action="/campaigns" class="work-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="form-columns">
+      <label>Name<input name="name" maxlength="120" required></label>
+      <label>Industry<input name="industry" placeholder="HVAC &amp; plumbing" maxlength="120" required></label>
+      <label>City / region<input name="area" placeholder="Calgary, Alberta" maxlength="120" required></label>
+      <label>Country<select name="country">
+        {% for code, name in campaign_countries.items() %}
+          <option value="{{ code }}">{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
+        {% endfor %}
+      </select></label>
+      {% set selected_services = [] %}
+      {% include "service_picker.html" %}
+      <label>Campaign type<select name="lane">
+        <option value="client">Camzio client outreach</option>
+        <option value="partner">Webix partners</option>
+      </select></label>
+      <label>Daily target<input name="daily_limit" type="number" min="1" max="50" value="10" required></label>
+    </div>
+    <button class="button primary">Create campaign</button>
+  </form>
+</details>
+
+{% if user.role == 'owner' %}
+<h2>Targeting</h2>
+<p>Edits affect future research. Import history, existing conversation routing and approved message content stay recorded.</p>
+<div class="settings-grid">
+  {% for row in results %}
+    {% set campaign = row.campaign %}
+    {% set draft_only = campaign.country in draft_only_countries %}
+    <details class="panel work-panel" id="campaign-{{ campaign.id }}">
+      <summary>{{ campaign.name }} · {{ 'Webix partners' if campaign.lane == 'partner' else 'Camzio client outreach' }}{% if draft_only %} · Paused draft{% elif not campaign.active %} · Paused{% endif %}</summary>
+      {% if draft_only %}
+        <p class="notice neutral">This campaign is paused while New Zealand sending is unavailable.</p>
+      {% else %}
+        <p class="notice neutral">Sending times follow Calgary time (America/Edmonton).</p>
+      {% endif %}
+      <form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <input type="hidden" name="version" value="{{ campaign.version }}">
+        <label>Name<input name="name" maxlength="120" value="{{ campaign.name }}" required></label>
+        <label>Industry<input name="industry" maxlength="120" value="{{ campaign.industry }}" required></label>
+        <label>City / region<input name="area" maxlength="120" value="{{ campaign.area }}" required></label>
+        <label>Country<select name="country">
+          {% for code, name in campaign_countries.items() %}
+            <option value="{{ code }}" {% if campaign.country == code %}selected{% endif %}>{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
+          {% endfor %}
+        </select></label>
+        {% set selected_services = campaign.services %}
+        {% include "service_picker.html" %}
+        <label>Follow-up days from first contact<input name="followup_days" value="{{ (campaign.followup_days if campaign.followup_days is not none else [4,10] if campaign.lane == 'partner' else [3,7,12,20])|join(',') }}"></label>
+        <label>Daily email cap<input type="number" name="daily_limit" min="1" max="{{ 5 if campaign.lane == 'partner' else 50 }}" value="{{ campaign.daily_limit }}" required></label>
+        <label class="checkbox-row"><input type="checkbox" name="active" value="true" {% if draft_only %}disabled{% elif campaign.active %}checked{% endif %}>Active</label>
+        <div class="toolbar">
+          <button class="button primary">Save targeting</button>
+          <a class="button secondary" href="/settings?scope={{ campaign.id }}">Campaign guidance</a>
+        </div>
+      </form>
+    </details>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

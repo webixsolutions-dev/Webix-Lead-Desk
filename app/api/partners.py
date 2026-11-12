@@ -13,7 +13,7 @@ from app.partners.service import review_partner
 from app.playbook.catalog import service_names
 from app.reporting.service import campaign_results
 from app.sending.window import CALGARY
-from app.sources.campaigns import edit_campaign
+from app.sources.campaigns import DRAFT_ONLY_COUNTRIES, edit_campaign
 
 router = APIRouter()
 
@@ -49,6 +49,7 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
     """Save a version-checked campaign edit without rewriting its historical imports."""
     fields = await read_form(request, repeatable=frozenset({"services"}))
     check_csrf(principal, fields.get("csrf_token", ""))
+    country = fields.get("country", "")
     try:
         edit_campaign(
             services(request).db,
@@ -58,7 +59,7 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
             name=fields.get("name", ""),
             industry=fields.get("industry", ""),
             area=fields.get("area", ""),
-            country=fields.get("country", ""),
+            country=country,
             services=[v.strip() for v in fields.get("services", "").split(",") if v.strip()],
             daily_limit=int(fields.get("daily_limit", "0")),
             active=fields.get("active") == "true",
@@ -68,7 +69,12 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
         )
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse("/partners", 303)
+    destination = (
+        f"/leads/campaigns#campaign-{campaign_id}"
+        if country in DRAFT_ONLY_COUNTRIES
+        else "/partners"
+    )
+    return RedirectResponse(destination, 303)
 
 
 @router.post("/partners/{company_id}/review")

@@ -268,3 +268,36 @@ def test_campaign_service_picker_preserves_multiple_choices(
     assert response.status_code == 303
     page = client.get("/leads/campaigns").text
     assert "Austin, Texas" in page and "CRM, Website" in page
+
+
+def test_auckland_campaign_can_be_saved_but_cannot_be_activated(
+    client: TestClient, owner: Account
+) -> None:
+    """New Zealand targeting stays editable while delivery is unavailable."""
+    sign_in(client, owner)
+    fields = {
+        "csrf_token": csrf_from(client.get("/leads/campaigns").text),
+        "name": "Auckland partner pilot",
+        "industry": "IT services",
+        "area": "Auckland",
+        "country": "NZ",
+        "services": "CRM",
+        "lane": "partner",
+        "daily_limit": "3",
+    }
+    created = client.post("/campaigns", data=fields, follow_redirects=False)
+    assert created.status_code == 303
+    location = created.headers["location"]
+    assert location.startswith("/leads/campaigns#campaign-")
+    campaign_id = location.split("#campaign-")[1]
+    page = client.get("/leads/campaigns").text
+    assert "Auckland partner pilot · Webix partners · Paused draft" in page
+    assert 'value="NZ" selected>New Zealand (draft only)' in page
+
+    edit_url = f"/campaigns/{campaign_id}/edit"
+    edit = {**fields, "version": "1", "followup_days": "4,10"}
+    rejected = client.post(edit_url, data={**edit, "active": "true"})
+    assert rejected.status_code == 422 and "must stay paused" in rejected.text
+    saved = client.post(edit_url, data={**edit, "area": "Auckland Region"}, follow_redirects=False)
+    assert saved.status_code == 303 and saved.headers["location"] == location
+    assert 'value="Auckland Region"' in client.get("/leads/campaigns").text

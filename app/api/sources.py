@@ -30,6 +30,7 @@ from app.jobs.queue import enqueue
 from app.journey.project import summary
 from app.playbook.catalog import service_names
 from app.policy.contacts import suppress
+from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
 from app.sources.importing import import_candidates, parse_csv
 from app.sources.validation import domain_of, website_url
 
@@ -137,8 +138,8 @@ async def create_campaign(request: Request, principal: Owner) -> RedirectRespons
         ]
         lane = fields.get("lane", "client")
         country = fields.get("country", "CA")
-        if country not in {"CA", "US"}:
-            raise ValueError("Choose Canada or the US")
+        if country not in CAMPAIGN_COUNTRIES:
+            raise ValueError("Choose a supported campaign country")
         limit = int(fields.get("daily_limit", "10"))
         if (
             not all(1 <= len(v) <= 120 for v in (name, industry, area))
@@ -158,13 +159,19 @@ async def create_campaign(request: Request, principal: Owner) -> RedirectRespons
                 lane=lane,
                 country=country,
                 daily_limit=limit,
+                active=country not in DRAFT_ONLY_COUNTRIES,
             )
             session.add(campaign)
             session.flush()
             campaign_id = campaign.id
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse(f"/leads?campaign={campaign_id}", 303)
+    destination = (
+        f"/leads/campaigns#campaign-{campaign_id}"
+        if country in DRAFT_ONLY_COUNTRIES
+        else f"/leads?campaign={campaign_id}"
+    )
+    return RedirectResponse(destination, 303)
 
 
 @router.post("/sources/csv")

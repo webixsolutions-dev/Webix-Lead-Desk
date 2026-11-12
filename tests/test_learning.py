@@ -1,6 +1,7 @@
 """Trusted feedback becomes memory only after exact owner review, with reversible versioning."""
 
 from concurrent.futures import ThreadPoolExecutor
+from html import unescape
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,7 @@ from app.drafting.brief import build_brief
 from app.drafting.service import approve
 from app.learning.service import apply_proposal, dismiss_proposal, rollback
 from app.pipeline.service import update_opportunity
+from app.playbook.industries import catalog
 from app.playbook.service import current_guidance, publish
 from tests.conftest import Account, csrf_from, sign_in
 from tests.delivery_helpers import delivery_setup as delivery_setup
@@ -31,6 +33,25 @@ def edited_proposal(db: Database, setup: dict[str, str]) -> LearningProposal:
         proposal = session.scalar(select(LearningProposal))
         assert proposal
         return proposal
+
+
+def test_guidance_history_uses_scope_names(
+    client: TestClient, db: Database, owner: Account
+) -> None:
+    """Industry, conversation and LinkedIn scopes have distinct history labels."""
+    industry = catalog()[0]
+    for scope in ("conversation", "linkedin", f"industry:{industry['slug']}"):
+        publish(db, scope, "Keep messages specific to the recipient.", 0, owner.user.id)
+
+    sign_in(client, owner)
+    for path in ("/learning", "/settings"):
+        page = client.get(path)
+        assert page.status_code == 200
+        rendered = unescape(page.text)
+        assert "Conversation & replies · version 1 · current" in rendered
+        assert "LinkedIn conversation guidance · version 1 · current" in rendered
+        assert f"Industry · {industry['title']} · version 1 · current" in rendered
+        assert "Campaign guidance · version 1" not in rendered
 
 
 def test_edits_are_inert_until_owner_applies_exact_rule(

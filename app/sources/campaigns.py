@@ -9,6 +9,9 @@ from app.db.outreach_models import Conversation, Draft
 from app.db.session import Database
 from app.sending.sequences import validate_days
 
+CAMPAIGN_COUNTRIES = {"CA": "Canada", "US": "United States", "NZ": "New Zealand"}
+DRAFT_ONLY_COUNTRIES = frozenset({"NZ"})
+
 
 def edit_campaign(
     db: Database,
@@ -28,11 +31,13 @@ def edit_campaign(
     """Apply a version-checked targeting edit without changing existing conversation routing."""
     if (
         not all(1 <= len(v.strip()) <= 120 for v in [name, industry, area])
-        or country not in {"CA", "US"}
+        or country not in CAMPAIGN_COUNTRIES
         or not 1 <= len(services) <= 12
         or any(not 1 <= len(v.strip()) <= 120 for v in services)
     ):
         raise ValueError("Complete the campaign name, sector, area, country and services")
+    if active and country in DRAFT_ONLY_COUNTRIES:
+        raise ValueError("New Zealand campaigns must stay paused until local sending is supported")
     with db.sessions.begin() as session:
         actor, campaign = session.get(User, actor_id), session.get(Campaign, campaign_id)
         if not actor or not actor.active or actor.role != "owner" or not campaign:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.30.3 — Campaign drafts and guidance labels
+
+- Label Playbook history by its industry, conversation, LinkedIn or named campaign scope.
+- Allow New Zealand campaigns to be saved and edited as paused drafts while local sending is unavailable.
+
 ## 0.30.2 — WhatsApp idle polling
 
 - Treat WhatsApp's empty HTTP 204 update response as a normal idle poll, keep the last update offset and continue checking for pairing messages and queued notifications.

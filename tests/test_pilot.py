@@ -259,6 +259,7 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
             "live_send_enabled": False,
             "mailbox_tests": False,
             "email_signatures": 1,
+            "campaign_signatures": 1,
             "whatsapp_agent": 1,
             "campaign_sender_policy": 2,
         }

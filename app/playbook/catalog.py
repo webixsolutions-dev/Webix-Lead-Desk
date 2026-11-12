@@ -94,6 +94,17 @@ def service_names(session: Session) -> list[str]:
     )
 
 
+def qualification_offers(session: Session) -> list[Offer]:
+    """Return current service offers that can be considered during research."""
+    return [
+        offer
+        for offer in session.scalars(
+            select(Offer).where(Offer.offer_type == "service").order_by(Offer.service, Offer.name)
+        )
+        if offer.status in {"available", "discovery_only"}
+    ]
+
+
 def matching_proofs(session: Session, campaign: Campaign) -> list[ProofCard]:
     """Exclude unrelated or unassigned proof before it can reach a drafting model."""
     wanted = {item.casefold() for item in campaign.services}

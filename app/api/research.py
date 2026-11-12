@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
-from starlette.responses import RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
 from app.core.clock import utc_now
@@ -14,6 +14,20 @@ from app.jobs.queue import enqueue
 from app.sources.validation import domain_of, website_url
 
 router = APIRouter()
+
+
+@router.get("/leads/{company_id}/qualification-brief", response_class=PlainTextResponse)
+def copy_qualification_brief(
+    request: Request, principal: Owner, company_id: str, campaign_id: str
+) -> PlainTextResponse:
+    """Open a private research brief for use in the owner's own ChatGPT session."""
+    from app.audit.ai import qualification_brief
+
+    try:
+        text = qualification_brief(services(request).db, company_id, campaign_id)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    return PlainTextResponse(text)
 
 
 @router.post("/leads/{company_id}/audit")
@@ -165,8 +179,8 @@ async def review_assessment(
     """Confirm a service hypothesis against the saved evidence without approving outreach."""
     from app.audit.classify import Recommendation, validate_recommendation
     from app.db.lead_models import Campaign
-    from app.db.outreach_models import Offer
     from app.db.research_models import Assessment
+    from app.playbook.catalog import qualification_offers
 
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
@@ -182,19 +196,18 @@ async def review_assessment(
         )
         if not campaign or not campaign.active:
             raise HTTPException(422, "Campaign is inactive")
-        offers = list(
-            session.scalars(
-                select(Offer).where(
-                    Offer.offer_type == "service", Offer.service.in_(campaign.services)
-                )
-            )
-        )
+        catalogue = qualification_offers(session)
+        offers = [offer for offer in catalogue if offer.service in campaign.services]
+        enabled = {offer.service for offer in offers}
         try:
             validate_recommendation(
                 Recommendation.model_validate(assessment.result),
                 evidence,
-                [o.service for o in offers if o.status in {"available", "discovery_only"}],
-                discovery_services=[o.service for o in offers if o.status == "discovery_only"],
+                sorted(enabled),
+                discovery_services=sorted(
+                    enabled - {offer.service for offer in offers if offer.status == "available"}
+                ),
+                catalogue_services=sorted({offer.service for offer in catalogue}),
             )
         except ValueError as error:
             raise HTTPException(

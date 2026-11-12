@@ -13,6 +13,7 @@ from app.db.learning_models import LearningProposal
 from app.db.outreach_models import PlaybookVersion
 from app.learning.service import apply_proposal, dismiss_proposal, rollback
 from app.playbook.industries import catalog
+from app.playbook.service import QUALIFICATION_SCOPE
 
 router = APIRouter()
 
@@ -51,6 +52,7 @@ def learning_data(request: Request) -> dict[str, Any]:
             "partner": "Partner guidance",
             "conversation": "Conversation & replies",
             "linkedin": "LinkedIn conversation guidance",
+            QUALIFICATION_SCOPE: "Service qualification",
             **{f"industry:{item['slug']}": f"Industry · {item['title']}" for item in catalog()},
             **{item.id: f"Campaign · {item.name}" for item in session.scalars(select(Campaign))},
         }

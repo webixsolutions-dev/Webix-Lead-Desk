@@ -57,10 +57,12 @@ def validate_recommendation(
     services: list[str],
     *,
     discovery_services: list[str] | None = None,
+    catalogue_services: list[str] | None = None,
 ) -> Recommendation:
     """Reject invented evidence references, unsupported service choices and empty certainty."""
     allowed = {item.id for item in evidence}
     discovery = set(discovery_services or [])
+    catalogue = set(catalogue_services or []) | set(services)
     if result.decision == "recommend" and result.service in discovery:
         raise ValueError("Discovery-only services need a question, not a delivery recommendation")
     if result.decision == "ask_first" and (result.service not in services or not result.observed):
@@ -85,10 +87,18 @@ def validate_recommendation(
     ):
         raise ValueError("Select one enabled service and include evidence and an uncertainty")
     for option in result.alternatives:
-        if option.service not in services or not set(option.evidence_ids).issubset(allowed):
-            raise ValueError("Alternative must use available services and recorded evidence")
+        if option.service not in catalogue or not set(option.evidence_ids).issubset(allowed):
+            raise ValueError(
+                "Alternative must use current catalogue services and recorded evidence"
+            )
         if option.fit == "supported" and not option.evidence_ids:
             raise ValueError("A supported alternative needs evidence")
+        if option.service not in services and (
+            option.fit == "not_indicated" or not option.evidence_ids or not option.question.strip()
+        ):
+            raise ValueError(
+                "A service outside the campaign needs evidence and a discovery question"
+            )
     if (
         result.decision in {"abstain", "research_more", "revisit_later", "no_clear_opportunity"}
         and result.service

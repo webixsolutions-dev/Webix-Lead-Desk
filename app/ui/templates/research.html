@@ -16,5 +16,26 @@
 <div class="settings-grid"><div><h3>Recorded evidence</h3>{% for item in evidence %}<details class="work-panel"><summary>{{ item.kind|capitalize }} · {{ item.observed_at.strftime('%d %b %Y') }}</summary><p class="small"><a href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">Source ↗</a> · {{ 'Human observation' if item.reviewed_by else 'Markup extraction' }}</p><p class="small muted">Evidence ID: {{ item.id }}</p>{% for key, value in item.facts.items() %}<p class="small"><strong>{{ key|replace('_',' ')|capitalize }}:</strong> {{ value }}</p>{% endfor %}</details>{% else %}<p class="small muted">Evidence will appear here with its source and date.</p>{% endfor %}</div>
 <div><h3>Add a manual observation</h3><p class="small muted">Use this after checking Google Maps, social profiles, the ads library, or the page visually. Record what you actually saw; absence of an ad does not establish past activity.</p><form method="post" action="/leads/{{ company_record.id }}/observation" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Type<select name="kind"><option value="visual">Visual website review</option><option value="social">Social activity</option><option value="ads">Ads library</option><option value="business">Business / Maps check</option></select></label><label>Source URL<input type="url" name="source_url" maxlength="2000" required></label><label>Observation date (UTC)<input type="date" name="observed_at" required></label><label>What you saw<textarea name="note" minlength="10" maxlength="2000" required></textarea></label><button class="button secondary">Save observation</button></form></div></div>
 <h3>Service hypotheses</h3>{% include "lead_outcome_form.html" %}{% for item in assessments %}<div class="work-panel"><p><strong>{{ item.result.decision|replace('_',' ')|title }}{% if item.result.service %} · {{ item.result.service }}{% endif %}</strong> · {{ item.result.score }}/10 · {{ item.origin }} · {{ 'Reviewed' if item.reviewed_by else 'Needs review' }}</p><p>{{ item.result.reason }}</p>{% if item.result.get("research_checks") %}<ul>{% for check in item.result.research_checks %}<li>{{ check }}</li>{% endfor %}</ul>{% endif %}{% if item.result.get("revisit_on") %}<p>Revisit on {{ item.result.revisit_on }}</p>{% endif %}<p class="small">Confirm: {{ item.result.needs_confirmation|join('; ') }}</p><p class="small">Ask: {{ item.result.owner_question }}</p>{% if user.role == 'owner' and not item.reviewed_by %}<form method="post" action="/assessments/{{ item.id }}/review" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label class="checkbox-row"><input type="checkbox" name="verified" value="true" required>I checked the source observations and remaining uncertainty.</label><button class="button secondary">Mark hypothesis reviewed</button></form>{% endif %}</div>{% else %}<p class="small muted">No service has been assumed from the website alone.</p>{% endfor %}
-{% if user.role == 'owner' and campaigns %}<form method="post" action="/leads/{{ company_record.id }}/assess" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Campaign<select name="campaign_id">{% for item in campaigns %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></label><button class="button secondary">Queue AI hypothesis</button><p class="small muted">Requires an enabled API, verified funding and configured rates. A ChatGPT subscription is separate.</p></form>{% endif %}
+{% if assessments and assessments[0].result.get('alternatives') %}
+{% set latest = assessments[0] %}
+{% set selected = campaigns|selectattr('id', 'equalto', latest.campaign_id)|first %}
+<section class="work-panel">
+  <h3>Other service opportunities</h3>
+  {% for option in latest.result.alternatives %}
+  <p class="small"><strong>{{ option.service }}</strong> · {{ option.fit|replace('_', ' ')|capitalize }}{% if selected is defined and option.service not in selected.services %} · Outside campaign{% endif %}</p>
+  <p>{{ option.reason }}</p>
+  {% if option.question %}<p class="small muted">{{ option.question }}</p>{% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+{% if user.role == 'owner' and campaigns %}
+{% if evidence %}
+<details class="work-panel">
+  <summary>Assess this lead in your own ChatGPT session</summary>
+  <p class="small muted">Open a campaign brief and copy it into ChatGPT. Lead Desk makes no API call.</p>
+  <ul>{% for campaign in campaigns %}<li><a href="/leads/{{ company_record.id }}/qualification-brief?campaign_id={{ campaign.id }}" target="_blank" rel="noopener noreferrer">{{ campaign.name }} qualification brief ↗</a></li>{% endfor %}</ul>
+</details>
+{% endif %}
+<form method="post" action="/leads/{{ company_record.id }}/assess" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Campaign<select name="campaign_id">{% for item in campaigns %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></label><button class="button secondary">Queue AI hypothesis</button><p class="small muted">Requires an enabled API, verified funding and configured rates. A ChatGPT subscription is separate.</p></form>
+{% endif %}
 </section>

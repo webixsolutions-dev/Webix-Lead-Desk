@@ -18,6 +18,7 @@ from app.partners.service import partner_block
 from app.playbook.partner import meeting_block
 from app.policy.contacts import company_suppressed, is_suppressed
 from app.policy.verification import verification_block
+from app.sending.campaign_sender import sender_matches
 from app.sending.signatures import get_signature
 from app.sources.validation import domain_of
 
@@ -101,6 +102,8 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append("Conversation routing changed")
         if campaign and mailbox and campaign.lane != mailbox.lane:
             reasons.append("Sender lane does not match the campaign")
+        if campaign and mailbox and not sender_matches(session, campaign.id, mailbox):
+            reasons.append("Sender domain or brand does not match the campaign")
         if (
             not mailbox
             or mailbox.provider not in {"titan", "hostinger", "gmail"}

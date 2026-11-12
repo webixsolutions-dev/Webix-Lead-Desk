@@ -1,6 +1,6 @@
-# Webix Lead Desk v0.30.3
+# Webix Lead Desk v0.30.4
 
-This release labels Playbook history by scope and supports paused New Zealand campaign drafts in the dashboard. Existing v0.30.2 workers support this dashboard update.
+This release adds campaign sender restrictions, paused UAE campaign drafts and unassigned LinkedIn post copy. Update the Windows worker before activating campaigns with a required sender. Stop the worker, install v0.30.4, then select Start Worker.
 
 The WhatsApp idle polling fix from v0.30.2 is included. If you choose to upgrade the worker, stop it first and start it after installing. Your existing pairing and key are retained.
 

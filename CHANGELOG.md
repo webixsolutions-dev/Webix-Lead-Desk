@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.4 — Campaign planning and sender identity
+
+- Put Campaigns first in the Leads views, add paused UAE drafts and display a campaign's required sender.
+- Enforce the configured sender domain and brand in drafting, approval and delivery.
+- Show private, unassigned LinkedIn post copy before a profile is attached.
+
 ## 0.30.3 — Campaign drafts and guidance labels
 
 - Label Playbook history by its industry, conversation, LinkedIn or named campaign scope.

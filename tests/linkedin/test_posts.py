@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 from cryptography.fernet import Fernet
+from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import select, text
 from sqlalchemy.exc import DatabaseError
@@ -12,11 +13,12 @@ from sqlalchemy.exc import DatabaseError
 from app.core.config import Settings
 from app.core.vault import store_secret
 from app.db.linkedin_post_models import LinkedInPost, PostingConnection, PostRevision
+from app.db.models import WorkspaceSetting
 from app.db.session import Database
 from app.integrations import linkedin as provider
 from app.linkedin import posting, posts
 from app.linkedin.identity import add_profile
-from tests.conftest import Account
+from tests.conftest import Account, sign_in
 
 NOW = datetime(2026, 11, 9, 14, 0, tzinfo=UTC)
 DUE = NOW + timedelta(hours=2)
@@ -24,6 +26,28 @@ BODY = (
     "A useful habit for service teams: write down who owns the next customer update. "
     "Clear handoffs make a busy day easier to manage."
 )
+
+
+def test_unassigned_post_copy_is_owner_only_and_needs_no_profile(
+    client: TestClient, db: Database, owner: Account, reviewer: Account
+) -> None:
+    """Unassigned copy is visible for planning without creating a posting slot."""
+    with db.sessions.begin() as session:
+        session.add(
+            WorkspaceSetting(
+                key="linkedin_post_copy_drafts",
+                value={"drafts": [{"title": "A draft idea", "market": "Calgary", "body": BODY}]},
+            )
+        )
+    sign_in(client, reviewer)
+    assert "A draft idea" not in client.get("/linkedin/posts").text
+    sign_in(client, owner)
+    page = client.get("/linkedin/posts")
+    assert page.status_code == 200
+    assert "A draft idea · Calgary" in page.text
+    assert BODY in page.text
+    with db.sessions() as session:
+        assert session.scalar(select(LinkedInPost.id)) is None
 
 
 def prepare(

@@ -8,11 +8,16 @@ from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from app.core.clock import utc_now
+from app.core.config import Settings
 from app.db.lead_models import Campaign, Company
+from app.db.models import WorkspaceSetting
 from app.db.outreach_models import Offer, ProofCard
 from app.db.session import Database
 from app.drafting.brief import build_brief
+from app.jobs.queue import acquire_worker
 from app.playbook.catalog import labels, offer_values
+from app.sending.campaign_sender import SENDER_KEY_PREFIX
 from tests.conftest import Account, csrf_from, sign_in
 
 
@@ -270,17 +275,21 @@ def test_campaign_service_picker_preserves_multiple_choices(
     assert "Austin, Texas" in page and "CRM, Website" in page
 
 
-def test_auckland_campaign_can_be_saved_but_cannot_be_activated(
-    client: TestClient, owner: Account
+@pytest.mark.parametrize(
+    ("country", "country_label", "city"),
+    [("NZ", "New Zealand", "Auckland"), ("AE", "United Arab Emirates", "Dubai")],
+)
+def test_draft_only_campaign_can_be_saved_but_cannot_be_activated(
+    client: TestClient, owner: Account, country: str, country_label: str, city: str
 ) -> None:
-    """New Zealand targeting stays editable while delivery is unavailable."""
+    """Draft-only markets stay editable while delivery is unavailable."""
     sign_in(client, owner)
     fields = {
         "csrf_token": csrf_from(client.get("/leads/campaigns").text),
-        "name": "Auckland partner pilot",
+        "name": f"{city} partner pilot",
         "industry": "IT services",
-        "area": "Auckland",
-        "country": "NZ",
+        "area": city,
+        "country": country,
         "services": "CRM",
         "lane": "partner",
         "daily_limit": "3",
@@ -291,13 +300,56 @@ def test_auckland_campaign_can_be_saved_but_cannot_be_activated(
     assert location.startswith("/leads/campaigns#campaign-")
     campaign_id = location.split("#campaign-")[1]
     page = client.get("/leads/campaigns").text
-    assert "Auckland partner pilot · Webix partners · Paused draft" in page
-    assert 'value="NZ" selected>New Zealand (draft only)' in page
+    assert f"{city} partner pilot · Webix partners · Paused draft" in page
+    assert f'value="{country}" selected>{country_label} (draft only)' in page
 
     edit_url = f"/campaigns/{campaign_id}/edit"
     edit = {**fields, "version": "1", "followup_days": "4,10"}
     rejected = client.post(edit_url, data={**edit, "active": "true"})
     assert rejected.status_code == 422 and "must stay paused" in rejected.text
-    saved = client.post(edit_url, data={**edit, "area": "Auckland Region"}, follow_redirects=False)
+    saved = client.post(edit_url, data={**edit, "area": f"{city} Region"}, follow_redirects=False)
     assert saved.status_code == 303 and saved.headers["location"] == location
-    assert 'value="Auckland Region"' in client.get("/leads/campaigns").text
+    assert f'value="{city} Region"' in client.get("/leads/campaigns").text
+
+
+def test_campaign_sender_rule_requires_a_worker_that_can_enforce_it(
+    client: TestClient, db: Database, owner: Account, settings: Settings
+) -> None:
+    """A campaign-specific rule cannot activate with an older worker."""
+    with db.sessions.begin() as session:
+        campaign = Campaign(
+            name="Local HVAC pilot",
+            industry="HVAC",
+            area="Calgary",
+            country="CA",
+            services=["Website"],
+            active=False,
+        )
+        session.add(campaign)
+        session.flush()
+        campaign_id = campaign.id
+        session.add(
+            WorkspaceSetting(
+                key=SENDER_KEY_PREFIX + campaign_id,
+                value={"brand": "Example Web Studio", "domain": "example.org"},
+            )
+        )
+    sign_in(client, owner)
+    page = client.get("/leads/campaigns").text
+    assert "Example Web Studio client outreach · Paused draft" in page
+    fields = {
+        "csrf_token": csrf_from(page),
+        "name": "Local HVAC pilot",
+        "industry": "HVAC",
+        "area": "Calgary",
+        "country": "CA",
+        "services": "Website",
+        "version": "1",
+        "daily_limit": "2",
+        "active": "true",
+    }
+    url = f"/campaigns/{campaign_id}/edit"
+    blocked = client.post(url, data=fields)
+    assert blocked.status_code == 422 and "worker v0.30.4" in blocked.text
+    assert acquire_worker(db, settings, owner.user.id, utc_now())
+    assert client.post(url, data=fields, follow_redirects=False).status_code == 303

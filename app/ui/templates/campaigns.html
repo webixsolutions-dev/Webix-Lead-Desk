@@ -4,7 +4,7 @@
 {% block content %}
 <details id="create-campaign" {% if not campaigns %}open{% endif %}>
   <summary>Create a campaign</summary>
-  <p class="notice neutral">Canada and US sends follow Calgary time. New Zealand campaigns are saved as paused drafts.</p>
+  <p class="notice neutral">Canada and US sends follow Calgary time. New Zealand and UAE campaigns are saved as paused drafts.</p>
   <form method="post" action="/campaigns" class="work-form">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <div class="form-columns">
@@ -31,16 +31,29 @@
 {% if user.role == 'owner' %}
 <h2>Targeting</h2>
 <p>Edits affect future research. Import history, existing conversation routing and approved message content stay recorded.</p>
+{% if campaign_sender_requirements %}
+  <nav class="toolbar" aria-label="Campaign markets">
+    {% for country, label in [('CA', 'Calgary drafts'), ('AE', 'Dubai drafts')] %}
+      {% set market = results|selectattr('campaign.country', 'equalto', country)|first %}
+      {% if market %}<a class="button secondary" href="#campaign-{{ market.campaign.id }}">{{ label }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+{% endif %}
 <div class="settings-grid">
   {% for row in results %}
     {% set campaign = row.campaign %}
     {% set draft_only = campaign.country in draft_only_countries %}
     <details class="panel work-panel" id="campaign-{{ campaign.id }}">
-      <summary>{{ campaign.name }} · {{ 'Webix partners' if campaign.lane == 'partner' else 'Camzio client outreach' }}{% if draft_only %} · Paused draft{% elif not campaign.active %} · Paused{% endif %}</summary>
+      <summary>{{ campaign.name }} · {% if campaign.lane == 'partner' %}Webix partners{% elif campaign.id in campaign_sender_requirements %}{{ campaign_sender_requirements[campaign.id].brand }} client outreach{% else %}Camzio client outreach{% endif %}{% if draft_only or (not campaign.active and campaign.id in campaign_sender_requirements and row.leads == 0) %} · Paused draft{% elif not campaign.active %} · Paused{% endif %}</summary>
       {% if draft_only %}
-        <p class="notice neutral">This campaign is paused while New Zealand sending is unavailable.</p>
+        <p class="notice neutral">This campaign is paused while sending in {{ campaign_countries[campaign.country] }} is unavailable.</p>
       {% else %}
         <p class="notice neutral">Sending times follow Calgary time (America/Edmonton).</p>
+      {% endif %}
+      {% if campaign.id in campaign_sender_requirements %}
+        {% set sender = campaign_sender_requirements[campaign.id] %}
+        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · @{{ sender.domain }}</p>
+        {% if not draft_only %}<p class="small muted">Start worker v0.30.4 or newer before activating this campaign.</p>{% endif %}
       {% endif %}
       <form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">

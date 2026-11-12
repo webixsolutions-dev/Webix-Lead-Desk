@@ -19,6 +19,7 @@ from app.integrations.public_http import Page, fetch_public
 from app.jobs.queue import enqueue
 from app.journey.events import emit
 from app.scoring.service import score
+from app.sending.campaign_sender import sender_matches
 from app.sources.enrichment.config import get_config
 from app.sources.enrichment.providers import Provider
 from app.sources.enrichment.service import accept_result, search
@@ -243,11 +244,13 @@ def advance(db: Database, settings: Settings, job: Job) -> str:
             .limit(1)
         )
         contacts = list(session.scalars(select(Contact).where(Contact.company_id == company_id)))
-        mailboxes = list(
-            session.scalars(
+        mailboxes = [
+            mailbox
+            for mailbox in session.scalars(
                 select(Mailbox).where(Mailbox.lane == campaign.lane, Mailbox.enabled.is_(True))
             )
-        )
+            if sender_matches(session, campaign.id, mailbox)
+        ]
         conversation = session.scalar(
             select(Conversation.id).where(Conversation.company_id == company_id)
         )

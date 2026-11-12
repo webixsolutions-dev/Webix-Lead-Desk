@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.db.lead_models import Campaign, Company, Contact, ContactBasis
+from app.db.models import WorkspaceSetting
 from app.db.outreach_models import (
     Conversation,
     Draft,
@@ -30,6 +31,7 @@ from app.drafting.content import check_copy
 from app.drafting.service import approval_blocks, approve, save_draft
 from app.playbook.service import current_guidance, publish
 from app.policy.contacts import suppress
+from app.sending.campaign_sender import SENDER_KEY_PREFIX
 from tests.conftest import Account, csrf_from, sign_in
 from tests.test_research import research_company as research_company
 
@@ -111,6 +113,30 @@ def make_draft(db: Database, setup: dict[str, str], **overrides: Any) -> Draft:
         values["body"] = followups[min(int(overrides["step"]), 4) - 1]
     values.update(overrides)
     return save_draft(db, **values)
+
+
+def test_campaign_sender_rule_blocks_wrong_draft_and_existing_approval(
+    db: Database, drafting_setup: dict[str, str]
+) -> None:
+    """The campaign must match both the mailbox domain and brand."""
+    existing = make_draft(db, drafting_setup)
+    with db.sessions.begin() as session:
+        session.add(
+            WorkspaceSetting(
+                key=SENDER_KEY_PREFIX + drafting_setup["campaign_id"],
+                value={"domain": "example.org", "brand": "Example Web Studio"},
+            )
+        )
+    assert "Sender domain or brand does not match the campaign" in approval_blocks(db, existing)
+    with pytest.raises(ValueError, match="brand required by this campaign"):
+        make_draft(db, drafting_setup, previous_id=existing.id)
+
+    with db.sessions.begin() as session:
+        mailbox = session.get(Mailbox, drafting_setup["mailbox_id"])
+        assert mailbox
+        mailbox.brand = "Example Web Studio"
+    updated = make_draft(db, drafting_setup, previous_id=existing.id)
+    assert "Sender domain or brand does not match the campaign" not in approval_blocks(db, updated)
 
 
 def test_approval_binds_exact_revision_and_edit_revokes(

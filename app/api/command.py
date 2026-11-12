@@ -10,7 +10,7 @@ from app.core.clock import utc_now
 from app.db.delivery_models import InboxMessage
 from app.db.lead_models import Contact
 from app.db.linkedin_models import Person, Touch
-from app.db.models import AuditEvent
+from app.db.models import AuditEvent, WorkspaceSetting
 from app.db.outreach_models import Conversation
 from app.drafting.review import review_brief
 from app.reporting.activity import activity
@@ -171,12 +171,20 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
     """Centralize creation and edits of reusable targeting without changing send windows."""
     from app.api.sources import lead_context
     from app.reporting.service import campaign_results
+    from app.sending.campaign_sender import SENDER_KEY_PREFIX
     from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
 
     context = lead_context(request, principal)
     context["results"] = campaign_results(services(request).db)
     context["campaign_countries"] = CAMPAIGN_COUNTRIES
     context["draft_only_countries"] = DRAFT_ONLY_COUNTRIES
+    with services(request).db.sessions() as session:
+        context["campaign_sender_requirements"] = {
+            item.key.removeprefix(SENDER_KEY_PREFIX): item.value
+            for item in session.scalars(
+                select(WorkspaceSetting).where(WorkspaceSetting.key.startswith(SENDER_KEY_PREFIX))
+            )
+        }
     return render(request, "campaigns.html", context)
 
 

@@ -21,6 +21,7 @@ from app.partners.service import reserve_slot
 from app.playbook.partner import meeting_block
 from app.playbook.service import current_guidance
 from app.policy.verification import verify_address
+from app.sending.campaign_sender import sender_matches
 from app.sending.sequences import days_for
 from app.sending.signatures import get_signature
 
@@ -86,6 +87,8 @@ def save_draft(
                 or not member
             ):
                 raise ValueError("Choose a contact and sender matching this business and campaign")
+            if not sender_matches(session, campaign.id, mailbox):
+                raise ValueError("Choose the business email and brand required by this campaign")
             company = session.get(Company, company_id)
             assert company
             if reason := meeting_block(session, company, campaign, body):

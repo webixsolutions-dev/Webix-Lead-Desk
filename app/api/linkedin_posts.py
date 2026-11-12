@@ -12,6 +12,7 @@ from app.core.clock import utc_now
 from app.core.security import SESSION_COOKIE
 from app.db.linkedin_models import LinkedInProfile
 from app.db.linkedin_post_models import LinkedInPost, PostingConnection, PostMedia
+from app.db.models import WorkspaceSetting
 from app.integrations.linkedin import LinkedInError
 from app.linkedin import oauth, posts
 from app.linkedin.post_access import profile_access
@@ -28,6 +29,11 @@ def calendar_page(request: Request, principal: CurrentUser) -> HTMLResponse:
         request, principal, "outbox" if principal.user.role == "owner" else "linkedin"
     )
     with services(request).db.sessions() as session:
+        draft_bank = (
+            session.get(WorkspaceSetting, "linkedin_post_copy_drafts")
+            if principal.user.role == "owner"
+            else None
+        )
         query = select(LinkedInProfile).where(LinkedInProfile.status == "active")
         if principal.user.role != "owner":
             query = query.where(LinkedInProfile.user_id == principal.user.id)
@@ -48,6 +54,7 @@ def calendar_page(request: Request, principal: CurrentUser) -> HTMLResponse:
             warning_at=utc_now() + timedelta(days=7),
             oauth_enabled=services(request).settings.linkedin_posting_enabled,
             calgary=CALGARY,
+            unassigned_posts=draft_bank.value.get("drafts", []) if draft_bank else [],
         )
     return render(request, "linkedin_posts.html", context)
 

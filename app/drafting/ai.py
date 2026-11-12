@@ -24,6 +24,7 @@ from app.drafting.checks import block_ai, derived_context
 from app.drafting.service import save_draft
 from app.integrations.openai import ModelUnavailable, create_response
 from app.partners.service import reserve_slot
+from app.sending.campaign_sender import sender_matches
 
 
 class DraftCopy(BaseModel):
@@ -72,6 +73,7 @@ def generate(
             or not member
             or not mailbox
             or campaign.lane != mailbox.lane
+            or not sender_matches(session, campaign.id, mailbox)
             or not contact
             or contact.company_id != payload["company_id"]
         ):

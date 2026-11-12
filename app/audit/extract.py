@@ -165,6 +165,10 @@ def extract(url: str, html: str) -> tuple[dict[str, Any], list[str]]:
         )
         if match:
             candidates.append(match)
-    from app.audit.signals import tool_signals
+    from app.audit.signals import tool_signals, workflow_paths
 
-    return {**parser.facts(), **tool_signals(html, parser.links)}, candidates
+    return {
+        **parser.facts(),
+        **tool_signals(html, parser.links),
+        "observed_workflow_link_paths": workflow_paths(url, parser.links),
+    }, candidates

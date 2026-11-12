@@ -9,6 +9,18 @@ from app.db.models import AuditEvent, User
 from app.db.outreach_models import PlaybookVersion
 from app.db.session import Database
 
+QUALIFICATION_SCOPE = "service_qualification"
+
+
+def latest_guidance(session: Session, scope: str) -> PlaybookVersion | None:
+    """Return the latest published version in one scope."""
+    return session.scalar(
+        select(PlaybookVersion)
+        .where(PlaybookVersion.scope == scope)
+        .order_by(PlaybookVersion.version.desc())
+        .limit(1)
+    )
+
 
 def current_guidance(db: Database, campaign_id: str | None = None) -> list[PlaybookVersion]:
     """Return global guidance and the current campaign-specific override, if present."""
@@ -21,14 +33,10 @@ def current_guidance(db: Database, campaign_id: str | None = None) -> list[Playb
             ["partner"] if campaign and campaign.lane == "partner" else []
         )
         if campaign:
+            scopes += [QUALIFICATION_SCOPE]
             scopes += ["industry:" + item["slug"] for item in matching(campaign.industry)]
         for scope in scopes + ([campaign_id] if campaign_id else []):
-            item = session.scalar(
-                select(PlaybookVersion)
-                .where(PlaybookVersion.scope == scope)
-                .order_by(PlaybookVersion.version.desc())
-                .limit(1)
-            )
+            item = latest_guidance(session, scope)
             if item:
                 result.append(item)
     return result
@@ -45,17 +53,12 @@ def append_version(
         raise ValueError("Only the owner can publish guidance")
     from app.playbook.industries import catalog
 
-    allowed = {"global", "partner", "conversation", "linkedin"} | {
+    allowed = {"global", "partner", "conversation", "linkedin", QUALIFICATION_SCOPE} | {
         "industry:" + item["slug"] for item in catalog()
     }
     if scope not in allowed and session.get(Campaign, scope) is None:
         raise ValueError("Choose global guidance or an existing campaign")
-    current = session.scalar(
-        select(PlaybookVersion)
-        .where(PlaybookVersion.scope == scope)
-        .order_by(PlaybookVersion.version.desc())
-        .limit(1)
-    )
+    current = latest_guidance(session, scope)
     if (current.version if current else 0) != expected:
         raise ValueError("Guidance changed. Reload before publishing.")
     version = PlaybookVersion(

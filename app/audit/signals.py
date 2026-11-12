@@ -2,8 +2,32 @@
 
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 from app.playbook.industries import catalog
+
+WORKFLOW_PATHS = {
+    "support": r"faqs?|help|support|contact",
+    "intake": r"book(?:ing)?|appointments?|quote|estimate|enquir(?:y|ies)|intake",
+    "self_service": r"portal|log[ -]?in|signin|account|track|documents|upload",
+    "commerce": r"menu|order(?:ing)?|checkout|pickup|delivery|inventory|stock",
+}
+
+
+def workflow_paths(url: str, links: list[str]) -> dict[str, list[str]]:
+    """Record public same-site link paths as clues without checking those workflows."""
+    host = urlsplit(url).netloc
+    candidates = dict.fromkeys(
+        parts.path for link in links if (parts := urlsplit(link)).netloc == host
+    )
+    return {
+        name: [
+            path
+            for path in candidates
+            if re.search(rf"(?:^|[/_.-])(?:{pattern})(?:$|[/_.-])", path, re.I)
+        ][:4]
+        for name, pattern in WORKFLOW_PATHS.items()
+    }
 
 
 def tool_signals(html: str, links: list[str]) -> dict[str, Any]:

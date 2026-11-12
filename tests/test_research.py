@@ -26,12 +26,14 @@ from app.db.lead_models import Campaign, CampaignLead, Company, CompanyDomain, C
 from app.db.models import new_id
 from app.db.research_models import AICall, Assessment, BudgetAccount, Evidence, WebsiteAudit
 from app.db.session import Database
+from app.drafting.brief import build_brief
 from app.integrations.openai import ModelUnavailable
 from app.integrations.pagespeed import PageSpeedUnavailable, mobile_audit
 from app.integrations.public_http import Page, PublicFetchError, public_addresses
 from app.jobs.heartbeat import renew
 from app.jobs.queue import acquire_worker, claim_next, enqueue
 from app.jobs.runner import dispatch_job
+from app.playbook.service import QUALIFICATION_SCOPE, publish
 from app.sources.validation import website_url
 from tests.conftest import Account, csrf_from, sign_in
 
@@ -94,6 +96,24 @@ def test_markup_is_factual_and_bounded() -> None:
     assert "noindex" in seo_review(facts["seo"], "googlebot: noindex")[0]
     assert "Ignore previous" not in facts["visible_excerpt"]
     assert links == ["https://example.com/contact", "https://example.com/services"]
+    assert facts["observed_workflow_link_paths"]["support"] == ["/contact"]
+
+
+def test_workflow_clues_stay_on_site_and_omit_query_values() -> None:
+    """Record visible routes without exposing queries or inferring installed tools."""
+    facts, _ = extract(
+        "https://example.com/",
+        '<a href="/help/faq">FAQs</a><a href="/book?ref=internal">Book</a>'
+        '<a href="/account/login?token=example">Log in</a>'
+        '<a href="/menu/order">Order</a><a href="https://other.example.com/support">Help</a>',
+    )
+    assert facts["observed_workflow_link_paths"] == {
+        "support": ["/help/faq"],
+        "intake": ["/book"],
+        "self_service": ["/account/login"],
+        "commerce": ["/menu/order"],
+    }
+    assert facts["form_delivery"] == "not tested"
 
 
 @pytest.mark.parametrize(
@@ -368,7 +388,11 @@ def recommendation(evidence_id: str) -> dict[str, Any]:
 
 
 def test_ai_structure_budget_and_invented_source_guard(
-    db: Database, settings: Settings, research_company: tuple[Company, Campaign], funded: None
+    db: Database,
+    settings: Settings,
+    research_company: tuple[Company, Campaign],
+    funded: None,
+    owner: Account,
 ) -> None:
     """An optional model gets only bounded data; its result cannot invent evidence IDs."""
     company, campaign = research_company
@@ -379,6 +403,18 @@ def test_ai_structure_budget_and_invented_source_guard(
     result = recommendation(evidence[0].id)
     from app.db.outreach_models import Offer
 
+    rubric = "Ask about the current workflow before proposing replacement."
+    publish(db, QUALIFICATION_SCOPE, rubric, 0, owner.user.id)
+    outside_service = "Point of sale (POS) software"
+    result["alternatives"] = [
+        {
+            "service": outside_service,
+            "fit": "needs_confirmation",
+            "reason": "Ask whether any checkout workflow is relevant before considering an offer.",
+            "evidence_ids": [evidence[0].id],
+            "question": "What handles checkout today?",
+        }
+    ]
     with db.sessions.begin() as session:
         session.add(
             Offer(
@@ -386,6 +422,16 @@ def test_ai_structure_budget_and_invented_source_guard(
                 name="Synthetic quote journey",
                 description="Improve the documented quote request path",
                 active=True,
+                pricing_mode="quote",
+            )
+        )
+        session.add(
+            Offer(
+                service=outside_service,
+                name="Synthetic POS assessment",
+                description="Scope current checkout and the integration question",
+                availability="discovery_only",
+                active=False,
                 pricing_mode="quote",
             )
         )
@@ -403,6 +449,11 @@ def test_ai_structure_budget_and_invented_source_guard(
         """Return a synthetic complete provider response."""
         assert key == "synthetic" and payload["store"] is False
         assert "untrusted data" in payload["instructions"]
+        body = json.loads(payload["input"])
+        assert body["owner_service_qualification"] == rubric
+        assert body["evidence"][0]["source_url"].startswith("https://example.com")
+        assert body["outside_campaign_offers_for_review"][0]["service"] == outside_service
+        assert outside_service not in body["enabled_services"]
         return {
             "status": "completed",
             "usage": {"input_tokens": 20, "output_tokens": 100},
@@ -418,6 +469,17 @@ def test_ai_structure_budget_and_invented_source_guard(
     with db.sessions() as session:
         saved = session.scalar(select(Assessment))
         assert saved and saved.reviewed_by is None
+        assert saved.result["alternatives"][0]["service"] == outside_service
+    brief = build_brief(db, company.id, campaign.id)
+    assert rubric in brief
+    assert outside_service not in brief
+    with pytest.raises(ValueError, match="Select one enabled service"):
+        validate_recommendation(
+            Recommendation.model_validate({**result, "service": outside_service}),
+            evidence,
+            campaign.services,
+            catalogue_services=[outside_service],
+        )
     result["observed"][0]["evidence_id"] = "invented"
     with pytest.raises(ValueError, match="unknown evidence"):
         assess(db, config, company.id, campaign.id, "ai-fabrication", provider=provider)

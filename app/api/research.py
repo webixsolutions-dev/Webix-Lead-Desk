@@ -165,8 +165,8 @@ async def review_assessment(
     """Confirm a service hypothesis against the saved evidence without approving outreach."""
     from app.audit.classify import Recommendation, validate_recommendation
     from app.db.lead_models import Campaign
-    from app.db.outreach_models import Offer
     from app.db.research_models import Assessment
+    from app.playbook.catalog import qualification_offers
 
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
@@ -182,19 +182,18 @@ async def review_assessment(
         )
         if not campaign or not campaign.active:
             raise HTTPException(422, "Campaign is inactive")
-        offers = list(
-            session.scalars(
-                select(Offer).where(
-                    Offer.offer_type == "service", Offer.service.in_(campaign.services)
-                )
-            )
-        )
+        catalogue = qualification_offers(session)
+        offers = [offer for offer in catalogue if offer.service in campaign.services]
+        enabled = {offer.service for offer in offers}
         try:
             validate_recommendation(
                 Recommendation.model_validate(assessment.result),
                 evidence,
-                [o.service for o in offers if o.status in {"available", "discovery_only"}],
-                discovery_services=[o.service for o in offers if o.status == "discovery_only"],
+                sorted(enabled),
+                discovery_services=sorted(
+                    enabled - {offer.service for offer in offers if offer.status == "available"}
+                ),
+                catalogue_services=sorted({offer.service for offer in catalogue}),
             )
         except ValueError as error:
             raise HTTPException(

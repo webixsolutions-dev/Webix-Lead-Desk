@@ -1,6 +1,6 @@
-# Webix Lead Desk v0.30.5
+# Webix Lead Desk v0.30.6
 
-This release adds public SEO evidence and HTML response timing to website research. A configured PageSpeed Insights key adds one mobile lab measurement. API failures can pause further requests until owner review. Explicit sender assignments can share one exact business email. Stop the worker, install v0.30.5, then select Start Worker. This companion runs approved mailbox tests and the existing research functions.
+This release adds service qualification guidance, public workflow link observations and catalogue-wide research. Keep the existing dashboard and local account. Stop the worker, install v0.30.6, then select Start Worker. This companion runs approved mailbox tests and the existing research functions.
 
 The WhatsApp idle polling fix from v0.30.2 is included. If you choose to upgrade the worker, stop it first and start it after installing. Your existing pairing and key are retained.
 

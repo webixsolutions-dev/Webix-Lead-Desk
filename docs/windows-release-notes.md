@@ -1,6 +1,6 @@
-# Webix Lead Desk v0.30.4
+# Webix Lead Desk v0.30.5
 
-This release adds campaign sender restrictions, paused UAE campaign drafts and unassigned LinkedIn post copy. Update the Windows worker before activating campaigns with a required sender. Stop the worker, install v0.30.4, then select Start Worker.
+This release adds public SEO evidence and HTML response timing to website research. A configured PageSpeed Insights key adds one mobile lab measurement. API failures can pause further requests until owner review. Explicit sender assignments can share one exact business email. Stop the worker, install v0.30.5, then select Start Worker. This companion runs approved mailbox tests and the existing research functions.
 
 The WhatsApp idle polling fix from v0.30.2 is included. If you choose to upgrade the worker, stop it first and start it after installing. Your existing pairing and key are retained.
 

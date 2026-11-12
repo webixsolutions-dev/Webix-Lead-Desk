@@ -4,8 +4,10 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import func, select
@@ -14,14 +16,18 @@ from app.audit.ai import assess
 from app.audit.budget import BudgetBlocked, reserve, settle
 from app.audit.classify import Recommendation, validate_recommendation
 from app.audit.extract import extract
+from app.audit.provider_pause import paused_event
 from app.audit.service import research
+from app.audit.technical import seo_review, speed_review
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.core.vault import store_secret
 from app.db.lead_models import Campaign, CampaignLead, Company, CompanyDomain, Contact
 from app.db.models import new_id
 from app.db.research_models import AICall, Assessment, BudgetAccount, Evidence, WebsiteAudit
 from app.db.session import Database
 from app.integrations.openai import ModelUnavailable
+from app.integrations.pagespeed import PageSpeedUnavailable, mobile_audit
 from app.integrations.public_http import Page, PublicFetchError, public_addresses
 from app.jobs.heartbeat import renew
 from app.jobs.queue import acquire_worker, claim_next, enqueue
@@ -82,6 +88,10 @@ def test_markup_is_factual_and_bounded() -> None:
     assert facts["phones"] == ["+14035550199"]
     assert facts["quote_words_present"]
     assert facts["visual_quality"] == facts["traffic"] == facts["revenue"] == "unknown"
+    assert facts["seo"]["main_heading_elements"] == 1
+    assert facts["seo"]["meta_description_present"]
+    assert not seo_review(facts["seo"], "")
+    assert "noindex" in seo_review(facts["seo"], "googlebot: noindex")[0]
     assert "Ignore previous" not in facts["visible_excerpt"]
     assert links == ["https://example.com/contact", "https://example.com/services"]
 
@@ -161,7 +171,7 @@ def test_research_persists_provenance_candidates_and_cache(
     second = enqueue(db, "research-two", "audit", {"company_id": company.id}, utc_now())
     assert "existing audit" in research(db, second, fetcher=fetch, pause=lambda _: None)
     with db.sessions() as session:
-        assert session.scalar(select(func.count()).select_from(Evidence)) == 3
+        assert session.scalar(select(func.count()).select_from(Evidence)) == 4
         candidate = session.scalar(select(Contact))
         assert candidate and candidate.verification == "unverified"
         assert session.scalar(select(WebsiteAudit.state)) == "complete"
@@ -243,19 +253,99 @@ def test_budget_default_zero_and_atomic_limit(db: Database, owner: Account) -> N
         assert sum(pool.map(attempt, range(2))) == 1
 
 
-def test_budget_uncertain_never_refunds_or_retries(db: Database, funded: None) -> None:
+def test_budget_uncertain_never_refunds_or_retries(
+    db: Database, funded: None, client: TestClient, owner: Account
+) -> None:
     """Uncertain calls hold cost; completion releases only measured unused cost once."""
     call = reserve(db, "uncertain", "test-model", 1000, utc_now())
     settle(db, call.id, None)
     settle(db, call.id, 0)
     with pytest.raises(BudgetBlocked):
         reserve(db, "uncertain", "test-model", 1000, utc_now())
+    with pytest.raises(BudgetBlocked, match="OpenAI is paused"):
+        reserve(db, "new-request", "test-model", 1000, utc_now())
+    with db.sessions() as session:
+        event = paused_event(session, "openai")
+        assert event
+    sign_in(client, owner)
+    page = client.get("/settings")
+    assert "Resume new OpenAI requests" in page.text
+    response = client.post(
+        "/settings/api-resume",
+        data={"csrf_token": csrf_from(page.text), "provider": "openai", "pause_id": event.id},
+    )
+    assert response.status_code == 303
     second = reserve(db, "success", "test-model", 1000, utc_now())
     settle(db, second.id, 500)
     settle(db, second.id, 0)
     with db.sessions() as session:
         account = session.get(BudgetAccount, "primary")
         assert account and account.committed == 1500
+
+
+def test_mobile_provider_failure_stops_next_audit_call(
+    db: Database, settings: Settings, research_company: tuple[Company, Campaign], owner: Account
+) -> None:
+    """The next audit records HTML evidence without calling a failed performance provider."""
+    company, _ = research_company
+    config = settings.model_copy(
+        update={"encryption_key": SecretStr(Fernet.generate_key().decode())}
+    )
+    store_secret(db, config, "pagespeed", "synthetic-key", owner.user.id)
+    attempted: list[str] = []
+
+    def fail(url: str, key: str) -> dict[str, Any]:
+        assert key == "synthetic-key"
+        attempted.append(url)
+        raise PageSpeedUnavailable("synthetic failure")
+
+    for _ in range(2):
+        job = enqueue(db, new_id(), "audit", {"company_id": company.id, "force": True}, utc_now())
+        assert "3 page(s)" in research(
+            db, job, fetcher=fake_pages, pause=lambda _: None, settings=config, speed_provider=fail
+        )
+    assert attempted == ["https://example.com/"]
+    with db.sessions() as session:
+        assert paused_event(session, "pagespeed")
+        states = {
+            row.facts["status"]
+            for row in session.scalars(select(Evidence).where(Evidence.kind == "performance"))
+        }
+        assert states == {
+            "provider unavailable; automatic requests paused",
+            "paused after provider failure",
+        }
+
+
+def test_mobile_audit_reports_scoped_lab_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A single provider result records the verified page and discards raw provider content."""
+    opener = MagicMock()
+    raw = {
+        "lighthouseResult": {
+            "finalUrl": "https://example.com/",
+            "fetchTime": "2026-11-12T12:00:00Z",
+            "lighthouseVersion": "1.0",
+            "categories": {"performance": {"score": 0.68}, "seo": {"score": 0.9}},
+            "audits": {
+                "largest-contentful-paint": {"numericValue": 4100.2},
+                "cumulative-layout-shift": {"numericValue": 0.15},
+                "render-blocking-insight": {"score": 0},
+            },
+        }
+    }
+    opener.open.return_value.__enter__.return_value.read.return_value = json.dumps(raw).encode()
+    monkeypatch.setattr("app.integrations.pagespeed.build_opener", lambda _: opener)
+    result = mobile_audit("https://example.com/?private=value", "synthetic-key")
+    assert result["status"] == "measured"
+    assert result["performance_score"] == 68 and result["lcp_ms"] == 4100
+    assert result["seo_score"] == 90 and result["cls"] == 0.15
+    assert result["diagnostics"] == ["render-blocking-insight"]
+    assert speed_review(result) == ["Speed review: mobile lab LCP was 4.1 seconds on this page."]
+    assert not speed_review({"status": "not configured"})
+    request = opener.open.call_args.args[0]
+    assert "private" not in request.full_url and "strategy=mobile" in request.full_url
+    assert "synthetic-key" not in json.dumps(result)
+    opener.open.assert_called_once()
 
 
 def test_ai_calls_disabled_without_explicit_setup(db: Database, settings: Settings) -> None:
@@ -433,6 +523,6 @@ def test_dispatch_research_uses_registered_service(
     db: Database, research_company: tuple[Company, Campaign], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The worker routes only the registered audit type to its isolated service."""
-    monkeypatch.setattr("app.audit.service.research", lambda db, job: "Synthetic result")
+    monkeypatch.setattr("app.audit.service.research", lambda db, job, **kw: "Synthetic result")
     job = enqueue(db, new_id(), "audit", {"company_id": research_company[0].id}, utc_now())
     assert dispatch_job(db, job) == "Synthetic result"

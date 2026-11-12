@@ -255,7 +255,7 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
     if job.kind == "audit":
         from app.audit.service import research
 
-        result = research(db, job)
+        result = research(db, job, settings=settings)
         if job.payload.get("continue_flow"):
             from app.jobs.queue import enqueue
 

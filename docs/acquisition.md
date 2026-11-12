@@ -35,6 +35,20 @@ rebinding and unsafe redirects. All website/model text remains untrusted data.
 
 ## Reviewed observations and no-website businesses
 
+Website research checks the public HTML of up to three verified pages for title, description,
+canonical and robot directives, heading elements, image alt attributes and JSON-LD. It records
+the worker's response-header time and HTML bytes, which do not measure browser rendering.
+Settings → System → Discovery & AI accepts an optional encrypted PageSpeed Insights key for a
+single mobile Lighthouse lab run per fresh audit. Treat the lab result as a page-specific sample.
+Rules flag a missing HTML title, an explicit noindex directive, or a mobile lab LCP over four
+seconds or CLS over 0.25 for review, even when AI is disabled. A rule flag is a review point.
+Review visual layout, calls to action and the actual enquiry flow manually. Search ranking,
+real-user performance and indexing need separate evidence.
+
+A failed or uncertain API request pauses new requests to that provider. Inspect the failure
+and select **Resume new requests** in Discovery & AI after resolving it. Resuming does not
+replay failed jobs or refund unknown charges. Cached website evidence remains available.
+
 The rule score is independent of AI. Target industry +2, confirmed ads +2, confirmed
 weak mobile +2, confirmed no website +3, response/booking gap +2, ten or more reviewed
 Google reviews +1, and mature software/strong modern site −3. No-website and weak-mobile

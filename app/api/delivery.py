@@ -65,13 +65,15 @@ async def save_connection(request: Request, principal: Owner) -> RedirectRespons
     key = fields.get("key", "")
     with app.db.sessions() as session:
         valid_mailbox = key.startswith("mailbox:") and session.get(Mailbox, key[8:]) is not None
-    if key not in {"openai", "firecrawl", "places"} and not valid_mailbox:
+    if key not in {"openai", "firecrawl", "places", "pagespeed"} and not valid_mailbox:
         raise HTTPException(422, "Choose an existing connection")
     try:
         store_secret(app.db, app.settings, key, fields.get("credential", ""), principal.user.id)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    return RedirectResponse("/settings#mail-delivery", 303)
+    return RedirectResponse(
+        "/settings#acquisition" if key == "pagespeed" else "/settings#mail-delivery", 303
+    )
 
 
 @router.post("/settings/mailboxes/{mailbox_id}/readiness")

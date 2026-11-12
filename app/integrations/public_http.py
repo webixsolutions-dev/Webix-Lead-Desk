@@ -32,6 +32,9 @@ class Page:
     body: str
     content_type: str
     location: str = ""
+    response_headers_ms: int | None = None
+    html_bytes: int | None = None
+    x_robots_tag: str = ""
 
 
 def public_addresses(host: str, port: int) -> list[str]:
@@ -85,6 +88,7 @@ class PinnedConnection(http.client.HTTPConnection):
 
 def fetch_public(url: str) -> Page:
     """Fetch one public page with no cookies, proxies, redirects or decompression."""
+    started = time.monotonic()
     clean = website_url(url)
     parts = urlsplit(clean)
     host = parts.hostname or ""
@@ -97,6 +101,7 @@ def fetch_public(url: str) -> Page:
             "GET", path, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "identity"}
         )
         response = connection.getresponse()
+        response_headers_ms = round((time.monotonic() - started) * 1000)
         if response.getheader("Content-Encoding", "identity") not in {"", "identity"}:
             raise PublicFetchError("Compressed responses are not accepted")
         deadline = time.monotonic() + 8
@@ -124,6 +129,9 @@ def fetch_public(url: str) -> Page:
             body.decode("utf-8", errors="replace"),
             content_type,
             response.getheader("Location", ""),
+            response_headers_ms,
+            len(body),
+            response.getheader("X-Robots-Tag", "")[:300],
         )
     except (OSError, http.client.HTTPException) as error:
         raise PublicFetchError("Public website unavailable", temporary=True) from error

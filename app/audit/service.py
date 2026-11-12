@@ -4,6 +4,7 @@ import hashlib
 import time
 from collections.abc import Callable
 from datetime import timedelta
+from typing import Any
 from urllib.parse import urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
@@ -11,11 +12,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.audit.extract import extract
+from app.audit.technical import performance, seo_review, speed_review
 from app.core.clock import utc_now
+from app.core.config import Settings
 from app.db.lead_models import Company, CompanyDomain, Contact
 from app.db.models import Job
 from app.db.research_models import Evidence, WebsiteAudit
 from app.db.session import Database
+from app.integrations.pagespeed import mobile_audit
 from app.integrations.public_http import USER_AGENT, Page, PublicFetchError, fetch_public
 from app.sources.validation import domain_of, website_url
 
@@ -26,6 +30,8 @@ def research(
     *,
     fetcher: Callable[[str], Page] = fetch_public,
     pause: Callable[[float], None] = time.sleep,
+    settings: Settings | None = None,
+    speed_provider: Callable[[str, str], dict[str, Any]] = mobile_audit,
 ) -> str:
     """Read at most three same-origin pages and persist an idempotent evidence bundle."""
     company_id = str(job.payload["company_id"])
@@ -118,6 +124,13 @@ def research(
     summary = f"{len(pages)} page(s) recorded. " + (
         summary or "Social activity and visual quality need review."
     )
+    mobile = None
+    if pages:
+        mobile = (
+            {"status": "previous worker attempt interrupted; review before refreshing"}
+            if job.attempts > 1
+            else performance(db, settings, pages[0], job.id, speed_provider)
+        )
     try:
         with db.sessions.begin() as session:
             current = session.get(Company, company_id)
@@ -133,6 +146,13 @@ def research(
             )
             for page in pages:
                 facts, _ = extract(page.url, page.body)
+                facts["seo"]["x_robots_tag"] = page.x_robots_tag
+                facts["seo"]["review_points"] = seo_review(facts["seo"], page.x_robots_tag)
+                facts["document_fetch"] = {
+                    "method": "Single worker HTML request, including DNS and connection",
+                    "response_headers_ms": page.response_headers_ms,
+                    "html_bytes": page.html_bytes,
+                }
                 session.add(
                     Evidence(
                         company_id=company_id,
@@ -147,6 +167,17 @@ def research(
                     if email not in emails:
                         session.add(Contact(company_id=company_id, email=email))
                         emails.add(email)
+            if mobile is not None:
+                mobile = {**mobile, "review_points": speed_review(mobile)}
+                session.add(
+                    Evidence(
+                        company_id=company_id,
+                        audit_id=audit.id,
+                        kind="performance",
+                        source_url=pages[0].url,
+                        facts=mobile,
+                    )
+                )
     except IntegrityError:
         with db.sessions() as session:
             previous = session.scalar(select(WebsiteAudit).where(WebsiteAudit.job_id == job.id))

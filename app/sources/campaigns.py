@@ -7,7 +7,7 @@ from app.db.lead_models import Campaign
 from app.db.models import AuditEvent, User, WorkerInstance, WorkspaceSetting
 from app.db.outreach_models import Conversation, Draft
 from app.db.session import Database
-from app.sending.campaign_sender import SENDER_KEY_PREFIX, WORKER_CAPABILITY
+from app.sending.campaign_sender import SENDER_KEY_PREFIX, WORKER_CAPABILITY, WORKER_POLICY_VERSION
 from app.sending.sequences import validate_days
 
 CAMPAIGN_COUNTRIES = {
@@ -53,8 +53,11 @@ def edit_campaign(
             raise ValueError("An active owner must edit an existing campaign")
         if active and session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id) is not None:
             worker = session.get(WorkerInstance, "primary")
-            if not worker or (worker.runtime_config or {}).get(WORKER_CAPABILITY) != 1:
-                raise ValueError("Start worker v0.30.4 or newer before activating this campaign")
+            if (
+                not worker
+                or (worker.runtime_config or {}).get(WORKER_CAPABILITY) != WORKER_POLICY_VERSION
+            ):
+                raise ValueError("Start worker v0.30.5 or newer before activating this campaign")
         if not 1 <= daily_limit <= (5 if campaign.lane == "partner" else 50):
             raise ValueError("Use a daily limit of 1–5 for partners or 1–50 for clients")
         if followup_days is not None:

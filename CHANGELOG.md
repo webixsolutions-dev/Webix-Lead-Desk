@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.5 — Website qualification and shared campaign sender
+
+- Record per-page public SEO evidence and HTML response timing. An optional PageSpeed Insights credential enables one Lighthouse mobile lab test per fresh audit.
+- Pause new requests to a failed API provider until the owner reviews the issue and resumes the provider.
+- Support an exact shared sender for an explicitly configured campaign and keep UAE and New Zealand meeting hosts private in opening emails.
+
 ## 0.30.4 — Campaign planning and sender identity
 
 - Put Campaigns first in the Leads views, add paused UAE drafts and display a campaign's required sender.

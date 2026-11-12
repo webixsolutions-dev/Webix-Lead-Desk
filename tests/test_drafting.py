@@ -31,7 +31,7 @@ from app.drafting.content import check_copy
 from app.drafting.service import approval_blocks, approve, save_draft
 from app.playbook.service import current_guidance, publish
 from app.policy.contacts import suppress
-from app.sending.campaign_sender import SENDER_KEY_PREFIX
+from app.sending.campaign_sender import SENDER_KEY_PREFIX, sender_matches
 from tests.conftest import Account, csrf_from, sign_in
 from tests.test_research import research_company as research_company
 
@@ -137,6 +137,32 @@ def test_campaign_sender_rule_blocks_wrong_draft_and_existing_approval(
         mailbox.brand = "Example Web Studio"
     updated = make_draft(db, drafting_setup, previous_id=existing.id)
     assert "Sender domain or brand does not match the campaign" not in approval_blocks(db, updated)
+
+
+def test_shared_sender_requires_exact_address_and_explicit_campaign_assignment(
+    db: Database, drafting_setup: dict[str, str]
+) -> None:
+    """A client mailbox can serve one partner campaign without allowing other addresses."""
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, drafting_setup["campaign_id"])
+        mailbox = session.get(Mailbox, drafting_setup["mailbox_id"])
+        assert campaign and mailbox
+        campaign.lane = "partner"
+        assert not sender_matches(session, campaign, mailbox)
+        requirement = WorkspaceSetting(
+            key=SENDER_KEY_PREFIX + campaign.id,
+            value={
+                "domain": mailbox.email.rsplit("@", 1)[-1],
+                "brand": mailbox.brand,
+                "email": mailbox.email,
+                "shared": True,
+            },
+        )
+        session.add(requirement)
+        session.flush()
+        assert sender_matches(session, campaign, mailbox)
+        mailbox.email = "different@" + mailbox.email.rsplit("@", 1)[-1]
+        assert not sender_matches(session, campaign, mailbox)
 
 
 def test_approval_binds_exact_revision_and_edit_revokes(

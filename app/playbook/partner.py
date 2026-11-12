@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.db.lead_models import Campaign, Company
 from app.db.outreach_models import LocalTeamMember, PlaybookVersion
 
+PRIVATE_HOST_MARKETS = frozenset({"AE", "NZ"})
+
 PARTNER_GUIDANCE = """
 Write as a real named person from Webix Solutions using its Hostinger business mailbox, never
 Camzio branding. Target Canadian/US IT companies, web/digital agencies and software firms for
@@ -46,16 +48,28 @@ def local_members(session: Session, company: Company, campaign: Campaign) -> lis
                 LocalTeamMember.active.is_(True), LocalTeamMember.country == campaign.country
             )
         )
-        if not m.city or m.city.casefold() == company.city.casefold()
+        if not m.city or m.city.strip().casefold() == company.city.split(",")[0].strip().casefold()
     ]
 
 
-def meeting_block(session: Session, company: Company, campaign: Campaign, body: str) -> str | None:
-    """Require a recorded person before a partner draft promises a physical meeting."""
-    if campaign.lane != "partner":
+def meeting_block(
+    session: Session, company: Company, campaign: Campaign, body: str, *, kind: str = "reply"
+) -> str | None:
+    """Verify physical meeting offers and keep local hosts private during initial outreach."""
+    private_host = campaign.country in PRIVATE_HOST_MARKETS
+    if campaign.lane != "partner" and not private_host:
         return None
-    if re.search(r"in[- ]person|meet locally|local team|visit your|on[- ]site", body, re.I):
-        members = local_members(session, company, campaign)
-        if not members or not any(m.name.casefold() in body.casefold() for m in members):
-            return "Record and name a local team member for this location, or offer a video call"
+    members = local_members(session, company, campaign)
+    opening = kind in {"first_touch", "follow_up"}
+    named = any(m.name.casefold() in " ".join(body.split()).casefold() for m in members)
+    if private_host and opening and named:
+        return "Keep the local meeting host's name private until the recipient is interested"
+    physical = re.search(
+        r"in[- ]person|face[- ]to[- ]face|meet locally|local (?:team|meeting)"
+        r"|visit your|on[- ]site",
+        body,
+        re.I,
+    )
+    if physical and (not members or (not named and not (private_host and opening))):
+        return "Record and name a local team member for this location, or offer a video call"
     return None

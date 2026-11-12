@@ -5,4 +5,35 @@
 <div class="form-columns"><label>Businesses per discovery batch<input name="discovery_batch_size" type="number" min="1" max="10" value="{{ search_config.discovery_batch_size }}" required></label><label>Daily search cap<input name="daily_calls" type="number" min="0" max="1000" value="{{ search_config.daily_calls }}" required></label><label>Monthly search cap<input name="monthly_calls" type="number" min="0" max="30000" value="{{ search_config.monthly_calls }}" required></label><label>Monthly search budget (USD)<input name="monthly_usd" type="number" min="0" max="1000" step="0.000001" value="{{ '%.6f'|format(search_config.monthly_usd_micro / 1000000) }}" required><small>Includes search and model tokens within your overall AI allowance.</small></label><label>Price per web search (USD)<input name="search_usd" type="number" min="0" max="1" step="0.000001" value="{{ '%.6f'|format(search_config.search_usd_micro / 1000000) }}" required><small>Enter the verified rate. Zero blocks paid search.</small></label></div>
 <details><summary>Optional Google Places connection</summary><p class="small">Off by default. Google-derived listing fields are transient; only place IDs and independently verified first-party evidence are retained.</p><label class="checkbox-row"><input type="checkbox" name="places_enabled" value="true" {% if search_config.places_enabled %}checked{% endif %}>Enable Google Places</label><label>New API key (leave blank to keep existing)<input type="password" name="places_key" autocomplete="new-password" maxlength="4096"></label><div class="form-columns">{% for field, label in [('places_daily_calls','Daily calls'),('places_monthly_calls','Monthly calls'),('places_monthly_usd_micro','Monthly budget · USD'),('places_search_usd_micro','Per-call price · USD')] %}<label>{{ label }}<input name="{{ field|replace('_micro','') }}" type="number" min="0" step="{{ '0.000001' if '_micro' in field else '1' }}" value="{{ (search_config|attr(field) / 1000000) if '_micro' in field else search_config|attr(field) }}" required></label>{% endfor %}</div></details>
 <label>No-website offer<select name="no_website_offer_id"><option value="">Optional: choose the confirmed no-website offer</option>{% for offer in offers if offer.active %}<option value="{{ offer.id }}" {% if search_config.no_website_offer_id == offer.id %}selected{% endif %}>{{ offer.service }} · {{ offer.name }}</option>{% endfor %}</select></label><p class="small muted">Uses your Offer Library. Add the package there first. Prices are kept out of first-touch copy.</p><button class="button primary">Save discovery settings</button></form>{% endif %}</section>
+{% if search_config is defined %}
+<section class="panel work-panel">
+  <h2>Mobile performance tests</h2>
+  <p class="muted">Website research records public SEO markup and HTML response timing. Connect PageSpeed Insights to add one mobile Lighthouse lab test for the first verified page of each fresh audit.</p>
+  <p>{{ 'PageSpeed key saved' if pagespeed_connected else 'PageSpeed key needed for mobile lab measurements' }}</p>
+  {% if user.role == 'owner' %}
+  <form action="/settings/connections" method="post" class="work-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="key" value="pagespeed">
+    <label>PageSpeed Insights API key<input name="credential" type="password" autocomplete="new-password" maxlength="4096" required></label>
+    <button class="button secondary" {% if not vault_ready %}disabled{% endif %}>Save key for mobile tests</button>
+  </form>
+  {% endif %}
+</section>
+{% if paused_providers %}
+<section class="panel work-panel">
+  <h2>API requests paused</h2>
+  {% for provider in paused_providers %}
+  <p class="notice">{{ provider.label }} paused after a failed or uncertain request on {{ provider.at.strftime('%d %b %Y %H:%M UTC') }}.</p>
+  {% if user.role == 'owner' %}
+  <form action="/settings/api-resume" method="post" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="provider" value="{{ provider.provider }}">
+    <input type="hidden" name="pause_id" value="{{ provider.id }}">
+    <button class="button secondary">Resume new {{ provider.label }} requests</button>
+  </form>
+  {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+{% endif %}
 <section id="scoring" class="panel work-panel"><h2>Lead scoring rules</h2><p class="muted">Only confirmed observations add points. Scores are bounded to 0–10; every change keeps its reasons.</p>{% if score_rules is defined %}<form action="/settings/score-rules" method="post" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version" value="{{ score_version }}"><div class="form-columns">{% for name, value in score_rules.items() %}<label>{{ score_labels.get(name, name|replace('_',' ')|title) }}<input type="number" name="{{ name }}" min="{{ 0 if name in ['contact_now','later'] else -10 }}" max="10" value="{{ value }}" required></label>{% endfor %}</div><p class="small">Version {{ score_version }} · Saving queues free recalculation on the worker.</p><button class="button primary">Publish scoring rules</button></form>{% endif %}</section>

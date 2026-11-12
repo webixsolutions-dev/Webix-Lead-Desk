@@ -142,8 +142,8 @@ def test_import_enrichment_audit_contact_score_flow(
             "text/html",
         )
 
-    def audit_handler(db: Database, job: Job) -> str:
-        return real_research(db, job, fetcher=fetch, pause=lambda seconds: None)
+    def audit_handler(db: Database, job: Job, *, settings: Settings | None) -> str:
+        return real_research(db, job, fetcher=fetch, pause=lambda seconds: None, settings=settings)
 
     monkeypatch.setattr("app.audit.service.research", audit_handler)
     dispatch_job(db, audit, settings)

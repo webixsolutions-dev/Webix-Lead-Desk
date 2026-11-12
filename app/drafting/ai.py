@@ -72,8 +72,7 @@ def generate(
             or not campaign.active
             or not member
             or not mailbox
-            or campaign.lane != mailbox.lane
-            or not sender_matches(session, campaign.id, mailbox)
+            or not sender_matches(session, campaign, mailbox)
             or not contact
             or contact.company_id != payload["company_id"]
         ):
@@ -246,7 +245,7 @@ def generate(
             allow_price=payload.get("allow_price") is True,
         )
         settle(db, call.id, actual, item.id)
-    except Exception:
-        settle(db, call.id, actual)
+    except Exception as error:
+        settle(db, call.id, actual, provider_failed=isinstance(error, ModelUnavailable))
         raise
     return "An unapproved personalized draft is ready for owner review."

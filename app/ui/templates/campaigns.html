@@ -53,8 +53,26 @@
       {% if campaign.id in campaign_sender_requirements %}
         {% set sender = campaign_sender_requirements[campaign.id] %}
         <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · {{ sender.email or ('@' ~ sender.domain) }}</p>
-        {% if not draft_only %}<p class="small muted">Start worker v0.30.5 or newer before activating this campaign.</p>{% endif %}
+        {% if not draft_only %}<p class="small muted">Start worker v0.30.8 or newer before activating this campaign.</p>{% endif %}
       {% endif %}
+      {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
+      {% set choices = campaign_sender_choices.get(campaign.id, []) %}
+      <details id="campaign-sender-{{ campaign.id }}">
+        <summary>Sending mailbox</summary>
+        <form method="post" action="/campaigns/{{ campaign.id }}/sender" class="work-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <input type="hidden" name="version" value="{{ campaign_sender_versions.get(campaign.id, 0) }}">
+          <label>Email account<select name="mailbox_id" required>
+            <option value="">Choose a sender profile</option>
+            {% for mailbox in choices %}
+              <option value="{{ mailbox.id }}"{% if mailbox.email == sender.get('email') %} selected{% endif %}>{{ mailbox.email }} · {{ 'Gmail / Google Workspace' if mailbox.provider == 'gmail' else mailbox.provider|capitalize }} · {{ mailbox.sender_name }}</option>
+            {% endfor %}
+          </select></label>
+          <button class="button secondary"{% if not choices or campaign.active %} disabled{% endif %}>Save sending mailbox</button>
+          <p class="small muted">Choose a mailbox while the campaign is paused, before any message is reserved. <a href="/settings#sending">Add a Hostinger or Gmail profile in Settings</a>.</p>
+          {% if campaign.lane == 'partner' %}<p class="small muted">Partner campaigns use a Webix Solutions business address.</p>{% endif %}
+        </form>
+      </details>
       <form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
         <input type="hidden" name="version" value="{{ campaign.version }}">
@@ -79,8 +97,11 @@
       {% if campaign.id in campaign_sender_requirements and campaign_sender_requirements[campaign.id].email %}
         {% set signature = campaign_signatures.get(campaign.id) %}
         <details id="campaign-signature-{{ campaign.id }}">
-          <summary>Campaign email signature{% if signature and signature.value.html %} · saved{% endif %}</summary>
+          <summary>Campaign email signature{% if signature and signature.value.html and signature.value.email == sender.get("email") %} · saved{% endif %}</summary>
           <p class="small muted">Used for this campaign and its assigned email. Leave blank to use the mailbox signature.</p>
+          {% if signature and signature.value.html and signature.value.email != sender.get('email') %}
+            <p class="small muted">The saved HTML is linked to {{ signature.value.email }}. Review the name and address before saving it for the selected mailbox.</p>
+          {% endif %}
           <form method="post" action="/campaigns/{{ campaign.id }}/signature" class="work-form">
             <input type="hidden" name="csrf_token" value="{{ csrf }}">
             <input type="hidden" name="version" value="{{ signature.version if signature else 0 }}">

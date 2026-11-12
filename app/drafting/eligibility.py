@@ -91,13 +91,6 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             )
         ):
             reasons.append(reason)
-        if (
-            campaign
-            and campaign.lane == "partner"
-            and mailbox
-            and (mailbox.provider != "hostinger" or mailbox.brand.casefold() != "webix solutions")
-        ):
-            reasons.append("Partner sender must be Webix Solutions on Hostinger")
         if not campaign or not campaign.active:
             reasons.append("Campaign is inactive")
         elif block := partner_block(session, snapshot["company_id"], campaign):

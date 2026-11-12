@@ -92,12 +92,6 @@ def save_draft(
             assert company
             if reason := meeting_block(session, company, campaign, f"{subject}\n{body}", kind=kind):
                 raise ValueError(reason)
-            if campaign.lane == "partner" and (
-                mailbox.provider != "hostinger" or mailbox.brand.casefold() != "webix solutions"
-            ):
-                raise ValueError(
-                    "Partner outreach requires the Webix Solutions Hostinger business identity"
-                )
             if kind == "follow_up" and step > len(days_for(campaign)):
                 raise ValueError("Follow-up is not enabled for this campaign")
             if kind == "reply" and (

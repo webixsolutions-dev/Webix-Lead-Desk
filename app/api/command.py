@@ -170,8 +170,9 @@ def results(request: Request, principal: Owner) -> HTMLResponse:
 def campaigns(request: Request, principal: Owner) -> HTMLResponse:
     """Centralize creation and edits of reusable targeting without changing send windows."""
     from app.api.sources import lead_context
+    from app.db.outreach_models import Mailbox
     from app.reporting.service import campaign_results
-    from app.sending.campaign_sender import SENDER_KEY_PREFIX
+    from app.sending.campaign_sender import SENDER_KEY_PREFIX, selectable_sender
     from app.sending.signatures import CAMPAIGN_SIGNATURE_PREFIX
     from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
 
@@ -180,11 +181,30 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
     context["campaign_countries"] = CAMPAIGN_COUNTRIES
     context["draft_only_countries"] = DRAFT_ONLY_COUNTRIES
     with services(request).db.sessions() as session:
-        context["campaign_sender_requirements"] = {
-            item.key.removeprefix(SENDER_KEY_PREFIX): item.value
+        assignments = {
+            item.key.removeprefix(SENDER_KEY_PREFIX): item
             for item in session.scalars(
                 select(WorkspaceSetting).where(WorkspaceSetting.key.startswith(SENDER_KEY_PREFIX))
             )
+        }
+        context["campaign_sender_requirements"] = {
+            key: item.value for key, item in assignments.items()
+        }
+        context["campaign_sender_versions"] = {
+            key: item.version for key, item in assignments.items()
+        }
+        mailboxes = list(session.scalars(select(Mailbox).order_by(Mailbox.email)))
+        context["campaign_sender_choices"] = {
+            row["campaign"].id: [
+                mailbox
+                for mailbox in mailboxes
+                if selectable_sender(
+                    row["campaign"],
+                    mailbox,
+                    context["campaign_sender_requirements"].get(row["campaign"].id, {}),
+                )
+            ]
+            for row in context["results"]
         }
         context["campaign_signatures"] = {
             item.key.removeprefix(CAMPAIGN_SIGNATURE_PREFIX): item

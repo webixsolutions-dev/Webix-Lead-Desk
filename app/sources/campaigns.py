@@ -59,7 +59,7 @@ def edit_campaign(
                 not worker
                 or (worker.runtime_config or {}).get(WORKER_CAPABILITY) != WORKER_POLICY_VERSION
             ):
-                raise ValueError("Start worker v0.30.5 or newer before activating this campaign")
+                raise ValueError("Start worker v0.30.8 or newer before activating this campaign")
         if active:
             signature = session.get(WorkspaceSetting, CAMPAIGN_SIGNATURE_PREFIX + campaign_id)
             if signature and signature.value.get("html"):

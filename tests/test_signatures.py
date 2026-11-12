@@ -12,16 +12,17 @@ from app.core.preferences import SettingsConflict
 from app.db.delivery_models import SendIntent
 from app.db.lead_models import Campaign
 from app.db.models import WorkerInstance, WorkspaceSetting, new_id
-from app.db.outreach_models import Mailbox
+from app.db.outreach_models import Conversation, Mailbox
 from app.db.session import Database
 from app.drafting.service import approval_blocks, approve
 from app.integrations.smtp import SMTPResult
 from app.jobs.queue import acquire_worker, claim_next
 from app.main import create_app
 from app.sending import diagnostic_worker
-from app.sending.campaign_sender import SENDER_KEY_PREFIX
+from app.sending.campaign_sender import SENDER_KEY_PREFIX, sender_matches
 from app.sending.diagnostics import request_test
 from app.sending.reservations import wire_message
+from app.sending.sender_choice import save_campaign_sender
 from app.sending.signature_html import (
     clean_signature,
     html_alternatives,
@@ -174,6 +175,82 @@ def test_campaign_signature_uses_exact_sender_and_invalidates_stale_approval(
     save_signature(db, campaign_id, "", 1, actor, campaign_override=True)
     assert any("signature changed" in reason for reason in approval_blocks(db, draft))
     assert "Campaign signature" in html_message(draft.snapshot)
+
+
+def test_campaign_gmail_choice_keeps_market_signature_and_protects_threads(
+    db: Database, client: TestClient, owner: Account, drafting_setup: dict[str, str]
+) -> None:
+    """A saved mailbox can be selected before dispatch without losing the local contact details."""
+    box, actor = drafting_setup["mailbox_id"], drafting_setup["actor_id"]
+    campaign_id = drafting_setup["campaign_id"]
+    with db.sessions.begin() as session:
+        mailbox = session.get(Mailbox, box)
+        campaign = session.get(Campaign, campaign_id)
+        assert mailbox and campaign
+        old_email = mailbox.email
+        campaign.active = False
+        gmail = Mailbox(
+            email="owner@gmail.com",
+            provider="gmail",
+            lane="client",
+            brand=mailbox.brand,
+            sender_name=mailbox.sender_name,
+            mailing_address=mailbox.mailing_address,
+            contact_details=mailbox.contact_details,
+        )
+        session.add_all(
+            [
+                gmail,
+                WorkspaceSetting(
+                    key=SENDER_KEY_PREFIX + campaign_id,
+                    value={
+                        "email": old_email,
+                        "domain": old_email.split("@")[1],
+                        "brand": mailbox.brand,
+                        "sender_name": mailbox.sender_name,
+                    },
+                ),
+            ]
+        )
+        session.flush()
+        gmail_id = gmail.id
+    save_signature(
+        db,
+        campaign_id,
+        f'<p><a href="mailto:{old_email}">{old_email}</a> +971 50 555 1234</p>',
+        0,
+        actor,
+        campaign_override=True,
+    )
+    sign_in(client, owner)
+    page = client.get("/leads/campaigns")
+    assert "Sending mailbox" in page.text and "owner@gmail.com" in page.text
+    data = {"mailbox_id": gmail_id, "version": "1", "csrf_token": csrf_from(page.text)}
+    endpoint = f"/campaigns/{campaign_id}/sender"
+    assert client.post(endpoint, data=data, follow_redirects=False).status_code == 303
+    assert client.post(endpoint, data=data, follow_redirects=False).status_code == 409
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        saved_gmail = session.get(Mailbox, gmail_id)
+        mailbox = session.get(Mailbox, box)
+        assert campaign and saved_gmail and mailbox
+        assert sender_matches(session, campaign, saved_gmail)
+        assert not sender_matches(session, campaign, mailbox)
+        signature = get_signature(session, gmail_id, campaign_id=campaign_id)
+        assert "mailto:owner@gmail.com" in signature["html"]
+        assert "+971 50 555 1234" in signature["text"]
+        assert not get_signature(session, box, campaign_id=campaign_id)["html"]
+        session.add(
+            Conversation(
+                company_id=drafting_setup["company_id"],
+                campaign_id=campaign_id,
+                contact_id=drafting_setup["contact_id"],
+                mailbox_id=gmail_id,
+                locked_at=NOW,
+            )
+        )
+    with pytest.raises(ValueError, match="existing email threads"):
+        save_campaign_sender(db, campaign_id, box, 2, actor)
 
 
 def test_signed_test_requires_updated_worker_and_exact_signature(

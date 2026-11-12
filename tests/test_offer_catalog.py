@@ -350,6 +350,6 @@ def test_campaign_sender_rule_requires_a_worker_that_can_enforce_it(
     }
     url = f"/campaigns/{campaign_id}/edit"
     blocked = client.post(url, data=fields)
-    assert blocked.status_code == 422 and "worker v0.30.5" in blocked.text
+    assert blocked.status_code == 422 and "worker v0.30.8" in blocked.text
     assert acquire_worker(db, settings, owner.user.id, utc_now())
     assert client.post(url, data=fields, follow_redirects=False).status_code == 303

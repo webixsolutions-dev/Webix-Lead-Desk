@@ -7,11 +7,13 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
 from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
+from app.core.preferences import SettingsConflict
 from app.db.lead_models import Company
 from app.db.partner_models import PartnerDay, PartnerReview
 from app.partners.service import review_partner
 from app.playbook.catalog import service_names
 from app.reporting.service import campaign_results
+from app.sending.sender_choice import save_campaign_sender
 from app.sending.window import CALGARY
 from app.sources.campaigns import DRAFT_ONLY_COUNTRIES, edit_campaign
 
@@ -75,6 +77,26 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
         else "/partners"
     )
     return RedirectResponse(destination, 303)
+
+
+@router.post("/campaigns/{campaign_id}/sender")
+async def choose_sender(request: Request, principal: Owner, campaign_id: str) -> RedirectResponse:
+    """Assign a saved mailbox to this campaign without starting email delivery."""
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    try:
+        save_campaign_sender(
+            services(request).db,
+            campaign_id,
+            fields.get("mailbox_id", ""),
+            int(fields.get("version", "0")),
+            principal.user.id,
+        )
+    except SettingsConflict as error:
+        raise HTTPException(409, str(error)) from error
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    return RedirectResponse(f"/leads/campaigns#campaign-{campaign_id}", 303)
 
 
 @router.post("/partners/{company_id}/review")

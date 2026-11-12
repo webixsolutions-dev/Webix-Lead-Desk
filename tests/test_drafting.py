@@ -148,6 +148,8 @@ def test_shared_sender_requires_exact_address_and_explicit_campaign_assignment(
         mailbox = session.get(Mailbox, drafting_setup["mailbox_id"])
         assert campaign and mailbox
         campaign.lane = "partner"
+        mailbox.brand = "Webix Solutions"
+        mailbox.provider = "hostinger"
         assert not sender_matches(session, campaign, mailbox)
         requirement = WorkspaceSetting(
             key=SENDER_KEY_PREFIX + campaign.id,
@@ -161,7 +163,12 @@ def test_shared_sender_requires_exact_address_and_explicit_campaign_assignment(
         session.add(requirement)
         session.flush()
         assert sender_matches(session, campaign, mailbox)
+        mailbox.provider = "gmail"
+        assert sender_matches(session, campaign, mailbox)
         mailbox.email = "different@" + mailbox.email.rsplit("@", 1)[-1]
+        assert not sender_matches(session, campaign, mailbox)
+        mailbox.email = "owner@gmail.com"
+        requirement.value = {**requirement.value, "email": mailbox.email, "domain": "gmail.com"}
         assert not sender_matches(session, campaign, mailbox)
 
 

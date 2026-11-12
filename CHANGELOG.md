@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.8 — Campaign mailbox selection
+
+- Choose a saved sender profile on a paused campaign.
+- Preserve the campaign signature when switching a sender and require exact review of new drafts.
+- Support Hostinger and eligible Google Workspace business addresses in the partner lane.
+
 ## 0.30.7 — Campaign email signatures
 
 - Allow an owner to use a separate signature for a campaign with an assigned sender address.

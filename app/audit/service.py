@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.audit.extract import extract
-from app.audit.technical import performance
+from app.audit.technical import performance, seo_review, speed_review
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.db.lead_models import Company, CompanyDomain, Contact
@@ -147,6 +147,7 @@ def research(
             for page in pages:
                 facts, _ = extract(page.url, page.body)
                 facts["seo"]["x_robots_tag"] = page.x_robots_tag
+                facts["seo"]["review_points"] = seo_review(facts["seo"], page.x_robots_tag)
                 facts["document_fetch"] = {
                     "method": "Single worker HTML request, including DNS and connection",
                     "response_headers_ms": page.response_headers_ms,
@@ -167,6 +168,7 @@ def research(
                         session.add(Contact(company_id=company_id, email=email))
                         emails.add(email)
             if mobile is not None:
+                mobile = {**mobile, "review_points": speed_review(mobile)}
                 session.add(
                     Evidence(
                         company_id=company_id,

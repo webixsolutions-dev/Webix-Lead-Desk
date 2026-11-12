@@ -1,5 +1,6 @@
-"""Technical evidence about public pages, with an optional mobile lab measurement."""
+"""Technical evidence and review suggestions for public business pages."""
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -10,6 +11,31 @@ from app.db.delivery_models import IntegrationSecret
 from app.db.session import Database
 from app.integrations.pagespeed import PageSpeedUnavailable, mobile_audit
 from app.integrations.public_http import Page
+
+
+def seo_review(facts: dict[str, Any], robots_header: str) -> list[str]:
+    """Flag concrete markup worth reviewing before proposing an SEO service."""
+    points = []
+    directives = " ".join([robots_header, *facts["robots_meta"].values()])
+    if re.search(r"(?<![\w-])noindex(?![\w-])", directives, re.I):
+        points.append("SEO review: confirm whether the observed noindex directive is intentional.")
+    if not facts["title_present"]:
+        points.append("SEO review: the fetched HTML has no page title. Confirm the rendered page.")
+    return points
+
+
+def speed_review(facts: dict[str, Any]) -> list[str]:
+    """Flag a weak lab observation without inferring visitor behavior or cause."""
+    if facts.get("status") != "measured":
+        return []
+    points = []
+    lcp = facts.get("lcp_ms")
+    if isinstance(lcp, int | float) and lcp > 4000:
+        points.append(f"Speed review: mobile lab LCP was {lcp / 1000:.1f} seconds on this page.")
+    cls = facts.get("cls")
+    if isinstance(cls, int | float) and cls > 0.25:
+        points.append(f"Layout review: mobile lab layout shift (CLS) was {cls:.3f} on this page.")
+    return points
 
 
 def performance(

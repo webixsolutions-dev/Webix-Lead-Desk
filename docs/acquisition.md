@@ -40,6 +40,8 @@ canonical and robot directives, heading elements, image alt attributes and JSON-
 the worker's response-header time and HTML bytes, which do not measure browser rendering.
 Settings → System → Discovery & AI accepts an optional encrypted PageSpeed Insights key for a
 single mobile Lighthouse lab run per fresh audit. Treat the lab result as a page-specific sample.
+Rules flag a missing HTML title, an explicit noindex directive, or a mobile lab LCP over four
+seconds or CLS over 0.25 for review, even when AI is disabled. A rule flag is a review point.
 Review visual layout, calls to action and the actual enquiry flow manually. Search ranking,
 real-user performance and indexing need separate evidence.
 

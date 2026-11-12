@@ -18,6 +18,7 @@ from app.audit.classify import Recommendation, validate_recommendation
 from app.audit.extract import extract
 from app.audit.provider_pause import paused_event
 from app.audit.service import research
+from app.audit.technical import seo_review, speed_review
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import store_secret
@@ -89,6 +90,8 @@ def test_markup_is_factual_and_bounded() -> None:
     assert facts["visual_quality"] == facts["traffic"] == facts["revenue"] == "unknown"
     assert facts["seo"]["main_heading_elements"] == 1
     assert facts["seo"]["meta_description_present"]
+    assert not seo_review(facts["seo"], "")
+    assert "noindex" in seo_review(facts["seo"], "googlebot: noindex")[0]
     assert "Ignore previous" not in facts["visible_excerpt"]
     assert links == ["https://example.com/contact", "https://example.com/services"]
 
@@ -337,6 +340,8 @@ def test_mobile_audit_reports_scoped_lab_metrics(monkeypatch: pytest.MonkeyPatch
     assert result["performance_score"] == 68 and result["lcp_ms"] == 4100
     assert result["seo_score"] == 90 and result["cls"] == 0.15
     assert result["diagnostics"] == ["render-blocking-insight"]
+    assert speed_review(result) == ["Speed review: mobile lab LCP was 4.1 seconds on this page."]
+    assert not speed_review({"status": "not configured"})
     request = opener.open.call_args.args[0]
     assert "private" not in request.full_url and "strategy=mobile" in request.full_url
     assert "synthetic-key" not in json.dumps(result)

@@ -45,6 +45,7 @@ def main() -> None:
         db = create_database(config)
         password = secrets.token_urlsafe(24)
         owner = create_user(db, "synthetic@example.test", "Demo Owner", password, "owner")
+        create_user(db, "reviewer@example.test", "Demo Reviewer", password, "reviewer")
         editor_url, approval_url = seed_review(db, owner.id)
         with db.sessions.begin() as session:
             install_templates(session, owner.id)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.33.2 — OpenAI discovery on Windows
+
+- Use the encrypted workspace OpenAI key for budgeted discovery and decision-maker search.
+- Set a daily discovery target for one campaign and enable approved delivery on the Windows worker.
+
 ## 0.33.1 — Email and LinkedIn campaign setup
 
 - Show campaign form errors in the workspace and preserve the submitted values.

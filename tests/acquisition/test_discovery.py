@@ -3,11 +3,14 @@
 from typing import Any
 
 import pytest
+from cryptography.fernet import Fernet
+from pydantic import SecretStr
 from sqlalchemy import func, select
 
 from app.audit.budget import BudgetBlocked
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.core.vault import store_secret
 from app.db.acquisition_models import SearchRecord
 from app.db.lead_models import Company, CompanyDomain
 from app.db.models import Job
@@ -15,12 +18,49 @@ from app.db.research_models import BudgetAccount
 from app.db.session import Database
 from app.integrations.openai import ModelUnavailable
 from app.integrations.public_http import Page, PublicFetchError
+from app.sources.enrichment.config import get_config, save_config
+from app.sources.enrichment.daily import plan_daily
 from app.sources.enrichment.flow import discover, enrich_company
 from app.sources.enrichment.providers import parse_openai
 from app.sources.enrichment.service import search
 from app.sources.enrichment.validation import validate_site
 from tests.acquisition.helpers import business, funded, response, result
 from tests.conftest import Account
+
+
+def test_daily_discovery_uses_the_saved_openai_key_once_per_day(
+    db: Database, owner: Account, settings: Settings
+) -> None:
+    """A funded worker queues one daily search and uses its workspace key."""
+    _, campaign = business(db, owner)
+    funded(db, owner, settings)
+    config, version = get_config(db)
+    save_config(
+        db,
+        config.model_copy(update={"daily_lead_target": 50, "daily_campaign_id": campaign.id}),
+        version,
+        owner.user.id,
+    )
+    desktop = settings.model_copy(
+        update={
+            "openai_search_enabled": True,
+            "encryption_key": SecretStr(Fernet.generate_key().decode()),
+        }
+    )
+    now = utc_now()
+    plan_daily(db, desktop, now)
+    store_secret(db, desktop, "openai", "offline-workspace-fixture", owner.user.id)
+    plan_daily(db, desktop, now)
+    plan_daily(db, desktop, now)
+    with db.sessions() as session:
+        jobs = list(session.scalars(select(Job).where(Job.kind == "discover")))
+        assert len(jobs) == 1 and jobs[0].payload["daily_target"] == 50
+
+    def provider(key: str, payload: dict[str, Any]) -> dict[str, Any]:
+        assert key == "offline-workspace-fixture" and payload["model"] == "gpt-6-luna"
+        return response()
+
+    assert "Found 1" in discover(db, desktop, jobs[0], provider=provider, fetcher=page)
 
 
 def page(url: str) -> Page:

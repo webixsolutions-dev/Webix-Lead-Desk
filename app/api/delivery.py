@@ -72,7 +72,11 @@ async def save_connection(request: Request, principal: Owner) -> RedirectRespons
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     return RedirectResponse(
-        "/settings#acquisition" if key == "pagespeed" else "/settings#mail-delivery", 303
+        {
+            "openai": "/settings#research-credentials",
+            "pagespeed": "/settings#acquisition",
+        }.get(key, "/settings#mail-delivery"),
+        303,
     )
 
 

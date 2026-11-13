@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     mail_timeout_seconds: int = Field(default=30, ge=5, le=60)
     external_integrations_enabled: bool = False
     openai_enabled: bool = False
+    openai_search_enabled: bool = False
     openai_processing: Literal["standard", "batch"] = "standard"
     openai_api_key: SecretStr | None = None
     openai_model: str = Field(default="", max_length=120)

@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import select
 
 from app.audit.budget import BudgetBlocked
-from app.core.ai_config import task_settings
+from app.core.ai_config import search_settings
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import openai_key, read_secret
@@ -48,9 +48,7 @@ def search(
 ) -> tuple[SearchRecord, SearchResults]:
     """Call once after durable reservation; never repeat an uncertain or cached search."""
     config, _ = get_config(db)
-    settings = task_settings(settings, "audit").model_copy(
-        update={"openai_max_output_tokens": settings.openai_search_max_output_tokens}
-    )
+    settings = search_settings(settings)
     with db.sessions() as session:
         campaign = session.get(Campaign, campaign_id)
         from app.linkedin.campaigns import active_campaign

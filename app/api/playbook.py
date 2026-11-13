@@ -10,7 +10,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from app.api.dependencies import Owner, check_csrf, read_form, services
 from app.core.clock import utc_now
 from app.db.lead_models import Campaign
-from app.db.models import AuditEvent
+from app.db.models import AuditEvent, WorkerInstance
 from app.db.outreach_models import LocalTeamMember, Mailbox, Offer, PlaybookVersion, ProofCard
 from app.db.research_models import AICall, BudgetAccount
 from app.playbook.catalog import BILLING_PERIODS, CURRENCIES, labels, offer_values, service_names
@@ -40,6 +40,12 @@ def settings_data(request: Request) -> dict[str, Any]:
             )
         )
         monthly_usage = usage(session, utc_now())
+        worker = session.get(WorkerInstance, "primary")
+        worker_search = bool(
+            worker
+            and worker.lease_expires_at > utc_now()
+            and (worker.runtime_config or {}).get("openai_search")
+        )
         return {
             "industry_playbooks": catalog(),
             "seed_guidance": next(
@@ -69,6 +75,7 @@ def settings_data(request: Request) -> dict[str, Any]:
                 session.scalars(select(AICall).order_by(AICall.created_at.desc()).limit(10))
             ),
             "ai_enabled": services(request).settings.openai_enabled,
+            "worker_search": worker_search,
             "ai_audit_model": services(request).settings.openai_audit_model
             or services(request).settings.openai_model,
             "ai_draft_model": services(request).settings.openai_draft_model

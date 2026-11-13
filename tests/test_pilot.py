@@ -262,6 +262,9 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
             "campaign_signatures": 1,
             "whatsapp_agent": 1,
             "linkedin_campaigns": 1,
+            "openai_search": False,
+            "pagespeed_check": True,
+            "openai_env_key": False,
             "campaign_sender_policy": 4,
         }
 

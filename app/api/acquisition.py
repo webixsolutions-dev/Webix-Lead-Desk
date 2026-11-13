@@ -18,7 +18,7 @@ from app.core.vault import store_secret
 from app.db.acquisition_models import SearchRecord
 from app.db.delivery_models import IntegrationSecret
 from app.db.lead_models import Campaign, CampaignLead, Company
-from app.db.models import AuditEvent
+from app.db.models import AuditEvent, Job, WorkerInstance
 from app.db.outreach_models import Draft, Offer
 from app.jobs.queue import enqueue
 from app.scoring.service import LABELS, Rules, current_rules, save_rules
@@ -32,21 +32,68 @@ def settings_data(request: Request) -> dict[str, Any]:
     config, version = get_config(services(request).db)
     rules, rules_version = current_rules(services(request).db)
     with services(request).db.sessions() as session:
+        from app.sources.campaigns import archived_campaign_ids
+
+        discovery_campaigns = list(
+            session.scalars(
+                select(Campaign)
+                .where(
+                    Campaign.country.in_(["CA", "US"]),
+                    Campaign.id.not_in(archived_campaign_ids(session)),
+                )
+                .order_by(Campaign.name)
+            )
+        )
         paused = [
             {"provider": key, "label": label, "id": event.id, "at": event.created_at}
             for key, label in PROVIDERS.items()
             if (event := paused_event(session, key))
         ]
         pagespeed_connected = session.get(IntegrationSecret, "pagespeed") is not None
+        worker = session.get(WorkerInstance, "primary")
+        pagespeed_check_available = bool(
+            worker
+            and worker.lease_expires_at > utc_now()
+            and (worker.runtime_config or {}).get("pagespeed_check")
+        )
+        pagespeed_check = session.scalar(
+            select(Job)
+            .where(Job.kind == "pagespeed_check")
+            .order_by(Job.created_at.desc())
+            .limit(1)
+        )
     return {
         "search_config": config,
         "search_version": version,
+        "discovery_campaigns": discovery_campaigns,
         "score_rules": rules.model_dump(),
         "score_version": rules_version,
         "score_labels": LABELS,
         "paused_providers": paused,
         "pagespeed_connected": pagespeed_connected,
+        "pagespeed_check_available": pagespeed_check_available,
+        "pagespeed_check": pagespeed_check,
     }
+
+
+@router.post("/settings/pagespeed-check")
+async def check_pagespeed(request: Request, principal: Owner) -> RedirectResponse:
+    """Use the active worker to test the saved key against a public reference page."""
+    fields = await read_form(request)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    db = services(request).db
+    now = utc_now()
+    with db.sessions() as session:
+        worker = session.get(WorkerInstance, "primary")
+        if not (
+            worker
+            and worker.lease_expires_at > now
+            and (worker.runtime_config or {}).get("pagespeed_check")
+            and session.get(IntegrationSecret, "pagespeed")
+        ):
+            raise HTTPException(422, "Save the PageSpeed key and start an updated worker")
+    enqueue(db, f"pagespeed-check:{now:%Y%m%d%H%M}", "pagespeed_check", {}, now)
+    return RedirectResponse("/settings#mobile-performance", 303)
 
 
 @router.post("/settings/api-resume")
@@ -87,6 +134,18 @@ async def acquisition_settings(request: Request, principal: Owner) -> RedirectRe
                 amount = Decimal(fields.pop(name))
                 fields[name + "_micro"] = str(int(amount * 1_000_000))
         config = SearchConfig.model_validate(fields)
+        if config.daily_lead_target:
+            from app.sources.campaigns import archived_campaign_ids
+
+            with services(request).db.sessions() as session:
+                campaign = session.get(Campaign, config.daily_campaign_id)
+                if (
+                    config.provider != "openai_web_search"
+                    or not campaign
+                    or campaign.country not in {"CA", "US"}
+                    or campaign.id in archived_campaign_ids(session)
+                ):
+                    raise ValueError("Choose a campaign that supports daily OpenAI discovery")
         if config.no_website_offer_id:
             with services(request).db.sessions() as session:
                 offer = session.get(Offer, config.no_website_offer_id)

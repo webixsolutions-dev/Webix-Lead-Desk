@@ -74,6 +74,7 @@ def test_safety_gates_ignore_ambient_environment(
     settings = desktop_config(tmp_path).settings(tmp_path)
     assert settings.app_mode == "PC"
     assert not settings.live_send_enabled and not settings.openai_enabled
+    assert settings.openai_search_enabled
     assert not settings.linkedin_posting_enabled and not settings.external_integrations_enabled
     assert settings.backup_keep == 8 and settings.backup_interval_days == 7
 

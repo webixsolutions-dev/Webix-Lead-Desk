@@ -138,9 +138,11 @@ def run_worker(
                 keep_awake(utc_now(), enabled=settings.app_mode == "PC" and settings.pc_keep_awake)
                 if utc_now() >= next_linkedin_plan:
                     from app.linkedin.learning import tick as linkedin_learning_tick
+                    from app.sources.enrichment.daily import plan_daily
 
                     linkedin_learning_tick(db, utc_now())
                     plan_day(db, utc_now())
+                    plan_daily(db, settings, utc_now())
                     from app.linkedin.posting import plan as plan_posts
 
                     plan_posts(db, settings, utc_now())
@@ -202,6 +204,16 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
         return whatsapp_dispatch(db, settings, job.payload["generation"])
     if job.kind == "health":
         return health_handler(job)
+    if settings is not None and job.kind == "pagespeed_check":
+        from app.core.vault import read_secret
+        from app.integrations.pagespeed import PageSpeedUnavailable, mobile_audit
+
+        try:
+            key = read_secret(db, settings, "pagespeed")
+            mobile = mobile_audit("https://web.dev/", key)
+        except PageSpeedUnavailable as error:
+            raise PermanentJobError("PageSpeed did not return mobile evidence") from error
+        return f"PageSpeed connected. Mobile performance score: {mobile['performance_score']}/100."
     if settings is not None and job.kind == "linkedin_post":
         from app.linkedin.posting import dispatch as publish_post
 

@@ -51,7 +51,9 @@ def test_linkedin_campaign_discovery_requires_its_own_worker_handler(
     discovery = f"{url}/discover"
     unavailable = client.post(discovery, data={"csrf_token": csrf})
     assert unavailable.status_code == 422 and "Start worker v0.33.1" in unavailable.text
-    assert acquire_worker(db, settings, "linkedin-worker", utc_now())
+    from tests.acquisition.helpers import funded
+
+    assert acquire_worker(db, funded(db, owner, settings), "linkedin-worker", utc_now())
     assert client.post(discovery, data={"csrf_token": csrf}).status_code == 303
     assert "Business search queued" in client.get("/linkedin/campaigns").text
     with db.sessions() as session:

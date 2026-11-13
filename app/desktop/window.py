@@ -1,134 +1,135 @@
-"""Small Windows companion: private setup, worker controls and hosted dashboard link."""
+"""Windows overview, private setup and worker controls with background database reads."""
 
 import tkinter as tk
 import webbrowser
+from functools import partial
 from pathlib import Path
+from time import monotonic
 from tkinter import filedialog, messagebox, ttk
+from typing import cast
 
+from app.desktop.analytics import AnalyticsController
 from app.desktop.config import DEFAULT_DASHBOARD_URL, DesktopConfig, load_config, save_config
 from app.desktop.controller import WorkerController
+from app.desktop.metrics import Period
+from app.desktop.overview import Overview
 from app.desktop.platform import set_startup
-
-RED = "#ED1C24"
-DARK = "#202024"
+from app.desktop.setup_view import build_settings
+from app.desktop.style import BG, BORDER, MUTED, NAVY, RED, configure, label
 
 
 class DesktopWindow:
-    """Keep all widget access on the UI thread and network work in the controller."""
+    """Keep widgets on Tk's main thread and database reads on background threads."""
 
-    def __init__(self, root: tk.Tk, directory: Path, *, autostart: bool = False) -> None:
-        self.root = root
-        self.directory = directory
+    def __init__(
+        self, root: tk.Tk, directory: Path, *, autostart: bool = False, auto_refresh: bool = True
+    ) -> None:
+        self.root, self.directory = root, directory
         self.controller = WorkerController()
+        self.analytics = AnalyticsController()
+        self.auto_refresh = auto_refresh
+        self.generation = 0
+        self.refresh_due = monotonic() + 1
         self.config: DesktopConfig | None = None
-        self.closing = False
+        self.closing = self.locked = False
         self.widgets: list[ttk.Entry | ttk.Button | ttk.Checkbutton] = []
-        root.title("Webix Lead Desk · PC Worker")
-        root.geometry("860x650")
-        root.minsize(760, 560)
-        root.configure(bg="#F4F5F7")
-        style = ttk.Style(root)
-        style.theme_use("clam")
-        style.configure("TFrame", background="#FFFFFF")
-        style.configure("TLabel", background="#FFFFFF", foreground=DARK, font=("Segoe UI", 10))
-        style.configure("TButton", font=("Segoe UI", 10), padding=(14, 9))
-        style.configure("Accent.TButton", background=RED, foreground="white")
-        style.map("Accent.TButton", background=[("active", "#C9151D"), ("disabled", "#D7D7DC")])
-        style.configure("TEntry", padding=7, font=("Segoe UI", 10))
-        style.configure("TCheckbutton", background="white", font=("Segoe UI", 10))
-        header = tk.Frame(root, bg="white", padx=24, pady=10)
-        header.pack(fill="x")
-        logo_path = Path(__file__).parents[1] / "ui" / "static" / "webix-logo.png"
-        self.logo: tk.PhotoImage | None = None
-        if logo_path.exists():
-            original = tk.PhotoImage(file=str(logo_path))
-            self.logo = original.subsample(max(1, original.width() // 150))
-            tk.Label(header, image=self.logo, bg="white").pack(side="left", padx=(0, 22))
-        tk.Label(header, text="LEAD DESK", font=("Segoe UI", 22, "bold"), bg="white", fg=DARK).pack(
-            anchor="w"
-        )
-        tk.Label(
-            header,
-            text="Your Windows worker companion",
-            font=("Segoe UI", 10),
-            bg="white",
-            fg="#666671",
-        ).pack(anchor="w")
-        tk.Frame(root, bg=RED, height=3).pack(fill="x")
-        viewport = tk.Frame(root, bg="#F4F5F7")
-        viewport.pack(fill="both", expand=True, padx=16, pady=10)
-        canvas = tk.Canvas(viewport, bg="white", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(viewport, orient="vertical", command=canvas.yview)
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-        canvas.configure(yscrollcommand=scrollbar.set)
-        card = ttk.Frame(canvas, padding=18)
-        content = canvas.create_window((0, 0), window=card, anchor="nw")
-        card.bind("<Configure>", lambda _: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>", lambda event: canvas.itemconfigure(content, width=event.width))
-        root.bind(
-            "<MouseWheel>", lambda event: canvas.yview_scroll(-int(event.delta / 120), "units")
-        )
-        card.columnconfigure(0, weight=1)
-        ttk.Label(
-            card, text="Connect once. Work from your dashboard.", font=("Segoe UI", 15, "bold")
-        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
-        ttk.Label(
-            card,
-            text="Settings are encrypted for this Windows account. Keep your keys privately.",
-        ).grid(row=1, column=0, sticky="w", pady=(0, 12))
-        self.database = tk.StringVar()
-        self.encryption = tk.StringVar()
+        self.database, self.encryption = tk.StringVar(), tk.StringVar()
         self.dashboard = tk.StringVar(value=DEFAULT_DASHBOARD_URL)
         self.backup = tk.StringVar(value=str(directory / "backups"))
         self.startup = tk.BooleanVar()
-        for row, label, variable, hidden in (
-            (2, "Database connection URL · same as Vercel", self.database, True),
-            (4, "Encryption key · same as Vercel", self.encryption, True),
-            (6, "Dashboard address", self.dashboard, False),
-            (8, "Encrypted backup folder · weekly, latest 8 kept", self.backup, False),
-        ):
-            ttk.Label(card, text=label).grid(row=row, column=0, sticky="w", pady=(7, 3))
-            line = ttk.Frame(card)
-            line.grid(row=row + 1, column=0, sticky="ew")
-            entry = ttk.Entry(line, textvariable=variable, show="•" if hidden else "")
-            entry.pack(side="left", fill="x", expand=True)
-            self.widgets.append(entry)
-            if row == 8:
-                folder = ttk.Button(line, text="Browse…", command=self.choose_folder)
-                folder.pack(side="right", padx=(8, 0))
-                self.widgets.append(folder)
-        startup = ttk.Checkbutton(
-            card, text="Start worker when I sign in to Windows", variable=self.startup
+        self.status = tk.StringVar(value="Save your connection details to get started.")
+        root.title("Webix Lead Desk")
+        root.geometry("1180x820")
+        root.minsize(980, 680)
+        configure(root)
+        sidebar = tk.Frame(root, bg=NAVY, width=200)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        label(sidebar, "W", size=25, color="white", bold=True, bg=RED, padx=12, pady=4).pack(
+            anchor="w", padx=22, pady=(26, 12)
         )
-        startup.grid(row=11, column=0, sticky="w", pady=(10, 0))
-        self.widgets.append(startup)
-        actions = ttk.Frame(card)
-        actions.grid(row=12, column=0, sticky="ew", pady=(12, 10))
-        for label, callback in (("Save settings", self.save), ("Test connection", self.check)):
-            button = ttk.Button(actions, text=label, command=callback)
-            button.pack(side="left", padx=(0, 8))
-            self.widgets.append(button)
+        label(sidebar, "Webix Lead Desk", size=15, color="white", bold=True, bg=NAVY).pack(
+            anchor="w", padx=20
+        )
+        label(sidebar, "DESKTOP WORKSPACE", size=9, color="#B6C4D7", bg=NAVY).pack(
+            anchor="w", padx=20, pady=(4, 28)
+        )
+        self.nav: dict[str, tk.Button] = {}
+        for key, title in (("overview", "Overview"), ("settings", "Connection settings")):
+            button = tk.Button(
+                sidebar,
+                text=title,
+                anchor="w",
+                relief="flat",
+                bd=0,
+                padx=14,
+                pady=12,
+                fg="white",
+                bg=NAVY,
+                cursor="hand2",
+                activebackground="#31445F",
+                activeforeground="white",
+                command=partial(self.show_page, key),
+            )
+            button.pack(fill="x", padx=10, pady=3)
+            self.nav[key] = button
+        label(sidebar, "v0.32.0", size=9, color="#B6C4D7", bg=NAVY).pack(
+            side="bottom", anchor="w", padx=22, pady=18
+        )
+        self.worker_badge = tk.StringVar(value="Worker stopped")
+        label(sidebar, "", textvariable=self.worker_badge, bold=True, color="white", bg=NAVY).pack(
+            side="bottom", anchor="w", padx=22, pady=(10, 0)
+        )
+        label(
+            sidebar,
+            "Keep this app open\nto process workspace jobs.",
+            color="#B6C4D7",
+            size=9,
+            bg=NAVY,
+            justify="left",
+        ).pack(side="bottom", anchor="w", padx=22)
+        main = tk.Frame(root, bg=BG)
+        main.pack(side="left", fill="both", expand=True)
+        header = tk.Frame(main, bg="white", padx=24, pady=14)
+        header.pack(fill="x")
+        label(header, "Your workspace, at a glance", bold=True).pack(side="left")
+        ttk.Button(header, text="Open dashboard ↗", command=self.open_dashboard).pack(side="right")
+        tk.Frame(main, bg=BORDER, height=1).pack(fill="x")
+        footer = tk.Frame(main, bg="white", padx=18, pady=12)
+        footer.pack(side="bottom", fill="x")
+        controls = tk.Frame(footer, bg="white")
+        controls.pack(side="right", padx=(12, 0))
         self.start_button = ttk.Button(
-            actions, text="Start Worker", style="Accent.TButton", command=self.start
+            controls, text="Start worker", style="Accent.TButton", command=self.start
         )
         self.start_button.pack(side="left", padx=(0, 8))
         self.widgets.append(self.start_button)
-        self.stop_button = ttk.Button(actions, text="Stop", command=self.stop)
+        self.stop_button = ttk.Button(controls, text="Stop", command=self.stop, state="disabled")
         self.stop_button.pack(side="left")
-        self.status = tk.StringVar(value="Save your connection details to get started.")
-        ttk.Label(
-            card, textvariable=self.status, wraplength=710, font=("Segoe UI", 11, "bold")
-        ).grid(row=13, column=0, sticky="w", pady=(0, 8))
-        ttk.Label(
-            card, text="Outreach is OFF. Only explicitly approved test emails can send."
-        ).grid(row=14, column=0, sticky="w")
-        links = ttk.Frame(card)
-        links.grid(row=15, column=0, sticky="w", pady=(14, 0))
-        ttk.Button(links, text="Open Dashboard ↗", command=self.open_dashboard).pack(side="left")
-        ttk.Button(links, text="Backup recovery key", command=self.recovery_key).pack(
-            side="left", padx=8
+        label(footer, "", textvariable=self.status, wraplength=470, justify="left").pack(anchor="w")
+        label(footer, "Outreach OFF · Approved connection tests only", size=9, color=MUTED).pack(
+            anchor="w", pady=(3, 0)
         )
+        viewport = tk.Frame(main, bg=BG)
+        viewport.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(viewport, bg=BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(viewport, orient="vertical", command=self.canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.configure(yscrollcommand=scrollbar.set)
+        content = tk.Frame(self.canvas, bg=BG, padx=24, pady=22)
+        item = self.canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind(
+            "<Configure>", lambda _: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.bind(
+            "<Configure>", lambda event: self.canvas.itemconfigure(item, width=event.width)
+        )
+        root.bind(
+            "<MouseWheel>", lambda event: self.canvas.yview_scroll(-int(event.delta / 120), "units")
+        )
+        self.overview = Overview(content, self.refresh, self.change_period, self.open_page)
+        self.pages = {"overview": self.overview.frame, "settings": build_settings(content, self)}
         try:
             self.config = load_config(directory)
             if self.config:
@@ -155,11 +156,42 @@ class DesktopWindow:
             self.locked = True
         else:
             self.locked = False
+        self.show_page("overview" if self.config else "settings")
         root.protocol("WM_DELETE_WINDOW", self.close)
         root.after(200, self.poll)
         if autostart and self.config and self.config.autostart and not self.locked:
             root.after(500, self.start)
             root.after(600, root.iconify)
+
+    def show_page(self, page: str) -> None:
+        """Navigate locally without saving settings or starting a worker."""
+        for key, frame in self.pages.items():
+            frame.pack_forget()
+            self.nav[key].configure(bg="#31445F" if key == page else NAVY)
+        self.pages[page].pack(fill="both", expand=True)
+        self.canvas.yview_moveto(0)
+
+    def change_period(self) -> None:
+        """Invalidate in-flight snapshots when the activity period changes."""
+        self.generation += 1
+        self.overview.clear()
+        self.refresh_due = 0
+        self.refresh()
+
+    def refresh(self) -> None:
+        """Read saved workspace data only; no save, worker start or provider action."""
+        if self.locked or self.closing or not self.config:
+            self.overview.updated.set(
+                "Save your workspace connection in Connection settings first."
+            )
+            return
+        if self.analytics.refresh(
+            self.config.settings(self.directory),
+            cast(Period, self.overview.period.get()),
+            self.generation,
+        ):
+            self.overview.updated.set("Refreshing workspace activity…")
+            self.refresh_due = float("inf")
 
     def choose_folder(self) -> None:
         """Choose a local backup folder without exposing configuration contents."""
@@ -183,7 +215,12 @@ class DesktopWindow:
             config = DesktopConfig.model_validate(values)
             config.settings(self.directory)
             save_config(self.directory, config)
+            changed = self.config != config
             self.config = config
+            if changed:
+                self.generation += 1
+                self.overview.clear()
+                self.refresh_due = 0
             set_startup(config.autostart)
         except Exception:
             self.status.set(
@@ -233,12 +270,20 @@ class DesktopWindow:
 
         ttk.Button(dialog, text="Copy recovery key", command=copy).pack(pady=12)
 
+    def open_page(self, path: str) -> None:
+        """Open fixed destinations using the saved validated HTTPS origin."""
+        if path not in {"", "/conversations/drafts", "/outbox", "/pipeline/bookings"}:
+            return
+        origin = (
+            self.config.settings(self.directory).public_base_url
+            if self.config
+            else DEFAULT_DASHBOARD_URL
+        )
+        webbrowser.open(origin.rstrip("/") + path)
+
     def open_dashboard(self) -> None:
-        """Open only the validated saved HTTPS origin in the default browser."""
-        if self.config:
-            webbrowser.open(self.config.settings(self.directory).public_base_url)
-        else:
-            webbrowser.open(DEFAULT_DASHBOARD_URL)
+        """Open the complete hosted workspace in the default browser."""
+        self.open_page("")
 
     def close(self) -> None:
         """Never destroy the process while a worker job is still in flight."""
@@ -254,10 +299,11 @@ class DesktopWindow:
             self.root.destroy()
 
     def poll(self) -> None:
-        """Apply queued state messages only on Tk's main thread."""
+        """Apply queue results on Tk's thread; pause refreshes after a connection failure."""
         while not self.controller.messages.empty():
             self.status.set(self.controller.messages.get_nowait())
         active = self.controller.active
+        self.worker_badge.set(self.controller.state_label)
         if not self.locked:
             for widget in self.widgets:
                 widget.configure(state="disabled" if active or self.closing else "normal")
@@ -265,4 +311,25 @@ class DesktopWindow:
         if self.closing and not active:
             self.root.destroy()
             return
+        while not self.analytics.results.empty():
+            result = self.analytics.results.get_nowait()
+            if result.generation != self.generation:
+                continue
+            if result.snapshot:
+                self.overview.show(result.snapshot)
+                self.refresh_due = monotonic() + 60
+            else:
+                self.overview.failed()
+                self.refresh_due = float("inf")
+        if (
+            self.auto_refresh
+            and self.config
+            and not self.locked
+            and not self.closing
+            and monotonic() >= self.refresh_due
+        ):
+            self.refresh()
+        self.overview.refresh_button.configure(
+            state="disabled" if self.analytics.active or self.locked or self.closing else "normal"
+        )
         self.root.after(200, self.poll)

@@ -1,6 +1,6 @@
 # Install the Windows worker
 
-Download `Webix-Lead-Desk-Setup-0.23.0.exe` from this repository's v0.23.0 release.
+Download `Webix-Lead-Desk-Setup-0.32.0.exe` from this repository's v0.32.0 release.
 
 Updating an existing installation: press **Stop**, wait for the worker to finish, close the
 companion, then run the new installer under the same Windows account. Saved connection details
@@ -15,7 +15,7 @@ release source/checksum before deciding whether to run it. Do not disable antivi
 
 1. Run Setup as your normal Windows user; it does not require administrator access.
 2. Open **Webix Lead Desk** from the desktop or Start menu.
-3. Paste the same `DATABASE_URL` and `ENCRYPTION_KEY` configured on Vercel into the
+3. Open **Connection settings** and paste the same `DATABASE_URL` and `ENCRYPTION_KEY` configured on Vercel into the
    masked fields. Never send them in chat. Use the Session pooler URL with an encoded
    password, `postgresql+psycopg://` and `sslmode=require`.
 4. Keep the actual hosted dashboard URL and choose a private backup folder.
@@ -44,3 +44,22 @@ accounts or automatically migrate production schemas. Those are administrator st
 The existing PC/VPS CLI remains available; Vercel continues to serve only the web UI.
 If a connection fails, recheck settings and database availability. Error messages
 never show database URLs/passwords or raw provider exceptions.
+
+## Desktop overview
+
+The Overview tab reads the same saved workspace database without starting the worker,
+sending email or calling a paid API. Select Today, Last 7 days, Last 30 days or All time.
+Calendar dates use the dashboard's saved display timezone.
+
+- Businesses contacted: distinct businesses with an email accepted by the mailbox provider.
+- Emails sent: accepted outreach messages, including follow-ups and reviewed replies. Connection tests and failed/uncertain attempts are excluded. Acceptance is not proof of delivery or opening.
+- Businesses replied: distinct contacted businesses with matched human replies received in the period, including declines/opt-outs. Automatic replies, bounces, delivery notices, unmatched senders and messages before an accepted send are excluded. This is not an interest or conversion count.
+- Awaiting approval, scheduled emails and held/uncertain sends are current workspace totals, independent of the selected activity period.
+- Upcoming meetings counts confirmed appointments during the next 168 hours.
+- The chart always shows the last seven local calendar days. Daily reply counts are distinct businesses per day, so a business replying on two days appears on both days.
+
+Figures refresh every minute, with a manual Refresh button. On a connection error the
+last snapshot stays visible with its timestamp, and automatic refresh pauses until a
+manual retry. Changing the connection or period discards older in-flight results.
+No private message text is downloaded for this overview. Pending reviews and meetings
+open the corresponding hosted dashboard page, where normal login and approval apply.

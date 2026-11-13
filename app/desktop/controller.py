@@ -32,6 +32,7 @@ class WorkerController:
         self.messages: Queue[str] = Queue()
         self.stop_event = Event()
         self.thread: Thread | None = None
+        self.state_label = "Worker stopped"
 
     @property
     def active(self) -> bool:
@@ -43,33 +44,40 @@ class WorkerController:
         if self.active:
             raise RuntimeError("Worker or connection check already active")
         self.stop_event.clear()
+        self.state_label = "Checking connection" if check_only else "Connecting…"
         self.thread = Thread(target=self._run, args=(settings, check_only), daemon=False)
         self.thread.start()
 
     def stop(self) -> None:
         """Request a cooperative stop after the current operation completes."""
         self.stop_event.set()
+        self.state_label = "Stopping…"
         self.messages.put("Stopping — waiting for the current operation to finish…")
 
     def _run(self, settings: Settings, check_only: bool) -> None:
         try:
             check_connection(settings)
             if self.stop_event.is_set():
+                self.state_label = "Worker stopped"
                 return
             if check_only:
+                self.state_label = "Connection verified"
                 self.messages.put("Connection verified. Ready to start.")
                 return
             db = create_database(settings)
             try:
 
                 def started() -> None:
+                    self.state_label = "Worker running"
                     self.messages.put("Running — worker is active.")
 
                 run_worker(db, settings, stop_event=self.stop_event, on_started=started)
             finally:
                 db.engine.dispose()
             self.messages.put("Worker stopped safely.")
+            self.state_label = "Worker stopped"
         except Exception:
+            self.state_label = "Check connection"
             # Do not interpolate database errors, URLs, passwords or provider payloads.
             self.messages.put(
                 "Could not run. Check connection details, database availability and schema; "

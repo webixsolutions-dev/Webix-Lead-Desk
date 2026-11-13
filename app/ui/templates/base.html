@@ -43,7 +43,7 @@
     {% include 'section_tabs.html' %}
     {% if delegation.mode != 'manual' %}<p class="delegation-state" role="status">Automatic outreach: {{ delegation.mode }} · {{ delegation.daily_limit }} per day · {{ delegation_names|join(', ') }}. Replies still need your approval. <a href="/settings#approval-policy">Manage</a></p>{% endif %}
     {% block content %}{% endblock %}
-    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.31</span></footer>
+    <footer class="page-footer"><span>{{ icon('shield', 14) }} You review. You approve. Then we send.</span><span>Webix Lead Desk · v0.32</span></footer>
   </main>
 </div>
 {% if user.role == 'owner' %}<dialog id="review-panel" aria-labelledby="review-panel-title"><header class="review-toolbar"><h2 id="review-panel-title" tabindex="-1">Review work</h2><button type="button" class="button secondary" data-panel-previous>Previous</button><button type="button" class="button secondary" data-panel-next>Next</button><button type="button" class="button secondary" data-panel-close>Close</button></header><p class="panel-shortcuts">J / K: next / previous · A: approve reviewed content · S: skip reason · Escape: close</p><p id="panel-status" role="status"></p><div id="review-panel-content"></div></dialog>{% endif %}

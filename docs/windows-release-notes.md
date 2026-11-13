@@ -1,7 +1,9 @@
-# Webix Lead Desk v0.31.0
+# Webix Lead Desk v0.32.0
 
-A unified workspace design with a compact campaign directory, clearer email setup, and LinkedIn team settings inside Settings.
+A redesigned Windows companion with an outreach overview, clearer navigation and separate connection settings.
 
-Campaigns can be filtered by market and status. Each mailbox shows its sender and setup state together. Existing credentials, campaign data, approval rules and sending controls are preserved.
+See businesses contacted, emails sent and businesses replied for Today, Last 7 days, Last 30 days or All time. A seven-day chart shows daily activity. Current approval, scheduled/held email and confirmed meeting counts link to the relevant dashboard pages.
 
-The hosted dashboard receives this design automatically. Local installations receive it with this update.
+Analytics uses the saved workspace database and display timezone. Test emails, unsuccessful send attempts, automatic replies and delivery notices are excluded. Refreshes run in the background once per minute and pause after a connection error.
+
+To update: stop the worker, close the app and run this installer under the same Windows account. Your saved connection details, encryption keys and backups are preserved. No new credentials or paid APIs are required. Existing approval and sending controls stay in effect.

@@ -58,7 +58,7 @@ def smoke_test(result: Path) -> int:
             finally:
                 db.engine.dispose()
             root = tk.Tk()
-            DesktopWindow(root, directory)
+            DesktopWindow(root, directory, auto_refresh=False)
             root.update()
             root.destroy()
         result.write_text(

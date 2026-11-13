@@ -186,7 +186,7 @@ def test_setup_window_preserves_keys_and_wires_controls(
     monkeypatch.setattr("app.desktop.window.set_startup", startup)
     root = tk.Tk()
     try:
-        window = DesktopWindow(root, tmp_path)
+        window = DesktopWindow(root, tmp_path, auto_refresh=False)
         synthetic = desktop_config(tmp_path)
         window.database.set(synthetic.database_url.get_secret_value())
         window.encryption.set(synthetic.encryption_key.get_secret_value())
@@ -205,5 +205,53 @@ def test_setup_window_preserves_keys_and_wires_controls(
         window.start()
         assert not start.call_args.args[0].live_send_enabled
         root.update()
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows desktop UI")
+def test_overview_refresh_stale_data_and_connection_generation(tmp_path: Path) -> None:
+    """Render real zeros, preserve stale data, and ignore results for a previous workspace."""
+    import tkinter as tk
+    from datetime import UTC, datetime
+
+    from app.desktop.analytics import SnapshotResult
+    from app.desktop.metrics import DailyActivity, DesktopSnapshot
+    from app.desktop.window import DesktopWindow
+
+    root = tk.Tk()
+    try:
+        window = DesktopWindow(root, tmp_path, auto_refresh=False)
+        window.show_page("overview")
+        assert window.overview.values["sent"].get() == "—"
+        snapshot = DesktopSnapshot(
+            datetime(2026, 11, 13, tzinfo=UTC),
+            "Asia/Karachi",
+            "Last 7 days",
+            3,
+            5,
+            2,
+            4,
+            0,
+            1,
+            0,
+            tuple(DailyActivity(str(i), 0, 0) for i in range(7)),
+        )
+        window.analytics.results.put(SnapshotResult(0, snapshot))
+        window.poll()
+        assert window.overview.values["sent"].get() == "5"
+        window.analytics.results.put(SnapshotResult(0, None))
+        window.poll()
+        assert window.overview.values["sent"].get() == "5"
+        assert "previous data" in window.overview.updated.get()
+        assert window.refresh_due == float("inf")
+        window.change_period()
+        window.analytics.results.put(SnapshotResult(0, snapshot))
+        window.poll()
+        assert window.overview.values["sent"].get() == "—"
+        assert window.overview.snapshot is None
+        root.geometry("980x680")
+        root.update()
+        assert window.overview.frame.winfo_width() <= root.winfo_width()
     finally:
         root.destroy()

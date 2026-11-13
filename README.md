@@ -236,6 +236,8 @@ This release does not provision accounts, configure production secrets or enable
 
 Use the latest Setup.exe from [Releases](https://github.com/webixsolutions-dev/Webix-Lead-Desk/releases). Python and dependencies are bundled. Follow [Windows setup](docs/windows-setup.md); the existing terminal workflow remains an alternative.
 
+The v0.32 Windows **Overview** shows real email activity, pending approvals, scheduled/held sends and confirmed upcoming meetings. Use the period filter and seven-day chart; **Connection settings** holds the masked setup fields. Analytics reads the saved workspace database and pauses automatic refresh after an error. It does not send messages or incur AI/provider charges. See [metric definitions and upgrade steps](docs/windows-setup.md#desktop-overview).
+
 ### Dashboard navigation
 
 Start on **Today** for your next action. Use **Leads** to find/import businesses,

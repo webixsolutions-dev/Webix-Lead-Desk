@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.32.0 — Desktop outreach overview
+
+- Replace the setup-only desktop window with a native overview and a separate connection-settings page.
+- Add timezone-aware counts for contacted businesses, accepted emails and human replies, plus current approval/queue/meeting totals and a seven-day chart.
+- Refresh read-only aggregates off the UI thread; serialize requests, reject stale connection/period results and pause automatically after failures.
+- Preserve encrypted settings, existing worker start/stop behavior, exact-message approval and sending restrictions.
+- Add offline aggregate/thread regressions and Windows UI/installer checks using synthetic data only.
+
 ## 0.31.0 — Unified workspace design
 
 - Restyled the full dashboard with a consistent sidebar, navigation, typography and forms.

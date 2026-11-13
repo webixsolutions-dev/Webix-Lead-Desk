@@ -68,5 +68,12 @@ def test_postgres_migrations_roundtrip() -> None:
         assert "users" not in inspect(db.engine).get_table_names()
         migrate(settings)
         assert "users" in inspect(db.engine).get_table_names()
+        # Desktop aggregates must also support PostgreSQL read-only transactions.
+        from app.core.clock import utc_now
+        from app.desktop.metrics import read_snapshot
+
+        snapshot = read_snapshot(db, settings, "Today", utc_now())
+        assert snapshot.contacted == snapshot.sent == snapshot.replied == 0
+        assert len(snapshot.days) == 7
     finally:
         db.engine.dispose()

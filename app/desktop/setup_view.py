@@ -60,7 +60,7 @@ def build_settings(parent: tk.Misc, window: "DesktopWindow") -> tk.Frame:
         "Analytics reads your workspace; it does not send emails or spend AI credits.",
         color=MUTED,
         bg=BG,
-        wraplength=720,
+        wraplength=680,
         justify="left",
     ).pack(anchor="w", pady=16)
     return frame

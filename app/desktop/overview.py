@@ -131,7 +131,7 @@ class Overview:
             size=9,
             color=MUTED,
             bg=BG,
-            wraplength=760,
+            wraplength=680,
             justify="left",
         ).pack(anchor="w", pady=(12, 0))
 

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, services
@@ -17,6 +18,7 @@ from app.linkedin.campaigns import PREFIX, active_campaign, save_routing
 from app.linkedin.planner import plan_day
 from app.linkedin.quotas import Quotas, save_quotas
 from app.sources.campaigns import archived_campaign_ids
+from app.sources.importing import import_candidates, parse_csv
 
 router = APIRouter()
 
@@ -28,7 +30,12 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
 
 
 def _campaigns_page(
-    request: Request, principal: Owner, *, error: str = "", status: int = 200
+    request: Request,
+    principal: Owner,
+    *,
+    error: str = "",
+    status: int = 200,
+    error_title: str = "LinkedIn campaign could not be saved",
 ) -> HTMLResponse:
     context = dashboard_context(request, principal, "linkedin")
     with services(request).db.sessions() as session:
@@ -70,7 +77,7 @@ def _campaigns_page(
         {
             **context,
             "form_error": error,
-            "form_error_title": "LinkedIn campaign could not be saved",
+            "form_error_title": error_title,
         },
         status,
     )
@@ -101,6 +108,31 @@ async def update_campaign(
             status=409 if isinstance(error, SettingsConflict) else 422,
         )
     return RedirectResponse(f"/linkedin/campaigns#linkedin-campaign-{campaign_id}", 303)
+
+
+@router.post("/linkedin/campaigns/{campaign_id}/import", response_model=None)
+async def import_businesses(
+    request: Request, principal: Owner, campaign_id: str
+) -> HTMLResponse | RedirectResponse:
+    """Bring existing leads into an active LinkedIn campaign without email jobs."""
+    fields = await read_form(request, maximum=1_100_000)
+    check_csrf(principal, fields.get("csrf_token", ""))
+    try:
+        rows = parse_csv(fields.get("csv_text", "").encode())
+        import_candidates(
+            services(request).db, campaign_id, rows, "csv", principal.user.id, linkedin=True
+        )
+    except (ValueError, IntegrityError) as error:
+        return _campaigns_page(
+            request,
+            principal,
+            error=str(error)
+            if isinstance(error, ValueError)
+            else "Import changed in another tab. Retry the CSV.",
+            error_title="LinkedIn businesses could not be imported",
+            status=422 if isinstance(error, ValueError) else 409,
+        )
+    return RedirectResponse(f"/linkedin/campaigns?imported=1#linkedin-campaign-{campaign_id}", 303)
 
 
 @router.post("/linkedin/campaigns/{campaign_id}/discover", response_model=None)

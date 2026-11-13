@@ -172,5 +172,5 @@ def import_candidates(
         )
     from app.sources.enrichment.flow import plan_import
 
-    plan_import(db, run.id, campaign_id, actor)
+    plan_import(db, run.id, campaign_id, actor, linkedin=linkedin)
     return run

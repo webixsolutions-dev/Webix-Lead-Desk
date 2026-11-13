@@ -36,7 +36,9 @@ def hold(db: Database, company_id: str, key: str, reason: str) -> str:
     return reason
 
 
-def plan_import(db: Database, run_id: str, campaign_id: str, actor: str) -> None:
+def plan_import(
+    db: Database, run_id: str, campaign_id: str, actor: str, *, linkedin: bool = False
+) -> None:
     """Queue deterministic free scoring and enrichment for newly sourced businesses."""
     with db.sessions() as session:
         ids = list(
@@ -44,6 +46,8 @@ def plan_import(db: Database, run_id: str, campaign_id: str, actor: str) -> None
         )
     for company_id in ids:
         score(db, company_id, campaign_id)
+        if linkedin:
+            continue
         enqueue(
             db,
             f"acquisition:{company_id}:{campaign_id}",

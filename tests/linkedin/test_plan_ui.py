@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.db.lead_models import Campaign, CampaignLead
 from app.db.models import Job
 from app.db.session import Database
 from app.jobs.queue import acquire_worker
@@ -20,6 +21,10 @@ def test_linkedin_campaign_discovery_requires_its_own_worker_handler(
 ) -> None:
     """The industry page can activate routing and queue LinkedIn-only discovery."""
     _, campaign = business(db, owner)
+    with db.sessions.begin() as session:
+        current = session.get(Campaign, campaign.id)
+        assert current
+        current.active = False
     profile = add_profile(db, owner.user.id, "https://linkedin.com/in/search-worker", owner.user.id)
     sign_in(client, owner)
     page = client.get("/linkedin/campaigns")
@@ -33,6 +38,16 @@ def test_linkedin_campaign_discovery_requires_its_own_worker_handler(
         ).status_code
         == 303
     )
+    assert (
+        client.post(
+            f"{url}/import",
+            data={"csrf_token": csrf, "csv_text": "name,city,industry\nAnother HVAC,Airdrie,HVAC"},
+        ).status_code
+        == 303
+    )
+    with db.sessions() as session:
+        assert len(list(session.scalars(select(CampaignLead)))) == 2
+        assert len(list(session.scalars(select(Job).where(Job.kind == "advance_company")))) == 1
     discovery = f"{url}/discover"
     unavailable = client.post(discovery, data={"csrf_token": csrf})
     assert unavailable.status_code == 422 and "Start worker v0.33.1" in unavailable.text

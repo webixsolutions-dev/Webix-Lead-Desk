@@ -4,6 +4,7 @@
 {% block content %}
 {% include 'form_error_dialog.html' %}
 {% if request.query_params.get('search') == 'queued' %}<p class="notice success" role="status">Business search queued.</p>{% endif %}
+{% if request.query_params.get('imported') == '1' %}<p class="notice success" role="status">Businesses imported. Open a business to confirm its decision-maker.</p>{% endif %}
 {% if not profiles %}
 <p class="notice neutral">Register a team profile before starting a LinkedIn campaign. <a href="/settings#linkedin">Team settings</a></p>
 {% endif %}
@@ -31,6 +32,15 @@
       <a class="button secondary" href="/linkedin/queue">Open tasks</a>
     </div>
     {% if route and route.value.active %}
+    <details>
+      <summary>Import businesses from CSV</summary>
+      <form method="post" action="/linkedin/campaigns/{{ campaign.id }}/import" class="work-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <label>Paste CSV rows<textarea name="csv_text" rows="4" maxlength="1000000" placeholder="name,city,industry,website" required></textarea></label>
+        <p class="small muted">Include name, city and industry. Website is optional.</p>
+        <button class="button secondary">Import businesses</button>
+      </form>
+    </details>
     {% set search = recent_searches.get(campaign.id) %}
     <form method="post" action="/linkedin/campaigns/{{ campaign.id }}/discover" class="work-form">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">

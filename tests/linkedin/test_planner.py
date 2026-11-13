@@ -4,12 +4,14 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
-from app.db.linkedin_models import LinkedInTask
+from app.db.lead_models import Campaign
+from app.db.linkedin_models import LinkedInTask, PersonOwnership
 from app.db.linkedin_queue_models import (
     LinkedInQuota,
     LinkedInSequence,
 )
 from app.db.session import Database
+from app.linkedin.campaigns import ownership_active, save_routing
 from app.linkedin.identity import add_profile, assign_person
 from app.linkedin.planner import plan_day
 from app.linkedin.quotas import Quotas, save_quotas
@@ -43,6 +45,36 @@ def test_morning_plan_is_idempotent_and_never_approves(db: Database, owner: Acco
         assert tasks[0].state == "pending" and tasks[0].approval_digest is None
         assert len(list(session.scalars(select(LinkedInQuota)))) == 1
     save_quotas(db, profile, Quotas(invites=0), owner.user.id)
+    assert plan_day(db, NOW + timedelta(days=1)) == 0
+
+
+def test_linkedin_industry_routes_a_confirmed_person_independently_of_email(
+    db: Database, owner: Account
+) -> None:
+    """Enable and pause LinkedIn work while the email campaign stays paused."""
+    company, campaign = business(db, owner)
+    profile = add_profile(
+        db, owner.user.id, "https://linkedin.com/in/industry-member", owner.user.id
+    )
+    target = person(db, company.id, owner)
+    with db.sessions.begin() as session:
+        current = session.get(Campaign, campaign.id)
+        assert current
+        current.active = False
+    save_routing(db, campaign.id, profile.id, True, 0, owner.user.id)
+    assert plan_day(db, NOW) == 1
+    assert plan_day(db, NOW) == 0
+    with db.sessions() as session:
+        current = session.get(Campaign, campaign.id)
+        ownership = session.get(PersonOwnership, target.id)
+        assert current and not current.active and ownership and ownership.profile_id == profile.id
+        assert ownership_active(session, ownership)
+        task = session.scalar(select(LinkedInTask))
+        assert task and task.profile_id == profile.id and not task.approval_digest
+    save_routing(db, campaign.id, profile.id, False, 1, owner.user.id)
+    with db.sessions() as session:
+        ownership = session.get(PersonOwnership, target.id)
+        assert ownership and not ownership_active(session, ownership)
     assert plan_day(db, NOW + timedelta(days=1)) == 0
 
 

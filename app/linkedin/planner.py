@@ -8,6 +8,7 @@ from app.db.linkedin_models import LinkedInProfile, LinkedInTask, Person, Person
 from app.db.linkedin_queue_models import LinkedInSequence
 from app.db.models import User
 from app.db.session import Database
+from app.linkedin.campaigns import ownership_active, route_people
 from app.linkedin.coordination import outreach_block
 from app.linkedin.quotas import lock_policy, reserve_quota
 from app.linkedin.timing import daytime, local_day, slots
@@ -50,7 +51,11 @@ def plan_profile(db: Database, profile_id: str, now: datetime) -> int:
         )
         due: list[LinkedInTask] = []
         for person, ownership in pairs:
-            if outreach_block(session, person.company_id) or person.presence in {"low", "none"}:
+            if (
+                not ownership_active(session, ownership)
+                or outreach_block(session, person.company_id)
+                or person.presence in {"low", "none"}
+            ):
                 continue
             sequence = session.get(LinkedInSequence, person.id)
             if sequence and sequence.profile_id != profile_id:
@@ -140,7 +145,10 @@ def plan_day(db: Database, now: datetime) -> int:
     if not daytime(now, planning=True):
         return 0
     with db.sessions() as session:
+        if maintenance_enabled(session):
+            return 0
         profiles = list(session.scalars(select(LinkedInProfile.id)))
+    route_people(db)
     from app.linkedin.review import schedule_replies
 
     return sum(

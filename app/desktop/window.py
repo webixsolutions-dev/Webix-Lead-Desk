@@ -78,7 +78,7 @@ class DesktopWindow:
             )
             button.pack(fill="x", padx=10, pady=3)
             self.nav[key] = button
-        label(sidebar, "v0.33.0", size=9, color="#B6C4D7", bg=NAVY).pack(
+        label(sidebar, "v0.33.1", size=9, color="#B6C4D7", bg=NAVY).pack(
             side="bottom", anchor="w", padx=22, pady=18
         )
         self.worker_badge = tk.StringVar(value="Worker stopped")

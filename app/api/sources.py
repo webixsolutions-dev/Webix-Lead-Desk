@@ -30,7 +30,11 @@ from app.jobs.queue import enqueue
 from app.journey.project import summary
 from app.playbook.catalog import service_names
 from app.policy.contacts import suppress
-from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
+from app.sources.campaigns import (
+    archived_campaign_ids,
+    campaign_services,
+    validate_targeting,
+)
 from app.sources.importing import import_candidates, parse_csv
 from app.sources.validation import domain_of, website_url
 
@@ -103,7 +107,12 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
             or 0,
             lead_filters=dict(request.query_params),
             campaigns=list(
-                session.scalars(select(Campaign).order_by(Campaign.created_at.desc()).limit(100))
+                session.scalars(
+                    select(Campaign)
+                    .where(Campaign.id.not_in(archived_campaign_ids(session)))
+                    .order_by(Campaign.created_at.desc())
+                    .limit(100)
+                )
             ),
             imports=list(
                 session.scalars(
@@ -126,30 +135,27 @@ def lead_context(request: Request, principal: Principal) -> dict[str, Any]:
     return context
 
 
-@router.post("/campaigns")
-async def create_campaign(request: Request, principal: Owner) -> RedirectResponse:
+@router.post("/campaigns", response_model=None)
+async def create_campaign(request: Request, principal: Owner) -> HTMLResponse | RedirectResponse:
     """Create a targeting configuration without enabling any external spending."""
-    fields = await read_form(request, repeatable=frozenset({"services"}))
-    check_csrf(principal, fields.get("csrf_token", ""))
+    fields: dict[str, str] = {}
     try:
+        fields = await read_form(request, repeatable=frozenset({"services"}), max_fields=128)
+        check_csrf(principal, fields.get("csrf_token", ""))
         name, industry, area = (fields.get(key, "").strip() for key in ("name", "industry", "area"))
-        options = [
-            value.strip() for value in fields.get("services", "").split(",") if value.strip()
-        ]
+        options = campaign_services(fields.get("services", ""))
         lane = fields.get("lane", "client")
         country = fields.get("country", "CA")
-        if country not in CAMPAIGN_COUNTRIES:
-            raise ValueError("Choose a supported campaign country")
-        limit = int(fields.get("daily_limit", "10"))
-        if (
-            not all(1 <= len(v) <= 120 for v in (name, industry, area))
-            or not options
-            or len(options) > 12
-            or any(len(v) > 120 for v in options)
-        ):
-            raise ValueError("Complete the campaign fields")
-        if lane not in {"client", "partner"} or not 1 <= limit <= (5 if lane == "partner" else 50):
-            raise ValueError("Invalid campaign lane or limit")
+        validate_targeting(name, industry, area, country, options)
+        if lane not in {"client", "partner"}:
+            raise ValueError("Choose a campaign type.")
+        cap = 5 if lane == "partner" else 50
+        try:
+            limit = int(fields.get("daily_limit", "10"))
+        except ValueError as error:
+            raise ValueError("Enter the daily target as a whole number.") from error
+        if not 1 <= limit <= cap:
+            raise ValueError(f"Enter a daily target between 1 and {cap}.")
         with services(request).db.sessions.begin() as session:
             campaign = Campaign(
                 name=name,
@@ -159,19 +165,25 @@ async def create_campaign(request: Request, principal: Owner) -> RedirectRespons
                 lane=lane,
                 country=country,
                 daily_limit=limit,
-                active=country not in DRAFT_ONLY_COUNTRIES,
+                active=False,
             )
             session.add(campaign)
             session.flush()
             campaign_id = campaign.id
-    except ValueError as error:
-        raise HTTPException(422, str(error)) from error
-    destination = (
-        f"/leads/campaigns#campaign-{campaign_id}"
-        if country in DRAFT_ONLY_COUNTRIES
-        else f"/leads?campaign={campaign_id}"
-    )
-    return RedirectResponse(destination, 303)
+    except (ValueError, HTTPException) as error:
+        from app.api.command import render_campaigns
+
+        return render_campaigns(
+            request,
+            principal,
+            form_context={
+                "form_error": str(error.detail) if isinstance(error, HTTPException) else str(error),
+                "form_error_title": "Campaign could not be created",
+                "create_campaign_form": fields,
+            },
+            status=error.status_code if isinstance(error, HTTPException) else 422,
+        )
+    return RedirectResponse(f"/leads/campaigns#campaign-{campaign_id}", 303)
 
 
 @router.post("/sources/csv")

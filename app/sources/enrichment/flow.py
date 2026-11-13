@@ -18,6 +18,7 @@ from app.integrations.places import search_places
 from app.integrations.public_http import Page, fetch_public
 from app.jobs.queue import enqueue
 from app.journey.events import emit
+from app.linkedin.campaigns import active_campaign
 from app.scoring.service import score
 from app.sending.campaign_sender import sender_matches
 from app.sources.enrichment.config import get_config
@@ -62,9 +63,16 @@ def discover(
     fetcher: Callable[[str], Page] = fetch_public,
 ) -> str:
     """Find candidates for any campaign city; domain matches require matching identity."""
+    linkedin = job.kind == "linkedin_discover"
     with db.sessions() as session:
         campaign = session.get(Campaign, job.payload["campaign_id"])
-        if not campaign or not campaign.active:
+        if not campaign:
+            raise ValueError("Active campaign required")
+        if linkedin:
+            rule = active_campaign(session, campaign.id)
+            if not rule or rule.version != job.payload.get("routing_version"):
+                return "LinkedIn targeting changed before the search started."
+        elif not campaign.active:
             raise ValueError("Active campaign required")
     config, _ = get_config(db)
     with db.sessions() as session:
@@ -89,6 +97,7 @@ def discover(
         job.id,
         provider=provider,
         places_provider=places_provider,
+        linkedin=linkedin,
     )
     count, added = 0, 0
     for result in results.businesses[: config.discovery_batch_size]:
@@ -137,7 +146,9 @@ def discover(
             else identity_key(result.name, result.city, result.address),
             source_url=match.website if match else result.sources[0].url if result.sources else "",
         )
-        run = import_candidates(db, campaign.id, [row], record.provider, job.payload["actor_id"])
+        run = import_candidates(
+            db, campaign.id, [row], record.provider, job.payload["actor_id"], linkedin=linkedin
+        )
         with db.sessions() as session:
             source = session.scalar(
                 select(SourceRecord).where(
@@ -157,7 +168,9 @@ def discover(
             fetcher=fetcher,
             match=match,
         )
-        if accepted:
+        if accepted and linkedin:
+            score(db, company_id, campaign.id)
+        elif accepted:
             enqueue(
                 db,
                 f"enriched:{record.id}:{company_id}",
@@ -173,7 +186,7 @@ def discover(
             hold(db, company_id, run.id, "Review the search identity and listing evidence")
         count += 1
     remaining = int(job.payload.get("remaining_batches", 1))
-    if added and remaining > 1:
+    if not linkedin and added and remaining > 1:
         root = str(job.payload.get("discovery_root", job.id))
         enqueue(
             db,
@@ -182,7 +195,12 @@ def discover(
             {**job.payload, "discovery_root": root, "remaining_batches": remaining - 1},
             utc_now(),
         )
-    return f"Found {count} businesses ({added} new); drafts require owner approval."
+    result_message = f"Found {count} businesses ({added} new)."
+    return (
+        result_message + " Confirm decision-makers to prepare LinkedIn tasks."
+        if linkedin
+        else f"Found {count} businesses ({added} new); drafts require owner approval."
+    )
 
 
 def enrich_company(

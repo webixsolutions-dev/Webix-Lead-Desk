@@ -1,11 +1,47 @@
 """Member queue isolation and owner-only bounded planner controls."""
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.core.clock import utc_now
+from app.core.config import Settings
+from app.db.models import Job
 from app.db.session import Database
+from app.jobs.queue import acquire_worker
+from app.linkedin.identity import add_profile
 from app.linkedin.planner import plan_day
+from tests.acquisition.helpers import business
 from tests.conftest import Account, csrf_from, sign_in
 from tests.linkedin.test_planner import NOW, seed
+
+
+def test_linkedin_campaign_discovery_requires_its_own_worker_handler(
+    db: Database, owner: Account, client: TestClient, settings: Settings
+) -> None:
+    """The industry page can activate routing and queue LinkedIn-only discovery."""
+    _, campaign = business(db, owner)
+    profile = add_profile(db, owner.user.id, "https://linkedin.com/in/search-worker", owner.user.id)
+    sign_in(client, owner)
+    page = client.get("/linkedin/campaigns")
+    assert page.status_code == 200 and "LinkedIn campaigns" in page.text
+    csrf = csrf_from(page.text)
+    url = f"/linkedin/campaigns/{campaign.id}"
+    assert (
+        client.post(
+            url,
+            data={"csrf_token": csrf, "profile_id": profile.id, "active": "true", "version": "0"},
+        ).status_code
+        == 303
+    )
+    discovery = f"{url}/discover"
+    unavailable = client.post(discovery, data={"csrf_token": csrf})
+    assert unavailable.status_code == 422 and "Start worker v0.33.1" in unavailable.text
+    assert acquire_worker(db, settings, "linkedin-worker", utc_now())
+    assert client.post(discovery, data={"csrf_token": csrf}).status_code == 303
+    assert "Business search queued" in client.get("/linkedin/campaigns").text
+    with db.sessions() as session:
+        job = session.scalar(select(Job).where(Job.kind == "linkedin_discover"))
+        assert job and job.payload["routing_version"] == 1
 
 
 def test_planner_and_profile_limits_are_visible_only_to_authorized_staff(

@@ -308,3 +308,7 @@ See [WhatsApp setup and behavior](docs/whatsapp-agent.md).
 ### Workspace navigation
 
 Campaigns opens a searchable directory with market and status filters. Email accounts and approvals, LinkedIn team profiles, playbook guidance, and system settings share one Settings page. Existing LinkedIn bookmarks remain supported. This layout update does not connect accounts or activate campaigns.
+
+Choose the sending mailbox before activating an email campaign. LinkedIn → Campaigns
+uses the same industry and market list with its own activation switch and registered
+team profile. The worker routes confirmed decision-makers into reviewed LinkedIn tasks.

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block heading %}LinkedIn campaigns{% endblock %}
+{% block description %}Choose the team profile that will handle each industry and market.{% endblock %}
+{% block content %}
+{% include 'form_error_dialog.html' %}
+{% if request.query_params.get('search') == 'queued' %}<p class="notice success" role="status">Business search queued.</p>{% endif %}
+{% if not profiles %}
+<p class="notice neutral">Register a team profile before starting a LinkedIn campaign. <a href="/settings#linkedin">Team settings</a></p>
+{% endif %}
+{% for campaign, leads in linkedin_campaigns %}
+{% set route = routes.get(campaign.id) %}
+<details class="settings-group campaign-row" id="linkedin-campaign-{{ campaign.id }}">
+  <summary>
+    <span><strong>{{ campaign.name }}</strong><br>{{ campaign.industry }} · {{ campaign.area }} · {{ leads }} businesses</span>
+    <span class="state-pill {{ 'positive' if route and route.value.active else 'pending' }}">{{ 'Active' if route and route.value.active else 'Paused' }}</span>
+  </summary>
+  <div class="settings-group-body">
+    <form method="post" action="/linkedin/campaigns/{{ campaign.id }}" class="work-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="version" value="{{ route.version if route else 0 }}">
+      <label>LinkedIn profile<select name="profile_id">
+        <option value="">Choose a team profile</option>
+        {% for profile in profiles %}<option value="{{ profile.id }}"{% if route and route.value.profile_id == profile.id %} selected{% endif %}>{{ profile.display_name }}</option>{% endfor %}
+      </select></label>
+      <label class="checkbox-row"><input type="checkbox" name="active" value="true" {% if route and route.value.active %}checked{% endif %}>Active on LinkedIn</label>
+      <p class="small muted">The worker prepares tasks for confirmed decision-makers. The selected member completes approved actions in LinkedIn.</p>
+      <button class="button primary" {% if not profiles and not route %}disabled{% endif %}>Save LinkedIn campaign</button>
+    </form>
+    <div class="toolbar">
+      <a class="button secondary" href="/leads?campaign={{ campaign.id }}">View businesses</a>
+      <a class="button secondary" href="/linkedin/queue">Open tasks</a>
+    </div>
+    {% if route and route.value.active %}
+    {% set search = recent_searches.get(campaign.id) %}
+    <form method="post" action="/linkedin/campaigns/{{ campaign.id }}/discover" class="work-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <button class="button secondary" {% if search and search.state in ['queued', 'running'] %}disabled{% endif %}>Find businesses</button>
+      <p class="small muted">Runs one search using the configured provider and its budget.</p>
+    </form>
+    {% if search %}
+    <p class="small" role="status">{% if search.result %}{{ search.result }}{% elif search.state == 'failed' %}Business search failed. Check your worker and discovery provider settings.{% else %}Business search {{ search.state }}.{% endif %}</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</details>
+{% else %}
+<p>No campaigns yet. <a href="/leads/campaigns#create-campaign">Create a campaign</a>.</p>
+{% endfor %}
+{% endblock %}

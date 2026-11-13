@@ -40,6 +40,16 @@ def latest(session: Session, task_id: str) -> LinkedInDraft | None:
 
 def valid(session: Session, task: LinkedInTask, now: datetime | None = None) -> bool:
     """Recheck exact approval, recipient, sender and contact evidence before any action."""
+    from app.linkedin.campaigns import ownership_active
+
+    ownership = session.get(PersonOwnership, task.person_id)
+    if (
+        ownership
+        and task.state != "acting"
+        and task.action != "reply"
+        and not ownership_active(session, ownership)
+    ):
+        return False
     draft = latest(session, task.id)
     if not draft or draft.state != "approved" or draft.digest != task.approval_digest:
         return False

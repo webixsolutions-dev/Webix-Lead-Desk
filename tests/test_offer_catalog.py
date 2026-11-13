@@ -307,11 +307,85 @@ def test_draft_only_campaign_can_be_saved_but_cannot_be_activated(
 
     edit_url = f"/campaigns/{campaign_id}/edit"
     edit = {**fields, "version": "1", "followup_days": "4,10"}
+    invalid = client.post(edit_url, data={**edit, "area": "Edited region", "services": ""})
+    assert invalid.status_code == 422
+    assert "Campaign targeting could not be saved" in invalid.text
+    assert "Select between 1 and 12 services" in invalid.text
+    assert 'value="Edited region"' in invalid.text
+    assert "data-form-error open" in invalid.text
     rejected = client.post(edit_url, data={**edit, "active": "true"})
     assert rejected.status_code == 422 and "must stay paused" in rejected.text
     saved = client.post(edit_url, data={**edit, "area": f"{city} Region"}, follow_redirects=False)
     assert saved.status_code == 303 and saved.headers["location"] == location
     assert f'value="{city} Region"' in client.get("/leads/campaigns").text
+
+
+def test_invalid_campaign_creation_preserves_details(client: TestClient, owner: Account) -> None:
+    """Invalid campaign targeting opens a popup and leaves the form ready to correct."""
+    sign_in(client, owner)
+    fields = {
+        "csrf_token": csrf_from(client.get("/leads/campaigns").text),
+        "name": "Example partner campaign",
+        "industry": "IT services",
+        "area": "Auckland",
+        "country": "NZ",
+        "services": "CRM, CRM, Website",
+        "lane": "partner",
+        "daily_limit": "10",
+    }
+    invalid = client.post("/campaigns", data=fields)
+    assert invalid.status_code == 422
+    assert "Campaign could not be created" in invalid.text
+    assert "Enter a daily target between 1 and 5" in invalid.text
+    assert 'value="Example partner campaign"' in invalid.text
+    assert 'value="NZ" selected' in invalid.text
+    assert 'value="CRM, Website"' in invalid.text
+    assert client.post("/campaigns", data={**fields, "daily_limit": "3"}).status_code == 303
+
+
+def test_paused_campaign_can_be_archived_and_restored(
+    client: TestClient, db: Database, owner: Account
+) -> None:
+    """Keep dedicated industry campaigns and retain the historical pilot record."""
+    with db.sessions.begin() as session:
+        for name in (
+            "Calgary 01 · HVAC contractors",
+            "Calgary 02 · Plumbing and drain services",
+            "Calgary - HVAC and plumbing pilot",
+        ):
+            campaign = Campaign(
+                name=name,
+                industry="HVAC",
+                area="Calgary, Alberta",
+                country="CA",
+                lane="client",
+                active=False,
+                services=["Website"],
+            )
+            session.add(campaign)
+        session.flush()
+        pilot_id = campaign.id
+    sign_in(client, owner)
+    page = client.get("/leads/campaigns")
+    assert (
+        client.post(
+            f"/campaigns/{pilot_id}/archive", data={"csrf_token": csrf_from(page.text)}
+        ).status_code
+        == 303
+    )
+    page = client.get("/leads/campaigns")
+    assert "Archived campaigns (1)" in page.text
+    assert f'id="campaign-{pilot_id}"' not in page.text
+    assert "Calgary 01 · HVAC contractors" in page.text
+    assert "Choose sending mailbox" in page.text
+    assert (
+        client.post(
+            f"/campaigns/{pilot_id}/archive",
+            data={"csrf_token": csrf_from(page.text), "restore": "true"},
+        ).status_code
+        == 303
+    )
+    assert f'id="campaign-{pilot_id}"' in client.get("/leads/campaigns").text
 
 
 def test_campaign_sender_rule_requires_a_worker_that_can_enforce_it(
@@ -330,10 +404,26 @@ def test_campaign_sender_rule_requires_a_worker_that_can_enforce_it(
         session.add(campaign)
         session.flush()
         campaign_id = campaign.id
+        from app.db.outreach_models import Mailbox
+
+        session.add(
+            Mailbox(
+                email="sales@example.org",
+                lane="client",
+                brand="Example Web Studio",
+                sender_name="Example Owner",
+                mailing_address="1 Example Street",
+                contact_details="sales@example.org",
+            )
+        )
         session.add(
             WorkspaceSetting(
                 key=SENDER_KEY_PREFIX + campaign_id,
-                value={"brand": "Example Web Studio", "domain": "example.org"},
+                value={
+                    "brand": "Example Web Studio",
+                    "domain": "example.org",
+                    "email": "sales@example.org",
+                },
             )
         )
     sign_in(client, owner)

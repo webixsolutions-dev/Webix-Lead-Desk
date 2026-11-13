@@ -18,10 +18,14 @@ PREVIEW_CSP = (
 )
 
 
-async def _save_signature(
-    request: Request, principal: Owner, target_id: str, *, campaign_override: bool = False
+def _save_signature(
+    request: Request,
+    principal: Owner,
+    target_id: str,
+    fields: dict[str, str],
+    *,
+    campaign_override: bool = False,
 ) -> None:
-    fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
     try:
         save_signature(
@@ -42,16 +46,33 @@ async def _save_signature(
 @router.post("/settings/mailboxes/{mailbox_id}/signature")
 async def edit_signature(request: Request, principal: Owner, mailbox_id: str) -> RedirectResponse:
     """Save the mailbox default without approving or sending a message."""
-    await _save_signature(request, principal, mailbox_id)
+    _save_signature(request, principal, mailbox_id, await read_form(request))
     return RedirectResponse("/settings#signature-" + mailbox_id, 303)
 
 
-@router.post("/campaigns/{campaign_id}/signature")
+@router.post("/campaigns/{campaign_id}/signature", response_model=None)
 async def edit_campaign_signature(
     request: Request, principal: Owner, campaign_id: str
-) -> RedirectResponse:
+) -> HTMLResponse | RedirectResponse:
     """Save the owner-reviewed signature for an assigned campaign sender."""
-    await _save_signature(request, principal, campaign_id, campaign_override=True)
+    fields: dict[str, str] = {}
+    try:
+        fields = await read_form(request)
+        _save_signature(request, principal, campaign_id, fields, campaign_override=True)
+    except HTTPException as error:
+        from app.api.command import render_campaigns
+
+        return render_campaigns(
+            request,
+            principal,
+            form_context={
+                "form_error": str(error.detail),
+                "form_error_title": "Campaign signature could not be saved",
+                "signature_form_campaign": campaign_id,
+                "signature_form": fields,
+            },
+            status=error.status_code,
+        )
     return RedirectResponse("/leads/campaigns#campaign-signature-" + campaign_id, 303)
 
 

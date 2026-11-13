@@ -181,19 +181,36 @@ def render_campaigns(
     form_context: dict[str, Any] | None = None,
     status: int = 200,
 ) -> HTMLResponse:
-    """Keep campaign settings available when a sender save needs correction."""
+    """Keep campaign settings available when a form needs correction."""
     from app.api.sources import lead_context
     from app.db.outreach_models import Mailbox
     from app.reporting.service import campaign_results
     from app.sending.campaign_sender import SENDER_KEY_PREFIX, selectable_sender
     from app.sending.signatures import CAMPAIGN_SIGNATURE_PREFIX
-    from app.sources.campaigns import CAMPAIGN_COUNTRIES, DRAFT_ONLY_COUNTRIES
+    from app.sources.campaigns import (
+        CAMPAIGN_COUNTRIES,
+        DRAFT_ONLY_COUNTRIES,
+        archived_campaign_ids,
+        campaign_services,
+    )
 
     context = lead_context(request, principal)
     context["results"] = campaign_results(services(request).db)
     context["campaign_countries"] = CAMPAIGN_COUNTRIES
     context["draft_only_countries"] = DRAFT_ONLY_COUNTRIES
+    fields = form_context or {}
+    for key in ("create_campaign_form", "targeting_form"):
+        if key in fields and fields[key]:
+            context[f"{key}_services"] = campaign_services(fields[key].get("services", ""))
     with services(request).db.sessions() as session:
+        archived = archived_campaign_ids(session)
+        context["archived_campaigns"] = [
+            row["campaign"] for row in context["results"] if row["campaign"].id in archived
+        ]
+        context["results"] = [
+            row for row in context["results"] if row["campaign"].id not in archived
+        ]
+        context["campaigns"] = [row["campaign"] for row in context["results"]]
         assignments = {
             item.key.removeprefix(SENDER_KEY_PREFIX): item
             for item in session.scalars(
@@ -208,6 +225,7 @@ def render_campaigns(
         }
         mailboxes = list(session.scalars(select(Mailbox).order_by(Mailbox.email)))
         context["mailbox_names"] = {mailbox.email: mailbox.sender_name for mailbox in mailboxes}
+        context["mailbox_brands"] = {mailbox.email: mailbox.brand for mailbox in mailboxes}
         context["campaign_sender_choices"] = {
             row["campaign"].id: [
                 mailbox
@@ -229,7 +247,7 @@ def render_campaigns(
                 )
             )
         }
-    context.update(form_context or {})
+    context.update(fields)
     return render(request, "campaigns.html", context, status)
 
 

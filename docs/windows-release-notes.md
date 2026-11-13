@@ -1,4 +1,6 @@
-# Webix Lead Desk v0.33.0
+# Webix Lead Desk v0.33.1
+
+This release adds independent LinkedIn industry campaigns and improves campaign validation in the hosted dashboard. Update the worker before using LinkedIn business discovery and automatic task preparation.
 
 This worker supports campaign-specific email From names and checks the sender name against each reviewed draft. Update the dashboard and worker together before activating a campaign that uses a custom name.
 

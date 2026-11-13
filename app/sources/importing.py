@@ -46,7 +46,13 @@ def parse_csv(raw: bytes) -> list[Candidate]:
 
 
 def import_candidates(
-    db: Database, campaign_id: str, rows: list[Candidate], source: str, actor: str
+    db: Database,
+    campaign_id: str,
+    rows: list[Candidate],
+    source: str,
+    actor: str,
+    *,
+    linkedin: bool = False,
 ) -> CampaignRun:
     """Import a validated batch atomically; shared domains stay separate and need review."""
     if (
@@ -55,8 +61,12 @@ def import_candidates(
     ):
         raise ValueError("Invalid import source or row count")
     with db.sessions.begin() as session:
+        from app.linkedin.campaigns import active_campaign
+
         campaign = session.get(Campaign, campaign_id)
-        if campaign is None or not campaign.active:
+        if not campaign or not (
+            active_campaign(session, campaign_id) if linkedin else campaign.active
+        ):
             raise ValueError("Choose an active campaign")
         run = CampaignRun(
             campaign_id=campaign_id,

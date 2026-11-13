@@ -91,7 +91,7 @@ try {
     assert.equal(await page.locator('#linkedin').isVisible(),true);
     assert.equal(await page.locator('#sending').isVisible(),false);
     assert.equal(await page.getByRole('button',{name:'Register profile',exact:true}).isVisible(),true);
-    await page.locator('#linkedin summary').filter({hasText:'Daily limits'}).click();
+    await page.locator('#linkedin summary').filter({hasText:/^Daily limits$/}).click();
     assert.equal(await page.getByRole('button',{name:'Save limits',exact:true}).isVisible(),true);
     const linkedinAxe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
     assert.equal(linkedinAxe.violations.length,0,JSON.stringify(linkedinAxe.violations));

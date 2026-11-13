@@ -24,6 +24,7 @@ router = APIRouter()
 def settings_data(request: Request) -> dict[str, Any]:
     """Read non-secret configuration and version history for authenticated settings."""
     from app.api.delivery import connection_data
+    from app.api.linkedin import settings_data as linkedin_data
     from app.audit.monthly import CAPS, TOTAL, usage
     from app.playbook.industries import catalog
     from app.sending.delegation import read_policy
@@ -51,6 +52,7 @@ def settings_data(request: Request) -> dict[str, Any]:
             "ai_monthly_total": TOTAL,
             "ai_monthly_used": sum(monthly_usage.values()),
             **connection_data(request),
+            **linkedin_data(request),
             "playbook_scope": scope,
             "playbook_versions": versions,
             "current_playbook": versions[0] if versions else None,

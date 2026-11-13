@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.31.0 — Unified workspace design
+
+- Restyled the full dashboard with a consistent sidebar, navigation, typography and forms.
+- Campaign directory adds search, market/status filters and compact expandable rows.
+- Email setup combines account identity, password status, signatures, tests and sending checks.
+- LinkedIn profiles, voice cards and limits now live in the main Settings page.
+- Preserved existing approval, delivery and regional activation rules.
+
 ## 0.30.8 — Campaign mailbox selection
 
 - Choose a saved sender profile on a paused campaign.

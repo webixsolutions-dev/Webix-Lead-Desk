@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
 {% block heading %}Campaigns{% endblock %}
 {% block description %}Choose the audience and services for each campaign.{% endblock %}
+{% block heading_action %}<a class="button primary" href="#create-campaign">{{ icon('plus', 17) }} New campaign</a>{% endblock %}
 {% block content %}
-<details id="create-campaign" {% if not campaigns %}open{% endif %}>
-  <summary>Create a campaign</summary>
+<div class="campaign-overview" aria-label="Campaign overview"><div><span>Total campaigns</span><strong>{{ campaigns|length }}</strong><small>Across your markets</small></div><div><span>Active</span><strong>{{ campaigns|selectattr('active')|list|length }}</strong><small>Research and outreach plans</small></div><div><span>Paused</span><strong>{{ campaigns|rejectattr('active')|list|length }}</strong><small>Waiting for your next step</small></div><div><span>Businesses found</span><strong>{{ results|sum(attribute='leads') }}</strong><small>Campaign lead records</small></div></div>
+<details class="campaign-create settings-group" id="create-campaign" {% if not campaigns %}open{% endif %}>
+  <summary>{{ icon("plus", 18) }}<strong>Create a campaign</strong><small>Choose a market, audience and service</small></summary><div class="account-form-body">
   <p class="notice neutral">Canada and US sends follow Calgary time. New Zealand and UAE campaigns are saved as paused drafts.</p>
   <form method="post" action="/campaigns" class="work-form">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
@@ -19,32 +21,28 @@
       {% set selected_services = [] %}
       {% include "service_picker.html" %}
       <label>Campaign type<select name="lane">
-        <option value="client">Camzio client outreach</option>
-        <option value="partner">Webix partners</option>
+        <option value="client">Client outreach</option>
+        <option value="partner">Agency partnerships</option>
       </select></label>
       <label>Daily target<input name="daily_limit" type="number" min="1" max="50" value="10" required></label>
     </div>
     <button class="button primary">Create campaign</button>
   </form>
-</details>
+</div></details>
 
 {% if user.role == 'owner' %}
-<h2>Targeting</h2>
-<p>Edits affect future research. Import history, existing conversation routing and approved message content stay recorded.</p>
-{% if campaign_sender_requirements %}
-  <nav class="toolbar" aria-label="Campaign markets">
-    {% for country, label in [('CA', 'Calgary drafts'), ('AE', 'Dubai drafts')] %}
-      {% set market = results|selectattr('campaign.country', 'equalto', country)|first %}
-      {% if market %}<a class="button secondary" href="#campaign-{{ market.campaign.id }}">{{ label }}</a>{% endif %}
-    {% endfor %}
-  </nav>
-{% endif %}
-<div class="settings-grid">
+<section class="campaign-directory" aria-label="Campaign directory">
+<div class="directory-heading"><div><h2>Your campaigns <span class="count-pill">{{ results|length }}</span></h2><p>Choose a campaign to review targeting, sender and signature.</p></div><a href="/leads" class="text-link">View all leads {{ icon('arrow', 16) }}</a></div>
+<div class="campaign-filters" data-campaign-filters><label class="search-input">{{ icon('search',18) }}<input id="campaign-search" type="search" placeholder="Search campaigns or industries…" aria-label="Search campaigns"></label><label><span class="sr-only">Market</span><select id="campaign-market"><option value="">All markets</option>{% for code, name in campaign_countries.items() %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></label><label><span class="sr-only">Campaign status</span><select id="campaign-status"><option value="">All statuses</option><option value="active">Active</option><option value="paused">Paused</option></select></label><span id="campaign-filter-count" class="small muted" role="status">{{ results|length }} campaigns</span></div>
+<div class="campaign-column-head" aria-hidden="true"><span>CAMPAIGN / AUDIENCE</span><span>MARKET</span><span>LEADS</span><span>STATUS</span><span></span></div>
+<div class="campaign-list">
   {% for row in results %}
     {% set campaign = row.campaign %}
     {% set draft_only = campaign.country in draft_only_countries %}
-    <details class="panel work-panel" id="campaign-{{ campaign.id }}">
-      <summary>{{ campaign.name }} · {% if campaign.lane == 'partner' %}Webix partners{% elif campaign.id in campaign_sender_requirements %}{{ campaign_sender_requirements[campaign.id].brand }} client outreach{% else %}Camzio client outreach{% endif %}{% if draft_only or (not campaign.active and campaign.id in campaign_sender_requirements and row.leads == 0) %} · Paused draft{% elif not campaign.active %} · Paused{% endif %}</summary>
+    {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
+    <details class="campaign-row" id="campaign-{{ campaign.id }}" data-campaign-row data-market="{{ campaign.country }}" data-status="{{ 'active' if campaign.active else 'paused' }}" data-campaign-search="{{ campaign.name }} {{ campaign.industry }} {{ campaign.area }} {{ sender.get('email', '') }}">
+      <summary><span class="campaign-name-cell"><span class="market-mark">{{ campaign.country }}</span><span><strong>{{ campaign.name }}</strong><small>{{ 'Agency partnerships' if campaign.lane == 'partner' else 'Client outreach' }} · {{ sender.get('brand', 'Webix Solutions' if campaign.lane == 'partner' else 'Camzio Tech') }}</small></span></span><span class="campaign-market-cell"><strong>{{ campaign.area }}</strong><small>{{ campaign_countries.get(campaign.country, campaign.country) }}</small></span><span class="campaign-leads-cell"><strong>{{ row.leads }}</strong><small>{{ row.replied }} replies</small></span><span class="state-pill {{ 'positive' if campaign.active else 'pending' }}">{{ 'Active' if campaign.active else 'Paused draft' if draft_only or row.leads == 0 else 'Paused' }}</span><span class="row-chevron">{{ icon('chevron', 18) }}</span></summary>
+      <div class="campaign-row-body"><div class="campaign-detail-heading"><div><h3>{{ campaign.industry }}</h3><p>{{ campaign.services|length }} services selected · Daily cap {{ campaign.daily_limit }}</p></div><a class="button secondary" href="/leads?campaign={{ campaign.id }}">View leads {{ icon('arrow', 16) }}</a></div>
       {% if draft_only %}
         <p class="notice neutral">This campaign is paused while sending in {{ campaign_countries[campaign.country] }} is unavailable.</p>
       {% else %}
@@ -73,7 +71,7 @@
           {% if campaign.lane == 'partner' %}<p class="small muted">Partner campaigns use a Webix Solutions business address.</p>{% endif %}
         </form>
       </details>
-      <form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form">
+      <details class="campaign-edit" open><summary>Audience &amp; targeting</summary><form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
         <input type="hidden" name="version" value="{{ campaign.version }}">
         <label>Name<input name="name" maxlength="120" value="{{ campaign.name }}" required></label>
@@ -93,7 +91,7 @@
           <button class="button primary">Save targeting</button>
           <a class="button secondary" href="/settings?scope={{ campaign.id }}">Campaign guidance</a>
         </div>
-      </form>
+      </form></details>
       {% if campaign.id in campaign_sender_requirements and campaign_sender_requirements[campaign.id].email %}
         {% set signature = campaign_signatures.get(campaign.id) %}
         <details id="campaign-signature-{{ campaign.id }}">
@@ -110,8 +108,11 @@
           </form>
         </details>
       {% endif %}
-    </details>
+    </div></details>
   {% endfor %}
 </div>
+<div class="empty-state" id="campaign-no-matches" hidden><span class="empty-symbol">{{ icon("search", 24) }}</span><h3>No campaigns match</h3><p>Try a different search or clear your filters.</p><button type="button" class="button secondary" id="clear-campaign-filters">Clear filters</button></div>
+{% if not results %}<div class="empty-state"><h3>Your first campaign starts here</h3><p>Choose who to reach and which services to offer.</p><a class="button secondary" href="#create-campaign">Create a campaign</a></div>{% endif %}
+</section>
 {% endif %}
 {% endblock %}

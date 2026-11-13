@@ -31,6 +31,7 @@ async def _save_signature(
             int(fields.get("version", "-1")),
             principal.user.id,
             campaign_override=campaign_override,
+            sender_version=int(fields["sender_version"]) if "sender_version" in fields else None,
         )
     except SettingsConflict as error:
         raise HTTPException(409, str(error)) from error

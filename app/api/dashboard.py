@@ -1,5 +1,7 @@
 """Six authenticated dashboard views and the permitted Phase 1 actions."""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import ValidationError
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -111,6 +113,17 @@ def demos(request: Request, principal: CurrentUser) -> HTMLResponse:
 @router.get("/settings", response_class=HTMLResponse)
 def settings(request: Request, principal: Owner) -> HTMLResponse:
     """Show safe persistent preferences and read-only connection status."""
+    return render_settings(request, principal)
+
+
+def render_settings(
+    request: Request,
+    principal: Owner,
+    *,
+    form_context: dict[str, Any] | None = None,
+    status: int = 200,
+) -> HTMLResponse:
+    """Render the Settings workspace, including a recoverable form error."""
     context = dashboard_context(request, principal, "settings")
     from app.api.playbook import settings_data
 
@@ -128,7 +141,8 @@ def settings(request: Request, principal: Owner) -> HTMLResponse:
 
     context["setup_checks"] = readiness(services(request).db, services(request).settings)
     context["saved"] = request.query_params.get("saved") == "1"
-    return render(request, "settings.html", context)
+    context.update(form_context or {})
+    return render(request, "settings.html", context, status)
 
 
 @router.post("/settings", response_class=HTMLResponse, response_model=None)

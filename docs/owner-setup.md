@@ -160,6 +160,14 @@ only after reviewing the caption and the exact uploaded asset.
 
 ## Sender signature
 
+Under **Leads → Campaigns → Sending mailbox**, choose a saved business mailbox
+while the campaign is paused. Partner campaigns can explicitly share a Webix
+Solutions Hostinger or Google Workspace business mailbox saved for client
+outreach. Set **From name for this campaign** to the real representative and save
+the corresponding **Campaign email signature**. The campaign name is included
+in the exact message review and sender footer. A change requires a new review.
+Use worker v0.33 or newer for sending with a campaign-specific name.
+
 Open **Settings → Email setup → your mailbox → Email signature**. Paste the exported HTML,
 save it and inspect the preview and text version. Clear the field and save to remove it.
 This setting is per mailbox; the app does not import Titan's webmail signature automatically.

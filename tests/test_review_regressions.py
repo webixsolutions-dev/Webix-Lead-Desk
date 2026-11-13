@@ -87,20 +87,26 @@ def test_gmail_profile_and_workflow_tabs(client: TestClient, owner: Account, db:
     """The authenticated form accepts Gmail without turning on sending."""
     sign_in(client, owner)
     page = client.get("/settings")
-    result = client.post(
-        "/settings/mailboxes",
-        data={
-            "csrf_token": csrf_from(page.text),
-            "email": "synthetic@gmail.com",
-            "provider": "gmail",
-            "lane": "client",
-            "brand": "Example",
-            "sender_name": "Example Owner",
-            "mailing_address": "1 Example Street",
-            "contact_details": "synthetic@gmail.com",
-        },
-    )
+    sender = {
+        "csrf_token": csrf_from(page.text),
+        "email": "synthetic@gmail.com",
+        "provider": "gmail",
+        "lane": "client",
+        "brand": "Example",
+        "sender_name": "Example Owner",
+        "mailing_address": "1 Example Street",
+        "contact_details": "synthetic@gmail.com",
+    }
+    result = client.post("/settings/mailboxes", data=sender)
     assert result.status_code == 303
+    duplicate = client.post("/settings/mailboxes", data=sender)
+    assert duplicate.status_code == 409
+    assert "data-form-error open" in duplicate.text
+    assert "This email already has a sender profile" in duplicate.text
+    assert 'value="synthetic@gmail.com"' in duplicate.text
+    invalid = client.post("/settings/mailboxes", data={**sender, "email": "invalid"})
+    assert invalid.status_code == 422
+    assert "Use one valid email address" in invalid.text
     with db.sessions() as session:
         box = session.scalar(select(Mailbox).where(Mailbox.email == "synthetic@gmail.com"))
         assert box and box.provider == "gmail" and not box.enabled

@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.db.linkedin_models import Person, PersonOwnership
@@ -15,7 +16,32 @@ from app.linkedin.identity import (
     release_company,
 )
 from tests.acquisition.helpers import business
-from tests.conftest import Account
+from tests.conftest import Account, csrf_from, sign_in
+
+
+def test_registration_lists_only_unregistered_staff(
+    db: Database, client: TestClient, owner: Account, reviewer: Account
+) -> None:
+    """The next profile must belong to a different real staff account."""
+    add_profile(db, owner.user.id, "https://linkedin.com/in/synthetic-owner", owner.user.id)
+    sign_in(client, owner)
+    page = client.get("/settings/linkedin")
+    assert f'<option value="{owner.user.id}"' not in page.text
+    assert f'<option value="{reviewer.user.id}"' in page.text
+    form = {
+        "csrf_token": csrf_from(page.text),
+        "user_id": owner.user.id,
+        "profile_url": "https://linkedin.com/in/synthetic-staff",
+        "confirmed": "true",
+    }
+    result = client.post("/settings/linkedin/profile", data=form)
+    assert result.status_code == 422 and "data-form-error" in result.text
+    result = client.post("/settings/linkedin/profile", data={**form, "user_id": reviewer.user.id})
+    assert result.status_code == 303
+    assert (
+        "All active staff accounts already have a LinkedIn profile"
+        in client.get("/settings/linkedin").text
+    )
 
 
 def person(

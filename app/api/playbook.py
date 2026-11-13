@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from starlette.responses import RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.api.dependencies import Owner, check_csrf, read_form, services
 from app.core.clock import utc_now
@@ -96,12 +96,18 @@ async def publish_playbook(request: Request, principal: Owner) -> RedirectRespon
     return RedirectResponse(f"/settings?scope={scope}", 303)
 
 
-@router.post("/settings/mailboxes")
-async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse:
-    """Save a disabled Titan or Gmail sender identity with a complete, owner-provided footer."""
-    fields = await read_form(request)
-    check_csrf(principal, fields.get("csrf_token", ""))
+@router.post("/settings/mailboxes", response_model=None)
+async def create_mailbox(request: Request, principal: Owner) -> HTMLResponse | RedirectResponse:
+    """Save a paused sender profile and show recoverable errors inside Settings."""
+    from app.api.dashboard import render_settings
+
+    fields: dict[str, str] = {}
+    duplicate = (
+        "This email already has a sender profile. Select it under Campaigns → Sending mailbox."
+    )
     try:
+        fields = await read_form(request)
+        check_csrf(principal, fields.get("csrf_token", ""))
         email = email_address(fields.get("email", ""))
         lane = fields.get("lane", "client")
         provider = fields.get("provider", "titan")
@@ -125,6 +131,8 @@ async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse
                 "Provide the actual sender identity and complete mailing/contact details"
             )
         with services(request).db.sessions.begin() as session:
+            if session.scalar(select(Mailbox.id).where(Mailbox.email == email)):
+                raise HTTPException(409, duplicate)
             session.add(
                 Mailbox(
                     email=email,
@@ -134,11 +142,32 @@ async def create_mailbox(request: Request, principal: Owner) -> RedirectResponse
                     **profile,
                 )
             )
-    except (ValueError, IntegrityError) as error:
-        raise HTTPException(
-            422, "Check sender details; this address may already have a profile"
-        ) from error
-    return RedirectResponse("/settings", 303)
+    except (ValueError, IntegrityError, HTTPException) as error:
+        if isinstance(error, HTTPException):
+            message, status = str(error.detail), error.status_code
+        elif isinstance(error, IntegrityError):
+            with services(request).db.sessions() as session:
+                exists = session.scalar(
+                    select(Mailbox.id).where(
+                        Mailbox.email == email_address(fields.get("email", ""))
+                    )
+                )
+            message, status = (
+                (duplicate, 409) if exists else ("Could not save the sender profile.", 422)
+            )
+        else:
+            message, status = str(error), 422
+        return render_settings(
+            request,
+            principal,
+            form_context={
+                "form_error": message,
+                "form_error_title": "Sender profile could not be saved",
+                "sender_form": fields,
+            },
+            status=status,
+        )
+    return RedirectResponse("/settings#sending", 303)
 
 
 @router.post("/settings/offers")

@@ -79,8 +79,10 @@ async def save_campaign(request: Request, principal: Owner, campaign_id: str) ->
     return RedirectResponse(destination, 303)
 
 
-@router.post("/campaigns/{campaign_id}/sender")
-async def choose_sender(request: Request, principal: Owner, campaign_id: str) -> RedirectResponse:
+@router.post("/campaigns/{campaign_id}/sender", response_model=None)
+async def choose_sender(
+    request: Request, principal: Owner, campaign_id: str
+) -> HTMLResponse | RedirectResponse:
     """Assign a saved mailbox to this campaign without starting email delivery."""
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
@@ -91,12 +93,23 @@ async def choose_sender(request: Request, principal: Owner, campaign_id: str) ->
             fields.get("mailbox_id", ""),
             int(fields.get("version", "0")),
             principal.user.id,
+            from_name=fields.get("from_name"),
         )
-    except SettingsConflict as error:
-        raise HTTPException(409, str(error)) from error
-    except ValueError as error:
-        raise HTTPException(422, str(error)) from error
-    return RedirectResponse(f"/leads/campaigns#campaign-{campaign_id}", 303)
+    except (SettingsConflict, ValueError) as error:
+        from app.api.command import render_campaigns
+
+        return render_campaigns(
+            request,
+            principal,
+            form_context={
+                "form_error": str(error),
+                "form_error_title": "Campaign sender could not be saved",
+                "sender_form_campaign": campaign_id,
+                "sender_form": fields,
+            },
+            status=409 if isinstance(error, SettingsConflict) else 422,
+        )
+    return RedirectResponse(f"/leads/campaigns#campaign-sender-{campaign_id}", 303)
 
 
 @router.post("/partners/{company_id}/review")

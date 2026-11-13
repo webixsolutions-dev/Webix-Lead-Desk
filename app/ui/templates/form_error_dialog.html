@@ -1,0 +1,7 @@
+{% if form_error %}
+<dialog class="form-error-dialog" data-form-error open aria-labelledby="form-error-title" aria-describedby="form-error-message">
+  <h2 id="form-error-title">{{ form_error_title }}</h2>
+  <p id="form-error-message">{{ form_error }}</p>
+  <form method="dialog"><button class="button primary" autofocus>OK</button></form>
+</dialog>
+{% endif %}

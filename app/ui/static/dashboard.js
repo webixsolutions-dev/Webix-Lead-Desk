@@ -1,6 +1,11 @@
 "use strict";
 // Local presentation only: never saves configuration or triggers a provider action.
 const settingsWorkspace = document.querySelector('[data-settings-workspace]');
+const formError = document.querySelector('[data-form-error]');
+if (formError && typeof formError.showModal === 'function') {
+  formError.removeAttribute('open');
+  formError.showModal();
+}
 if (settingsWorkspace) {
   const panels = [...settingsWorkspace.querySelectorAll('[data-settings-panel]')];
   const links = [...settingsWorkspace.querySelectorAll('.settings-index a')];

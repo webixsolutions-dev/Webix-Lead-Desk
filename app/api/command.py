@@ -1,5 +1,7 @@
 """Canonical work areas and in-place owner review, using existing approval endpoints."""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -169,6 +171,17 @@ def results(request: Request, principal: Owner) -> HTMLResponse:
 @router.get("/leads/campaigns", response_class=HTMLResponse)
 def campaigns(request: Request, principal: Owner) -> HTMLResponse:
     """Centralize creation and edits of reusable targeting without changing send windows."""
+    return render_campaigns(request, principal)
+
+
+def render_campaigns(
+    request: Request,
+    principal: Owner,
+    *,
+    form_context: dict[str, Any] | None = None,
+    status: int = 200,
+) -> HTMLResponse:
+    """Keep campaign settings available when a sender save needs correction."""
     from app.api.sources import lead_context
     from app.db.outreach_models import Mailbox
     from app.reporting.service import campaign_results
@@ -194,6 +207,7 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
             key: item.version for key, item in assignments.items()
         }
         mailboxes = list(session.scalars(select(Mailbox).order_by(Mailbox.email)))
+        context["mailbox_names"] = {mailbox.email: mailbox.sender_name for mailbox in mailboxes}
         context["campaign_sender_choices"] = {
             row["campaign"].id: [
                 mailbox
@@ -202,6 +216,7 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
                     row["campaign"],
                     mailbox,
                     context["campaign_sender_requirements"].get(row["campaign"].id, {}),
+                    for_assignment=True,
                 )
             ]
             for row in context["results"]
@@ -214,7 +229,8 @@ def campaigns(request: Request, principal: Owner) -> HTMLResponse:
                 )
             )
         }
-    return render(request, "campaigns.html", context)
+    context.update(form_context or {})
+    return render(request, "campaigns.html", context, status)
 
 
 @router.get("/conversations/drafts", response_class=HTMLResponse)

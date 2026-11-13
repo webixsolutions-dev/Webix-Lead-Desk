@@ -21,7 +21,7 @@ from app.partners.service import reserve_slot
 from app.playbook.partner import meeting_block
 from app.playbook.service import current_guidance
 from app.policy.verification import verify_address
-from app.sending.campaign_sender import sender_matches
+from app.sending.campaign_sender import campaign_from_name, sender_matches
 from app.sending.sequences import days_for
 from app.sending.signatures import get_signature
 
@@ -69,7 +69,7 @@ def save_draft(
                 actor = session.get(User, actor_id)
                 if not actor or not actor.active or actor.role != "owner":
                     raise ValueError("Only the owner can include a quotation")
-            campaign = session.get(Campaign, campaign_id)
+            campaign = session.get(Campaign, campaign_id, with_for_update=True)
             contact = session.get(Contact, contact_id)
             mailbox = session.get(Mailbox, mailbox_id)
             member = session.scalar(
@@ -88,6 +88,7 @@ def save_draft(
                 raise ValueError("Choose a contact and sender matching this business and campaign")
             if not sender_matches(session, campaign, mailbox):
                 raise ValueError("Choose the business email and brand required by this campaign")
+            from_name = campaign_from_name(session, campaign_id, mailbox)
             company = session.get(Company, company_id)
             assert company
             if reason := meeting_block(session, company, campaign, f"{subject}\n{body}", kind=kind):
@@ -233,12 +234,12 @@ def save_draft(
                 "mailbox_id": mailbox_id,
                 "from_email": mailbox.email,
                 "provider": mailbox.provider,
-                "from_name": mailbox.sender_name,
+                "from_name": from_name,
                 "recipient": contact.email,
                 "subject": subject.strip(),
                 "allow_price": allow_price,
                 "body": body.strip(),
-                "footer": footer(mailbox),
+                "footer": footer(mailbox, from_name=from_name),
                 "signature": get_signature(session, mailbox_id, campaign_id=campaign_id),
                 "evidence_ids": sorted(found),
                 "playbook_ids": [item.id for item in guidance],

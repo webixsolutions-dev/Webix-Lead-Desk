@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.33.0 — Campaign sender names
+
+- Assign a saved Webix business mailbox to a partner campaign without changing the mailbox lane.
+- Set a campaign-specific From name and use it in exact email review and the sender footer.
+- Show sender setup errors in a dialog with the submitted fields preserved.
+- List only staff accounts without a LinkedIn profile in the registration form.
+
 ## 0.32.0 — Desktop outreach overview
 
 - Replace the setup-only desktop window with a native overview and a separate connection-settings page.

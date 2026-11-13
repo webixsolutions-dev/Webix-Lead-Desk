@@ -18,7 +18,7 @@ from app.partners.service import partner_block
 from app.playbook.partner import meeting_block
 from app.policy.contacts import company_suppressed, is_suppressed
 from app.policy.verification import verification_block
-from app.sending.campaign_sender import sender_matches
+from app.sending.campaign_sender import campaign_from_name, sender_matches
 from app.sending.signatures import get_signature
 from app.sources.validation import domain_of
 
@@ -51,6 +51,7 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             reasons.append(block)
         contact = session.get(Contact, snapshot["contact_id"])
         mailbox = session.get(Mailbox, snapshot["mailbox_id"])
+        from_name = campaign_from_name(session, snapshot["campaign_id"], mailbox) if mailbox else ""
         if get_signature(
             session, snapshot["mailbox_id"], campaign_id=snapshot["campaign_id"]
         ) != snapshot.get("signature", {"html": "", "text": "", "version": 0}):
@@ -109,8 +110,8 @@ def approval_blocks(db: Database, draft: Draft) -> list[str]:
             or (
                 mailbox.provider != snapshot.get("provider", "titan")
                 or mailbox.email != snapshot["from_email"]
-                or footer(mailbox) != snapshot["footer"]
-                or mailbox.sender_name != snapshot["from_name"]
+                or footer(mailbox, from_name=from_name) != snapshot["footer"]
+                or from_name != snapshot["from_name"]
             )
         ):
             reasons.append("Sender identity changed or is not an eligible sender profile")

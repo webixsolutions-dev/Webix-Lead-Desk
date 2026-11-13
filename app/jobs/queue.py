@@ -34,6 +34,7 @@ def enqueue(
         "reconcile",
         "discover",
         "linkedin_discover",
+        "pagespeed_check",
         "enrich_company",
         "advance_company",
         "call_notes",
@@ -70,6 +71,11 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         CAMPAIGN_SIGNATURE_CAPABILITY: 1,
         "whatsapp_agent": 1,
         "linkedin_campaigns": 1,
+        "openai_search": settings.openai_enabled or settings.openai_search_enabled,
+        "pagespeed_check": True,
+        "openai_env_key": bool(
+            settings.openai_api_key and settings.openai_api_key.get_secret_value()
+        ),
         WORKER_CAPABILITY: WORKER_POLICY_VERSION,
     }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
@@ -138,6 +144,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "reconcile",
                         "discover",
                         "linkedin_discover",
+                        "pagespeed_check",
                         "enrich_company",
                         "find_owner",
                         "advance_company",
@@ -175,6 +182,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                     "send",
                     "discover",
                     "linkedin_discover",
+                    "pagespeed_check",
                     "enrich_company",
                     "call_notes",
                     "find_owner",

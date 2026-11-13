@@ -44,6 +44,13 @@ def build_settings(parent: tk.Misc, window: "DesktopWindow") -> tk.Frame:
     )
     startup.pack(anchor="w", pady=(18, 12))
     window.widgets.append(startup)
+    for text, enabled in (
+        ("Prepare AI assessments and email drafts using the workspace allowance", window.ai_drafts),
+        ("Deliver approved and scheduled emails from enabled mailboxes", window.live_email),
+    ):
+        checkbox = ttk.Checkbutton(card, text=text, variable=enabled)
+        checkbox.pack(anchor="w", pady=(0, 8))
+        window.widgets.append(checkbox)
     actions = ttk.Frame(card)
     actions.pack(fill="x")
     for text, action, style in (
@@ -56,8 +63,7 @@ def build_settings(parent: tk.Misc, window: "DesktopWindow") -> tk.Frame:
     ttk.Button(actions, text="Backup recovery key", command=window.recovery_key).pack(side="right")
     label(
         frame,
-        "Connection details are encrypted. Saving settings does not enable outreach. "
-        "Analytics reads your workspace; it does not send emails or spend AI credits.",
+        "Manage your OpenAI key, search budget and mailbox readiness in the dashboard.",
         color=MUTED,
         bg=BG,
         wraplength=680,

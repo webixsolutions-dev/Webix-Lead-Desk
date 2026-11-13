@@ -9,6 +9,7 @@ from app.api.dependencies import CurrentUser, Owner, check_csrf, read_form, serv
 from app.api.views import dashboard_context, render
 from app.core.clock import utc_now
 from app.core.preferences import SettingsConflict
+from app.db.delivery_models import IntegrationSecret
 from app.db.lead_models import Campaign, CampaignLead
 from app.db.linkedin_models import LinkedInProfile
 from app.db.models import Job, User, WorkerInstance, WorkspaceSetting
@@ -18,6 +19,7 @@ from app.linkedin.campaigns import PREFIX, active_campaign, save_routing
 from app.linkedin.planner import plan_day
 from app.linkedin.quotas import Quotas, save_quotas
 from app.sources.campaigns import archived_campaign_ids
+from app.sources.enrichment.config import get_config
 from app.sources.importing import import_candidates, parse_csv
 
 router = APIRouter()
@@ -144,15 +146,16 @@ async def discover_campaign(
     check_csrf(principal, fields.get("csrf_token", ""))
     db = services(request).db
     now = utc_now()
+    config, _ = get_config(db)
     with db.sessions() as session:
         rule = active_campaign(session, campaign_id)
         version = rule.version if rule else None
         worker = session.get(WorkerInstance, "primary")
+        runtime = (worker.runtime_config or {}) if worker else {}
         supported = (
-            worker
-            and worker.lease_expires_at > now
-            and (worker.runtime_config or {}).get("linkedin_campaigns") == 1
+            worker and worker.lease_expires_at > now and runtime.get("linkedin_campaigns") == 1
         )
+        key_saved = session.get(IntegrationSecret, "openai") is not None
     if version is None or not supported:
         error = (
             "Activate this LinkedIn campaign first."
@@ -160,6 +163,18 @@ async def discover_campaign(
             else "Start worker v0.33.1 or newer before searching for businesses."
         )
         return _campaigns_page(request, principal, error=error, status=422)
+    if config.provider == "openai_web_search" and not (
+        runtime.get("openai_search") and (key_saved or runtime.get("openai_env_key"))
+    ):
+        return _campaigns_page(
+            request,
+            principal,
+            error=(
+                "Start a worker with OpenAI search (Windows v0.33.2 or newer) "
+                "and save the key in Discovery & AI."
+            ),
+            status=422,
+        )
     enqueue(
         db,
         f"linkedin:discover:{campaign_id}:{version}:{now:%Y%m%d%H%M}",

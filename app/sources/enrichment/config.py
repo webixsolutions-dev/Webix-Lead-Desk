@@ -19,6 +19,8 @@ class SearchConfig(BaseModel):
     provider: Literal["openai_web_search", "google_places"] = "openai_web_search"
     enabled: bool = True
     discovery_batch_size: int = Field(default=5, ge=1, le=10)
+    daily_lead_target: int = Field(default=0, ge=0, le=50)
+    daily_campaign_id: str = Field(default="", max_length=36)
     daily_calls: int = Field(default=60, ge=0, le=1000)
     monthly_calls: int = Field(default=0, ge=0, le=30000)
     monthly_usd_micro: int = Field(default=0, ge=0, le=1_000_000_000)

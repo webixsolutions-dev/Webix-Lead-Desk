@@ -1,12 +1,15 @@
 <section id="acquisition" class="panel work-panel"><h2>Lead discovery</h2><p class="muted">Campaign industry + city → sourced businesses → website check → audit → unapproved draft.</p>
+<p class="small">{{ 'OpenAI key saved.' if 'openai' in connected_keys else 'Save your OpenAI key under Research credentials.' }} {{ 'Worker supports OpenAI search.' if worker_search else 'Start a worker with OpenAI search enabled.' }}</p>
 {% if search_config is defined %}<form action="/settings/acquisition" method="post" class="work-form"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version" value="{{ search_version }}">
 <label>Provider<select name="provider"><option value="openai_web_search" {% if search_config.provider == 'openai_web_search' %}selected{% endif %}>OpenAI web search</option><option value="google_places" {% if search_config.provider == 'google_places' %}selected{% endif %}>Google Places · optional</option></select></label>
 <label class="checkbox-row"><input type="checkbox" name="enabled" value="true" {% if search_config.enabled %}checked{% endif %}>Enable search provider (AI funding checks still apply)</label>
+<label>Daily discovery campaign<select name="daily_campaign_id"><option value="">Choose a campaign</option>{% for campaign in discovery_campaigns %}<option value="{{ campaign.id }}" {% if campaign.id == search_config.daily_campaign_id %}selected{% endif %}>{{ campaign.name }}</option>{% endfor %}</select></label>
+<label>Daily new business target<input name="daily_lead_target" type="number" min="0" max="50" value="{{ search_config.daily_lead_target }}" required><small>Runs while the selected campaign and worker are active. Zero turns off daily discovery.</small></label>
 <div class="form-columns"><label>Businesses per discovery batch<input name="discovery_batch_size" type="number" min="1" max="10" value="{{ search_config.discovery_batch_size }}" required></label><label>Daily search cap<input name="daily_calls" type="number" min="0" max="1000" value="{{ search_config.daily_calls }}" required></label><label>Monthly search cap<input name="monthly_calls" type="number" min="0" max="30000" value="{{ search_config.monthly_calls }}" required></label><label>Monthly search budget (USD)<input name="monthly_usd" type="number" min="0" max="1000" step="0.000001" value="{{ '%.6f'|format(search_config.monthly_usd_micro / 1000000) }}" required><small>Includes search and model tokens within your overall AI allowance.</small></label><label>Price per web search (USD)<input name="search_usd" type="number" min="0" max="1" step="0.000001" value="{{ '%.6f'|format(search_config.search_usd_micro / 1000000) }}" required><small>Enter the verified rate. Zero blocks paid search.</small></label></div>
 <details><summary>Optional Google Places connection</summary><p class="small">Off by default. Google-derived listing fields are transient; only place IDs and independently verified first-party evidence are retained.</p><label class="checkbox-row"><input type="checkbox" name="places_enabled" value="true" {% if search_config.places_enabled %}checked{% endif %}>Enable Google Places</label><label>New API key (leave blank to keep existing)<input type="password" name="places_key" autocomplete="new-password" maxlength="4096"></label><div class="form-columns">{% for field, label in [('places_daily_calls','Daily calls'),('places_monthly_calls','Monthly calls'),('places_monthly_usd_micro','Monthly budget · USD'),('places_search_usd_micro','Per-call price · USD')] %}<label>{{ label }}<input name="{{ field|replace('_micro','') }}" type="number" min="0" step="{{ '0.000001' if '_micro' in field else '1' }}" value="{{ (search_config|attr(field) / 1000000) if '_micro' in field else search_config|attr(field) }}" required></label>{% endfor %}</div></details>
 <label>No-website offer<select name="no_website_offer_id"><option value="">Optional: choose the confirmed no-website offer</option>{% for offer in offers if offer.active %}<option value="{{ offer.id }}" {% if search_config.no_website_offer_id == offer.id %}selected{% endif %}>{{ offer.service }} · {{ offer.name }}</option>{% endfor %}</select></label><p class="small muted">Uses your Offer Library. Add the package there first. Prices are kept out of first-touch copy.</p><button class="button primary">Save discovery settings</button></form>{% endif %}</section>
 {% if search_config is defined %}
-<section class="panel work-panel">
+<section class="panel work-panel" id="mobile-performance">
   <h2>Mobile performance tests</h2>
   <p class="muted">Website research records public SEO markup and HTML response timing. Connect PageSpeed Insights to add one mobile Lighthouse lab test for the first verified page of each fresh audit.</p>
   <p>{{ 'PageSpeed key saved' if pagespeed_connected else 'PageSpeed key needed for mobile lab measurements' }}</p>
@@ -17,6 +20,13 @@
     <label>PageSpeed Insights API key<input name="credential" type="password" autocomplete="new-password" maxlength="4096" required></label>
     <button class="button secondary" {% if not vault_ready %}disabled{% endif %}>Save key for mobile tests</button>
   </form>
+  {% if pagespeed_connected %}
+  <form action="/settings/pagespeed-check" method="post" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <button class="button secondary" {% if not pagespeed_check_available %}disabled{% endif %}>Test PageSpeed connection</button>
+  </form>
+  {% if pagespeed_check %}<p role="status">{{ pagespeed_check.result or ('PageSpeed test failed. Check the API is enabled and the key permits the worker.' if pagespeed_check.state == 'failed' else 'Test ' ~ pagespeed_check.state ~ '. Refresh to check.') }}</p>{% endif %}
+  {% endif %}
   {% endif %}
 </section>
 {% if paused_providers %}

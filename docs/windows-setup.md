@@ -1,11 +1,10 @@
 # Install the Windows worker
 
-Download `Webix-Lead-Desk-Setup-0.33.1.exe` from this repository's v0.33.1 release.
+Download `Webix-Lead-Desk-Setup-0.33.2.exe` from this repository's v0.33.2 release.
 
 Updating an existing installation: press **Stop**, wait for the worker to finish, close the
 companion, then run the new installer under the same Windows account. Saved connection details
-and backups stay in place. Start the worker again. v0.22 can execute individually approved
-test emails with saved HTML signatures from Settings; normal outreach remains off.
+and backups stay in place. Start the worker again.
 The release includes SHA256SUMS.txt. The installer bundles Python and all runtime
 packages: no Python, uv, Git, PowerShell commands or PyPI download is needed on the
 owner's PC. Internet is still needed for the hosted database and research jobs.
@@ -38,9 +37,11 @@ PowerShell worker or Scheduled Task before starting this app; the shared databas
 lease also rejects concurrent workers. A shutdown/power loss can still interrupt
 work; the existing uncertain-send and expired-lease safeguards remain in effect.
 
-The desktop app keeps outreach, OpenAI and LinkedIn publishing off,
-including when environment variables try to enable them. It does not create owner
-accounts or automatically migrate production schemas. Those are administrator steps.
+Save your OpenAI key and verified allowance under **Settings → AI & system → Discovery & AI**
+in the dashboard. An active campaign with a configured daily target uses the workspace's
+search limits. In the desktop **Connection settings**, opt in separately to AI assessments
+and email drafts, and to delivery of approved scheduled email. LinkedIn publishing stays off.
+Owner accounts and production schema migrations are administrator steps.
 The existing PC/VPS CLI remains available; Vercel continues to serve only the web UI.
 If a connection fails, recheck settings and database availability. Error messages
 never show database URLs/passwords or raw provider exceptions.

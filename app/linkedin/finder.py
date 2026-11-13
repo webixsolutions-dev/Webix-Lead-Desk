@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 
 from app.audit.budget import BudgetBlocked
-from app.core.ai_config import task_settings
+from app.core.ai_config import search_settings
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import openai_key
@@ -117,9 +117,7 @@ def find_owners(
     """Propose matches within existing search/funding caps and a 90-day owner cache."""
     config, _ = get_config(db)
     config = config.model_copy(update={"provider": "openai_web_search"})
-    settings = task_settings(settings, "audit").model_copy(
-        update={"openai_max_output_tokens": settings.openai_search_max_output_tokens}
-    )
+    settings = search_settings(settings)
     if (
         not settings.openai_enabled
         or min(

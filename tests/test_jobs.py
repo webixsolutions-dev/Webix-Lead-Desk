@@ -4,15 +4,72 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from cryptography.fernet import Fernet
+from pydantic import SecretStr
 from sqlalchemy import select
 
 from app.core.config import Settings
+from app.core.vault import store_secret
 from app.db.models import Job, JobAttempt, new_id
 from app.db.session import Database
-from app.jobs.queue import acquire_worker, claim_next, enqueue_health, finish_job, release_worker
-from app.jobs.runner import PermanentJobError, TemporaryJobError, run_once, run_worker
+from app.integrations import pagespeed
+from app.jobs.queue import (
+    acquire_worker,
+    claim_next,
+    enqueue,
+    enqueue_health,
+    finish_job,
+    release_worker,
+)
+from app.jobs.runner import PermanentJobError, TemporaryJobError, dispatch_job, run_once, run_worker
+from tests.conftest import Account
 
 NOW = datetime(2026, 11, 8, 18, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("provider_accepts", [True, False])
+def test_pagespeed_check_returns_safe_status(
+    db: Database,
+    settings: Settings,
+    owner: Account,
+    monkeypatch: pytest.MonkeyPatch,
+    provider_accepts: bool,
+) -> None:
+    """Run the saved credential through the worker without exposing it in either outcome."""
+    settings = settings.model_copy(
+        update={"encryption_key": SecretStr(Fernet.generate_key().decode())}
+    )
+    store_secret(db, settings, "pagespeed", "synthetic-key", owner.user.id)
+
+    def check(url: str, key: str) -> dict[str, int]:
+        assert url == "https://web.dev/" and key == "synthetic-key"
+        if not provider_accepts:
+            raise pagespeed.PageSpeedUnavailable("synthetic-key")
+        return {"performance_score": 86}
+
+    monkeypatch.setattr(pagespeed, "mobile_audit", check)
+    job = enqueue(db, "pagespeed-check", "pagespeed_check", {}, NOW)
+    assert run_once(
+        db,
+        settings,
+        "test-worker",
+        clock=lambda: NOW,
+        handler=lambda job: dispatch_job(db, job, settings),
+    )
+    with db.sessions() as session:
+        saved = session.get(Job, job.id)
+        assert saved
+        if provider_accepts:
+            assert (
+                saved.state == "succeeded"
+                and saved.result == "PageSpeed connected. Mobile performance score: 86/100."
+            )
+        else:
+            assert (
+                saved.state == "failed"
+                and saved.error_code == "handler_unavailable"
+                and not saved.result
+            )
 
 
 def test_concurrent_enqueue_and_claim(db: Database, settings: Settings) -> None:

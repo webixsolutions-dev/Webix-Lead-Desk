@@ -37,6 +37,7 @@ class DesktopWindow:
         self.dashboard = tk.StringVar(value=DEFAULT_DASHBOARD_URL)
         self.backup = tk.StringVar(value=str(directory / "backups"))
         self.startup = tk.BooleanVar()
+        self.ai_drafts, self.live_email = tk.BooleanVar(), tk.BooleanVar()
         self.status = tk.StringVar(value="Save your connection details to get started.")
         root.title("Webix Lead Desk")
         width = max(980, min(1180, root.winfo_screenwidth() - 60))
@@ -78,7 +79,7 @@ class DesktopWindow:
             )
             button.pack(fill="x", padx=10, pady=3)
             self.nav[key] = button
-        label(sidebar, "v0.33.1", size=9, color="#B6C4D7", bg=NAVY).pack(
+        label(sidebar, "v0.33.2", size=9, color="#B6C4D7", bg=NAVY).pack(
             side="bottom", anchor="w", padx=22, pady=18
         )
         self.worker_badge = tk.StringVar(value="Worker stopped")
@@ -143,6 +144,8 @@ class DesktopWindow:
                 self.dashboard.set(self.config.dashboard_url)
                 self.backup.set(self.config.backup_directory)
                 self.startup.set(self.config.autostart)
+                self.ai_drafts.set(self.config.ai_drafts)
+                self.live_email.set(self.config.live_email)
                 self.status.set("Settings loaded. Ready to start.")
         except Exception:
             self.status.set(
@@ -216,6 +219,8 @@ class DesktopWindow:
                 dashboard_url=self.dashboard.get().strip(),
                 backup_directory=self.backup.get().strip(),
                 autostart=self.startup.get(),
+                ai_drafts=self.ai_drafts.get(),
+                live_email=self.live_email.get(),
             )
             config = DesktopConfig.model_validate(values)
             config.settings(self.directory)
@@ -242,7 +247,7 @@ class DesktopWindow:
             self.controller.start(self.config.settings(self.directory), check_only=True)
 
     def start(self) -> None:
-        """Start only a configured worker; environment variables cannot enable sending."""
+        """Start the worker with the saved connection and explicit permissions."""
         if self.save() and self.config:
             self.status.set("Connecting and starting worker…")
             self.controller.start(self.config.settings(self.directory))

@@ -17,7 +17,7 @@ DEFAULT_DASHBOARD_URL = "https://webix-lead-desk.vercel.app"
 
 
 class DesktopConfig(BaseModel):
-    """Only desktop setup fields; sending and paid integrations remain disabled."""
+    """Private desktop setup fields; web search uses the dashboard's key and limits."""
 
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
     version: int = 1
@@ -28,6 +28,8 @@ class DesktopConfig(BaseModel):
     backup_directory: str
     dashboard_url: str = DEFAULT_DASHBOARD_URL
     autostart: bool = False
+    ai_drafts: bool = False
+    live_email: bool = False
 
     def settings(self, root: Path) -> Settings:
         """Validate all user input before saving, opening a URL or starting a worker."""
@@ -51,10 +53,17 @@ class DesktopConfig(BaseModel):
             data_dir=root / "data",
             public_base_url=self.dashboard_url,
             preview_enabled=False,
-            live_send_enabled=False,
+            live_send_enabled=self.live_email,
             mailbox_tests_enabled=True,
             external_integrations_enabled=False,
-            openai_enabled=False,
+            openai_enabled=self.ai_drafts,
+            openai_search_enabled=True,
+            openai_audit_model="gpt-6-luna",
+            openai_audit_input_usd_micro_per_million=100_000,
+            openai_audit_output_usd_micro_per_million=500_000,
+            openai_draft_model="gpt-6.1-sol",
+            openai_draft_input_usd_micro_per_million=2_000_000,
+            openai_draft_output_usd_micro_per_million=10_000_000,
             linkedin_posting_enabled=False,
             pc_keep_awake=True,
             cookie_secure=True,

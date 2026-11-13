@@ -21,6 +21,7 @@ from app.journey.events import emit
 from app.linkedin.campaigns import active_campaign
 from app.scoring.service import score
 from app.sending.campaign_sender import sender_matches
+from app.sending.window import CALGARY
 from app.sources.enrichment.config import get_config
 from app.sources.enrichment.providers import Provider
 from app.sources.enrichment.service import accept_result, search
@@ -79,18 +80,32 @@ def discover(
         elif not campaign.active:
             raise ValueError("Active campaign required")
     config, _ = get_config(db)
+    daily = int(job.payload.get("daily_target", 0))
+    found = int(job.payload.get("daily_found", 0))
+    if daily and (
+        not config.enabled
+        or config.provider != "openai_web_search"
+        or found >= daily
+        or config.daily_lead_target != daily
+        or config.daily_campaign_id != campaign.id
+        or job.payload["discovery_day"] != utc_now().astimezone(CALGARY).date().isoformat()
+    ):
+        return "Daily discovery settings changed or the search day ended."
+    batch_size = (
+        min(config.discovery_batch_size, daily - found) if daily else config.discovery_batch_size
+    )
     with db.sessions() as session:
         known = list(
             session.scalars(
                 select(Company.name)
-                .where(Company.city.icontains(campaign.area))
+                .where(Company.city.icontains(campaign.area.split(",", 1)[0].strip()))
                 .order_by(Company.created_at.desc())
                 .limit(200)
             )
         )
     query = (
         f"Find {campaign.industry} businesses in {campaign.area}, {campaign.country}. "
-        f"Return at most {config.discovery_batch_size} new businesses. "
+        f"Return at most {batch_size} new businesses. "
         "Exclude already recorded businesses: " + "; ".join(known)
     )
     record, results = search(
@@ -104,7 +119,7 @@ def discover(
         linkedin=linkedin,
     )
     count, added = 0, 0
-    for result in results.businesses[: config.discovery_batch_size]:
+    for result in results.businesses[:batch_size]:
         if not (
             words(result.city) in words(campaign.area) or words(campaign.area) in words(result.city)
         ):
@@ -190,13 +205,18 @@ def discover(
             hold(db, company_id, run.id, "Review the search identity and listing evidence")
         count += 1
     remaining = int(job.payload.get("remaining_batches", 1))
-    if not linkedin and added and remaining > 1:
+    if not linkedin and added and remaining > 1 and (not daily or found + added < daily):
         root = str(job.payload.get("discovery_root", job.id))
         enqueue(
             db,
             f"discovery_batch:{root}:{remaining - 1}",
             "discover",
-            {**job.payload, "discovery_root": root, "remaining_batches": remaining - 1},
+            {
+                **job.payload,
+                "discovery_root": root,
+                "remaining_batches": remaining - 1,
+                "daily_found": found + added,
+            },
             utc_now(),
         )
     result_message = f"Found {count} businesses ({added} new)."

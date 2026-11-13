@@ -300,7 +300,9 @@ def test_draft_only_campaign_can_be_saved_but_cannot_be_activated(
     assert location.startswith("/leads/campaigns#campaign-")
     campaign_id = location.split("#campaign-")[1]
     page = client.get("/leads/campaigns").text
-    assert f"{city} partner pilot · Webix partners · Paused draft" in page
+    summary = page.split(f'id="campaign-{campaign_id}"', 1)[1].split("</summary>", 1)[0]
+    assert f"{city} partner pilot" in summary and "Agency partnerships" in summary
+    assert 'data-status="paused"' in summary and "Paused draft" in summary
     assert f'value="{country}" selected>{country_label} (draft only)' in page
 
     edit_url = f"/campaigns/{campaign_id}/edit"
@@ -336,7 +338,8 @@ def test_campaign_sender_rule_requires_a_worker_that_can_enforce_it(
         )
     sign_in(client, owner)
     page = client.get("/leads/campaigns").text
-    assert "Example Web Studio client outreach · Paused draft" in page
+    summary = page.split(f'id="campaign-{campaign_id}"', 1)[1].split("</summary>", 1)[0]
+    assert "Client outreach · Example Web Studio" in summary and "Paused draft" in summary
     fields = {
         "csrf_token": csrf_from(page),
         "name": "Local HVAC pilot",

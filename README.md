@@ -302,3 +302,7 @@ reactions: 👍 approves and schedules the exact revision, 👎 rejects it, and 
 dashboard editor. Typed APPROVE/REJECT/EDIT codes remain a fallback. No key is needed in chat
 or environment files.
 See [WhatsApp setup and behavior](docs/whatsapp-agent.md).
+
+### Workspace navigation
+
+Campaigns opens a searchable directory with market and status filters. Email accounts and approvals, LinkedIn team profiles, playbook guidance, and system settings share one Settings page. Existing LinkedIn bookmarks remain supported. This layout update does not connect accounts or activate campaigns.

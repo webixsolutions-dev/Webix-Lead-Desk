@@ -16,6 +16,8 @@ from app.core.auth import create_user
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.preferences import Preferences, save_preferences
+from app.db.lead_models import Campaign
+from app.db.linkedin_models import LinkedInProfile
 from app.db.migrate import migrate
 from app.db.research_models import AICall, BudgetAccount
 from app.db.session import create_database
@@ -46,6 +48,32 @@ def main() -> None:
         editor_url, approval_url = seed_review(db, owner.id)
         with db.sessions.begin() as session:
             install_templates(session, owner.id)
+            for industry, city, country, lane in [
+                ("HVAC contractors", "Calgary, Alberta", "CA", "client"),
+                ("Plumbing & drain services", "Calgary, Alberta", "CA", "client"),
+                ("Commercial cleaning", "Calgary, Alberta", "CA", "client"),
+                ("Interior design studios", "Dubai", "AE", "client"),
+                ("IT outsourcing partners", "Auckland", "NZ", "partner"),
+            ]:
+                session.add(
+                    Campaign(
+                        name=f"Example {city.split(',')[0]} · {industry}",
+                        industry=industry,
+                        area=city,
+                        country=country,
+                        lane=lane,
+                        services=["Website redesign"],
+                        active=False,
+                    )
+                )
+            session.add(
+                LinkedInProfile(
+                    user_id=owner.id,
+                    display_name="Demo Owner",
+                    profile_url="https://www.linkedin.com/in/synthetic-example",
+                    voice_card={"role": "Partnerships at Example Studio"},
+                )
+            )
         now = utc_now()
         with db.sessions.begin() as session:
             session.add(
@@ -104,6 +132,8 @@ def main() -> None:
                 "security": "/settings/security",
                 "whatsapp": "/settings/whatsapp",
                 "linkedin": "/linkedin/plan",
+                "linkedin-settings": "/settings/linkedin",
+                "linkedin-activity": "/linkedin/activity",
                 "usage": "/settings/ai-usage",
                 "message": "/leads/preview/prairie",
             }

@@ -1,5 +1,7 @@
 """Verified people, member registration and human cross-channel reply capture."""
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -19,21 +21,26 @@ from app.linkedin.replies import log_reply, reopen_company
 router = APIRouter()
 
 
-@router.get("/settings/linkedin", response_class=HTMLResponse)
-def profiles(request: Request, principal: Owner) -> HTMLResponse:
-    """Register real staff identities without passwords or third-party cookies."""
-    context = dashboard_context(request, principal, "settings")
+def settings_data(request: Request) -> dict[str, Any]:
+    """Read member profiles and limits for the unified owner settings page."""
     with services(request).db.sessions() as session:
-        context.update(
-            profiles=list(session.scalars(select(LinkedInProfile))),
-            staff=list(session.scalars(select(User).where(User.active.is_(True)))),
-            quota_values={
+        return {
+            "profiles": list(session.scalars(select(LinkedInProfile))),
+            "staff": list(session.scalars(select(User).where(User.active.is_(True)))),
+            "quota_values": {
                 p.profile_id: Quotas.model_validate(p.limits).model_dump()
                 for p in session.scalars(select(LinkedInPolicy))
             },
-            quota_defaults=Quotas().model_dump(),
-        )
-    return render(request, "linkedin_profiles.html", context)
+            "quota_defaults": Quotas().model_dump(),
+        }
+
+
+@router.get("/settings/linkedin", response_class=HTMLResponse)
+def profiles(request: Request, principal: Owner) -> HTMLResponse:
+    """Keep existing bookmarks inside the same owner settings workspace."""
+    from app.api.dashboard import settings
+
+    return settings(request, principal)
 
 
 @router.post("/settings/linkedin/profile")

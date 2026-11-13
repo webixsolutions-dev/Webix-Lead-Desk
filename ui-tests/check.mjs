@@ -45,6 +45,15 @@ try {
       if (file==='meeting-pack-normal.html' && viewport.width===1366) {
         await page.pdf({path:`${output}/meeting-pack.pdf`,format:'Letter',printBackground:true,margin:{top:'0.5in',right:'0.5in',bottom:'0.5in',left:'0.5in'}});
       }
+      if (file.startsWith('settings-')) {
+        for (const section of ['sending','linkedin','content','system']) {
+          await page.locator(`.settings-index a[href="#${section}"]`).click();
+          const sectionAxe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
+          const sectionOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+          if(sectionAxe.violations.length || sectionOverflow) failures.push({file:`${file}#${section}`,width:viewport.width,violations:sectionAxe.violations,small:[],overflow:sectionOverflow,bodyContrast:7});
+        }
+        await page.locator('.settings-index a[href="#sending"]').click();
+      }
       const result=await new AxeBuilder({page}).withRules(['color-contrast','color-contrast-enhanced']).analyze();
       // Enhanced contrast applies to ordinary body copy; all text must meet AA.
       const violations=result.violations.filter(v=>v.id==='color-contrast');
@@ -67,6 +76,30 @@ try {
       if(statusBounds) assert(statusBounds.x>=0 && statusBounds.x+statusBounds.width<=viewport.width+1, `Workspace status must fit ${file}`);
       if(violations.length||small.length||overflow||bodyContrast<7) failures.push({file,width:viewport.width,violations,small,overflow,bodyContrast});
     }
+    // Campaign browsing and settings navigation must remain local and accessible.
+    await page.goto(`${base}/campaigns-normal.html`);
+    await page.locator('#campaign-market').selectOption('AE');
+    assert.equal(await page.locator('[data-campaign-row]:visible').count(),1);
+    await page.locator('#campaign-search').fill('no-such-campaign');
+    assert.equal(await page.locator('#campaign-no-matches').isVisible(),true);
+    await page.locator('#clear-campaign-filters').click();
+    assert.equal(await page.locator('[data-campaign-row]:visible').count(),6);
+    await page.locator('#campaign-status').selectOption('active');
+    assert.equal(await page.locator('[data-campaign-row]:visible').count(),1);
+    await page.goto(`${base}/settings-normal.html`);
+    await page.locator('.settings-index a[href="#linkedin"]').click();
+    assert.equal(await page.locator('#linkedin').isVisible(),true);
+    assert.equal(await page.locator('#sending').isVisible(),false);
+    assert.equal(await page.getByRole('button',{name:'Register profile',exact:true}).isVisible(),true);
+    await page.locator('#linkedin summary').filter({hasText:/^Daily limits$/}).click();
+    assert.equal(await page.getByRole('button',{name:'Save limits',exact:true}).isVisible(),true);
+    const linkedinAxe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
+    assert.equal(linkedinAxe.violations.length,0,JSON.stringify(linkedinAxe.violations));
+    await page.screenshot({path:`${output}/${viewport.width}-settings-linkedin.png`,fullPage:true});
+    await page.locator('.settings-index a[href="#sending"]').click();
+    await page.locator('a[href="#add-sender"]').click();
+    assert.equal(await page.locator('#add-sender [name="provider"]').isVisible(),true);
+    await page.screenshot({path:`${output}/${viewport.width}-settings-sender-form.png`,fullPage:true});
     await page.goto(`${base}/today-normal.html`);
     const first=page.locator('main [data-review-item]').first();
     const bounds=await first.boundingBox();

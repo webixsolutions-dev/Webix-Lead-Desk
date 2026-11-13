@@ -20,6 +20,13 @@ def test_planner_and_profile_limits_are_visible_only_to_authorized_staff(
     assert "No LinkedIn password" not in page.text
     settings = client.get("/settings/linkedin")
     assert settings.status_code == 200 and "Daily limits" in settings.text
+    assert "data-settings-workspace" in settings.text
+    unified = client.get("/settings")
+    assert (
+        'id="linkedin"' in unified.text
+        and "https://www.linkedin.com/in/member-test" in unified.text
+    )
+    assert f"/settings/linkedin/{profile}/quotas" in unified.text
     csrf = csrf_from(settings.text)
     assert (
         client.post(

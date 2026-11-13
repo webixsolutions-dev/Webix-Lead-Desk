@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.linkedin_models import LinkedInProfile, LinkedInTask, PersonOwnership
 from app.db.models import new_id
 from app.db.session import Database
+from app.linkedin.campaigns import ownership_active
 from app.linkedin.coordination import lock_company, outreach_block
 from app.linkedin.day_fence import reserve_touch
 from app.linkedin.identity import require_staff
@@ -48,6 +49,7 @@ def claim_task(
             or not ownership
             or (not ownership.active and task.action != "reply")
             or ownership.profile_id != profile.id
+            or (task.action != "reply" and not ownership_active(session, ownership))
             or task.state != "ready"
             or task.planned_day != local_day(now)
             or not task.release_at

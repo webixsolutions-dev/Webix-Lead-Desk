@@ -33,6 +33,7 @@ def enqueue(
         "send",
         "reconcile",
         "discover",
+        "linkedin_discover",
         "enrich_company",
         "advance_company",
         "call_notes",
@@ -68,6 +69,7 @@ def acquire_worker(db: Database, settings: Settings, owner: str, now: datetime) 
         "email_signatures": 1,
         CAMPAIGN_SIGNATURE_CAPABILITY: 1,
         "whatsapp_agent": 1,
+        "linkedin_campaigns": 1,
         WORKER_CAPABILITY: WORKER_POLICY_VERSION,
     }
     expiry = now + timedelta(seconds=settings.worker_lease_seconds)
@@ -135,6 +137,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                         "send",
                         "reconcile",
                         "discover",
+                        "linkedin_discover",
                         "enrich_company",
                         "find_owner",
                         "advance_company",
@@ -171,6 +174,7 @@ def claim_next(db: Database, settings: Settings, owner: str, now: datetime) -> J
                     "linkedin_post",
                     "send",
                     "discover",
+                    "linkedin_discover",
                     "enrich_company",
                     "call_notes",
                     "find_owner",

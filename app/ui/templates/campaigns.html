@@ -4,27 +4,28 @@
 {% block heading_action %}<a class="button primary" href="#create-campaign">{{ icon('plus', 17) }} New campaign</a>{% endblock %}
 {% block content %}
 <div class="campaign-overview" aria-label="Campaign overview"><div><span>Total campaigns</span><strong>{{ campaigns|length }}</strong><small>Across your markets</small></div><div><span>Active</span><strong>{{ campaigns|selectattr('active')|list|length }}</strong><small>Research and outreach plans</small></div><div><span>Paused</span><strong>{{ campaigns|rejectattr('active')|list|length }}</strong><small>Waiting for your next step</small></div><div><span>Businesses found</span><strong>{{ results|sum(attribute='leads') }}</strong><small>Campaign lead records</small></div></div>
-<details class="campaign-create settings-group" id="create-campaign" {% if not campaigns %}open{% endif %}>
+{% set create_fields = create_campaign_form or {} %}
+<details class="campaign-create settings-group" id="create-campaign" {% if not campaigns or create_campaign_form is defined %}open{% endif %}>
   <summary>{{ icon("plus", 18) }}<strong>Create a campaign</strong><small>Choose a market, audience and service</small></summary><div class="account-form-body">
-  <p class="notice neutral">Canada and US sends follow Calgary time. New Zealand and UAE campaigns are saved as paused drafts.</p>
+  <p class="notice neutral">New campaigns start paused. Choose a sending mailbox before activating email outreach.</p>
   <form method="post" action="/campaigns" class="work-form">
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
     <div class="form-columns">
-      <label>Name<input name="name" maxlength="120" required></label>
-      <label>Industry<input name="industry" placeholder="HVAC &amp; plumbing" maxlength="120" required></label>
-      <label>City / region<input name="area" placeholder="Calgary, Alberta" maxlength="120" required></label>
+      <label>Name<input name="name" maxlength="120" value="{{ create_fields.get('name', '') }}" required></label>
+      <label>Industry<input name="industry" placeholder="HVAC &amp; plumbing" maxlength="120" value="{{ create_fields.get('industry', '') }}" required></label>
+      <label>City / region<input name="area" placeholder="Calgary, Alberta" maxlength="120" value="{{ create_fields.get('area', '') }}" required></label>
       <label>Country<select name="country">
         {% for code, name in campaign_countries.items() %}
-          <option value="{{ code }}">{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
+          <option value="{{ code }}"{% if create_fields.get('country') == code %} selected{% endif %}>{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
         {% endfor %}
       </select></label>
-      {% set selected_services = [] %}
+      {% set selected_services = create_campaign_form_services or [] %}
       {% include "service_picker.html" %}
       <label>Campaign type<select name="lane">
         <option value="client">Client outreach</option>
-        <option value="partner">Agency partnerships</option>
+        <option value="partner"{% if create_fields.get('lane') == 'partner' %} selected{% endif %}>Agency partnerships</option>
       </select></label>
-      <label>Daily target<input name="daily_limit" type="number" min="1" max="50" value="10" required></label>
+      <label>Daily target<input name="daily_limit" type="number" min="1" max="50" value="{{ create_fields.get('daily_limit', '10') }}" required></label>
     </div>
     <button class="button primary">Create campaign</button>
   </form>
@@ -42,9 +43,15 @@
     {% set draft_only = campaign.country in draft_only_countries %}
     {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
     {% set editing_sender = sender_form_campaign == campaign.id %}
+    {% set editing_targeting = targeting_form_campaign == campaign.id %}
+    {% set editing_signature = signature_form_campaign == campaign.id %}
     {% set sender_fields = sender_form if editing_sender else {} %}
-    <details class="campaign-row" id="campaign-{{ campaign.id }}" {% if editing_sender %}open{% endif %} data-campaign-row data-market="{{ campaign.country }}" data-status="{{ 'active' if campaign.active else 'paused' }}" data-campaign-search="{{ campaign.name }} {{ campaign.industry }} {{ campaign.area }} {{ sender.get('email', '') }}">
-      <summary><span class="campaign-name-cell"><span class="market-mark">{{ campaign.country }}</span><span><strong>{{ campaign.name }}</strong><small>{{ 'Agency partnerships' if campaign.lane == 'partner' else 'Client outreach' }} · {{ sender.get('brand', 'Webix Solutions' if campaign.lane == 'partner' else 'Camzio Tech') }}</small></span></span><span class="campaign-market-cell"><strong>{{ campaign.area }}</strong><small>{{ campaign_countries.get(campaign.country, campaign.country) }}</small></span><span class="campaign-leads-cell"><strong>{{ row.leads }}</strong><small>{{ row.replied }} replies</small></span><span class="state-pill {{ 'positive' if campaign.active else 'pending' }}">{{ 'Active' if campaign.active else 'Paused draft' if draft_only or row.leads == 0 else 'Paused' }}</span><span class="row-chevron">{{ icon('chevron', 18) }}</span></summary>
+    {% set targeting_fields = targeting_form if editing_targeting else {} %}
+    {% set signature_fields = signature_form if editing_signature else {} %}
+    {% set selected_country = targeting_fields.get('country', campaign.country) %}
+    {% set selected_brand = mailbox_brands.get(sender.get('email'), '') %}
+    <details class="campaign-row" id="campaign-{{ campaign.id }}" {% if editing_sender or editing_targeting or editing_signature %}open{% endif %} data-campaign-row data-market="{{ campaign.country }}" data-status="{{ 'active' if campaign.active else 'paused' }}" data-campaign-search="{{ campaign.name }} {{ campaign.industry }} {{ campaign.area }} {{ sender.get('email', '') }}">
+      <summary><span class="campaign-name-cell"><span class="market-mark">{{ campaign.country }}</span><span><strong>{{ campaign.name }}</strong><small>{{ 'Agency partnerships' if campaign.lane == 'partner' else 'Client outreach' }} · {{ selected_brand or 'Choose sending mailbox' }}</small></span></span><span class="campaign-market-cell"><strong>{{ campaign.area }}</strong><small>{{ campaign_countries.get(campaign.country, campaign.country) }}</small></span><span class="campaign-leads-cell"><strong>{{ row.leads }}</strong><small>{{ row.replied }} replies</small></span><span class="state-pill {{ 'positive' if campaign.active else 'pending' }}">{{ 'Active' if campaign.active else 'Paused draft' if draft_only or row.leads == 0 else 'Paused' }}</span><span class="row-chevron">{{ icon('chevron', 18) }}</span></summary>
       <div class="campaign-row-body"><div class="campaign-detail-heading"><div><h3>{{ campaign.industry }}</h3><p>{{ campaign.services|length }} services selected · Daily cap {{ campaign.daily_limit }}</p></div><a class="button secondary" href="/leads?campaign={{ campaign.id }}">View leads {{ icon('arrow', 16) }}</a></div>
       {% if draft_only %}
         <p class="notice neutral">This campaign is paused while sending in {{ campaign_countries[campaign.country] }} is unavailable.</p>
@@ -53,7 +60,7 @@
       {% endif %}
       {% if campaign.id in campaign_sender_requirements %}
         {% set sender = campaign_sender_requirements[campaign.id] %}
-        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · {{ sender.email or ('@' ~ sender.domain) }}{% if sender.from_name %} · {{ sender.from_name }}{% endif %}</p>
+        {% if selected_brand %}<p class="small"><strong>Sending mailbox</strong> · {{ selected_brand }} · {{ sender.email }}{% if sender.from_name %} · {{ sender.from_name }}{% endif %}</p>{% endif %}
         {% if not draft_only %}<p class="small muted">Start worker {{ 'v0.33' if sender.from_name else 'v0.30.8' }} or newer before activating this campaign.</p>{% endif %}
       {% endif %}
       {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
@@ -66,7 +73,7 @@
           <label>Email account<select name="mailbox_id" required>
             <option value="">Choose a sender profile</option>
             {% for mailbox in choices %}
-              <option value="{{ mailbox.id }}"{% if (editing_sender and sender_fields.get('mailbox_id') == mailbox.id) or (not editing_sender and mailbox.email == sender.get('email')) %} selected{% endif %}>{{ mailbox.email }} · {{ 'Gmail / Google Workspace' if mailbox.provider == 'gmail' else mailbox.provider|capitalize }} · {{ mailbox.sender_name }}</option>
+              <option value="{{ mailbox.id }}"{% if (editing_sender and sender_fields.get('mailbox_id') == mailbox.id) or (not editing_sender and mailbox.email == sender.get('email')) %} selected{% endif %}>{{ mailbox.email }} · {{ mailbox.brand }} · {{ mailbox.sender_name }}</option>
             {% endfor %}
           </select></label>
           <label>From name for this campaign<input name="from_name" maxlength="120" value="{{ sender_fields.get('from_name', sender.get('from_name', '')) }}" placeholder="Use the mailbox name">
@@ -79,20 +86,21 @@
       </details>
       <details class="campaign-edit" open><summary>Audience &amp; targeting</summary><form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf }}">
-        <input type="hidden" name="version" value="{{ campaign.version }}">
-        <label>Name<input name="name" maxlength="120" value="{{ campaign.name }}" required></label>
-        <label>Industry<input name="industry" maxlength="120" value="{{ campaign.industry }}" required></label>
-        <label>City / region<input name="area" maxlength="120" value="{{ campaign.area }}" required></label>
+        <input type="hidden" name="version" value="{{ targeting_fields.get('version', campaign.version) }}">
+        <label>Name<input name="name" maxlength="120" value="{{ targeting_fields.get('name', campaign.name) }}" required></label>
+        <label>Industry<input name="industry" maxlength="120" value="{{ targeting_fields.get('industry', campaign.industry) }}" required></label>
+        <label>City / region<input name="area" maxlength="120" value="{{ targeting_fields.get('area', campaign.area) }}" required></label>
         <label>Country<select name="country">
           {% for code, name in campaign_countries.items() %}
-            <option value="{{ code }}" {% if campaign.country == code %}selected{% endif %}>{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
+            <option value="{{ code }}" {% if selected_country == code %}selected{% endif %}>{{ name }}{% if code in draft_only_countries %} (draft only){% endif %}</option>
           {% endfor %}
         </select></label>
-        {% set selected_services = campaign.services %}
+        {% set selected_services = targeting_form_services if editing_targeting and targeting_form_services is defined else campaign.services %}
         {% include "service_picker.html" %}
-        <label>Follow-up days from first contact<input name="followup_days" value="{{ (campaign.followup_days if campaign.followup_days is not none else [4,10] if campaign.lane == 'partner' else [3,7,12,20])|join(',') }}"></label>
-        <label>Daily email cap<input type="number" name="daily_limit" min="1" max="{{ 5 if campaign.lane == 'partner' else 50 }}" value="{{ campaign.daily_limit }}" required></label>
-        <label class="checkbox-row"><input type="checkbox" name="active" value="true" {% if draft_only %}disabled{% elif campaign.active %}checked{% endif %}>Active</label>
+        {% set default_days = campaign.followup_days if campaign.followup_days is not none else [4,10] if campaign.lane == 'partner' else [3,7,12,20] %}
+        <label>Follow-up days from first contact<input name="followup_days" value="{{ targeting_fields.get('followup_days', default_days|join(',')) }}"></label>
+        <label>Daily email cap<input type="number" name="daily_limit" min="1" max="{{ 5 if campaign.lane == 'partner' else 50 }}" value="{{ targeting_fields.get('daily_limit', campaign.daily_limit) }}" required></label>
+        <label class="checkbox-row"><input type="checkbox" name="active" value="true" {% if selected_country in draft_only_countries %}disabled{% elif (targeting_fields.get('active') == 'true' if editing_targeting and targeting_fields else campaign.active) %}checked{% endif %}>Active</label>
         <div class="toolbar">
           <button class="button primary">Save targeting</button>
           <a class="button secondary" href="/settings?scope={{ campaign.id }}">Campaign guidance</a>
@@ -102,7 +110,7 @@
         {% set signature = campaign_signatures.get(campaign.id) %}
         {% set mailbox_name = mailbox_names.get(sender.email, '') %}
         {% set signature_matches = signature and signature.value.email == sender.email and signature.value.get('from_name', mailbox_name) == (sender.from_name or mailbox_name) %}
-        <details id="campaign-signature-{{ campaign.id }}">
+        <details id="campaign-signature-{{ campaign.id }}" {% if editing_signature %}open{% endif %}>
           <summary>Campaign email signature{% if signature_matches and signature.value.html %} · saved{% endif %}</summary>
           <p class="small muted">{% if sender.from_name and sender.from_name != mailbox_name %}Save a signature for {{ sender.from_name }}. A custom From name uses its own signature.{% else %}Used for this campaign and its assigned email. Leave blank to use the mailbox signature.{% endif %}</p>
           {% if signature and signature.value.html and not signature_matches %}
@@ -110,12 +118,18 @@
           {% endif %}
           <form method="post" action="/campaigns/{{ campaign.id }}/signature" class="work-form">
             <input type="hidden" name="csrf_token" value="{{ csrf }}">
-            <input type="hidden" name="version" value="{{ signature.version if signature else 0 }}">
-            <input type="hidden" name="sender_version" value="{{ campaign_sender_versions[campaign.id] }}">
-            <label>Signature HTML<textarea name="html" rows="6" maxlength="10000" spellcheck="false">{{ signature.value.html if signature else '' }}</textarea></label>
+            <input type="hidden" name="version" value="{{ signature_fields.get('version', signature.version if signature else 0) }}">
+            <input type="hidden" name="sender_version" value="{{ signature_fields.get('sender_version', campaign_sender_versions[campaign.id]) }}">
+            <label>Signature HTML<textarea name="html" rows="6" maxlength="10000" spellcheck="false">{{ signature_fields.get('html', signature.value.html if signature else '') }}</textarea></label>
             <button class="button secondary">Save campaign signature</button>
           </form>
         </details>
+      {% endif %}
+      {% if not campaign.active %}
+      <form method="post" action="/campaigns/{{ campaign.id }}/archive" class="toolbar">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        <button class="button secondary">Archive campaign</button>
+      </form>
       {% endif %}
     </div></details>
   {% endfor %}
@@ -123,5 +137,17 @@
 <div class="empty-state" id="campaign-no-matches" hidden><span class="empty-symbol">{{ icon("search", 24) }}</span><h3>No campaigns match</h3><p>Try a different search or clear your filters.</p><button type="button" class="button secondary" id="clear-campaign-filters">Clear filters</button></div>
 {% if not results %}<div class="empty-state"><h3>Your first campaign starts here</h3><p>Choose who to reach and which services to offer.</p><a class="button secondary" href="#create-campaign">Create a campaign</a></div>{% endif %}
 </section>
+{% if archived_campaigns %}
+<details class="panel work-panel"><summary>Archived campaigns ({{ archived_campaigns|length }})</summary>
+  {% for campaign in archived_campaigns %}
+  <form method="post" action="/campaigns/{{ campaign.id }}/archive" class="toolbar">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="restore" value="true">
+    <span>{{ campaign.name }} · {{ campaign.area }}</span>
+    <button class="button secondary">Restore</button>
+  </form>
+  {% endfor %}
+</details>
+{% endif %}
 {% endif %}
 {% endblock %}

@@ -238,12 +238,18 @@ def dispatch_job(db: Database, job: Job, settings: Settings | None = None) -> st
             if error.temporary:
                 raise TemporaryJobError("Source temporarily unavailable") from error
             raise PermanentJobError("Source unavailable") from error
-    if settings is not None and job.kind in {"discover", "enrich_company", "advance_company"}:
+    if settings is not None and job.kind in {
+        "discover",
+        "linkedin_discover",
+        "enrich_company",
+        "advance_company",
+    }:
         from app.sources.enrichment.flow import advance, enrich_company
         from app.sources.enrichment.flow import discover as discover_city
 
         handler = {
             "discover": discover_city,
+            "linkedin_discover": discover_city,
             "enrich_company": enrich_company,
             "advance_company": advance,
         }[job.kind]

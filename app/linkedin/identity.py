@@ -185,7 +185,13 @@ def confirm_person(
 
 
 def assign_person(
-    db: Database, person_id: str, profile_id: str, actor: str, *, warm: bool = False
+    db: Database,
+    person_id: str,
+    profile_id: str,
+    actor: str,
+    *,
+    warm: bool = False,
+    campaign_id: str | None = None,
 ) -> None:
     """Lock a person and company to one profile, with at most two active people."""
     try:
@@ -201,6 +207,16 @@ def assign_person(
             if person.presence in {"low", "none"}:
                 raise ValueError("Low LinkedIn presence: keep this person on email or phone")
             coordination = lock_company(session, person.company_id)
+            if campaign_id:
+                from app.linkedin.campaigns import active_campaign
+
+                rule = active_campaign(session, campaign_id)
+                if (
+                    not rule
+                    or rule.value["profile_id"] != profile_id
+                    or session.get(PersonOwnership, person_id)
+                ):
+                    return
             if reason := outreach_block(session, person.company_id):
                 raise ValueError(reason)
             locks = list(
@@ -248,7 +264,11 @@ def assign_person(
             current.profile_id, current.active, current.warm = profile_id, True, warm
             current.released_at, current.locked_until = None, None
             current.reason = (
-                "Existing first-degree connection confirmed" if warm else "Owner assignment"
+                f"LinkedIn campaign {campaign_id}"
+                if campaign_id
+                else "Existing first-degree connection confirmed"
+                if warm
+                else "Owner assignment"
             )
             emit(
                 session,

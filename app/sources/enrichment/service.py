@@ -44,6 +44,7 @@ def search(
     *,
     provider: Provider = create_response,
     places_provider: Provider = search_places,
+    linkedin: bool = False,
 ) -> tuple[SearchRecord, SearchResults]:
     """Call once after durable reservation; never repeat an uncertain or cached search."""
     config, _ = get_config(db)
@@ -52,7 +53,11 @@ def search(
     )
     with db.sessions() as session:
         campaign = session.get(Campaign, campaign_id)
-        if not campaign or not campaign.active:
+        from app.linkedin.campaigns import active_campaign
+
+        if not campaign or not (
+            active_campaign(session, campaign_id) if linkedin else campaign.active
+        ):
             raise ValueError("Choose an active campaign")
     if config.provider == "openai_web_search":
         if (

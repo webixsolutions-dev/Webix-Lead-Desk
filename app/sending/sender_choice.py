@@ -15,6 +15,7 @@ from app.db.session import Database
 from app.sending.campaign_sender import SENDER_KEY_PREFIX, selectable_sender
 from app.sending.signature_html import clean_signature, plain_signature
 from app.sending.signatures import CAMPAIGN_SIGNATURE_PREFIX
+from app.sources.campaigns import archived_campaign_ids
 
 
 def save_campaign_sender(
@@ -40,6 +41,7 @@ def save_campaign_sender(
             if (
                 not campaign
                 or not mailbox
+                or campaign_id in archived_campaign_ids(session)
                 or not selectable_sender(campaign, mailbox, requirement, for_assignment=True)
             ):
                 raise ValueError("Choose an eligible sender profile for this campaign")

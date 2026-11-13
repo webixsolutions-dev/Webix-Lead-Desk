@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.33.1 — Email and LinkedIn campaign setup
+
+- Show campaign form errors in the workspace and preserve the submitted values.
+- Identify invalid targeting fields and count repeated service selections once.
+- Use the selected mailbox brand in the email campaign directory and archive redundant drafts.
+- Configure LinkedIn industry routing and business discovery separately from email activation.
+
 ## 0.33.0 — Campaign sender names
 
 - Assign a saved Webix business mailbox to a partner campaign without changing the mailbox lane.

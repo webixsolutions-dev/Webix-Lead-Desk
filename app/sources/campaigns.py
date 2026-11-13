@@ -1,6 +1,7 @@
 """Owner-maintained targeting while historical import snapshots remain unchanged."""
 
 from sqlalchemy import select, update
+from sqlalchemy.orm import Session
 
 from app.db.delivery_models import SendIntent
 from app.db.lead_models import Campaign
@@ -18,6 +19,76 @@ CAMPAIGN_COUNTRIES = {
     "AE": "United Arab Emirates",
 }
 DRAFT_ONLY_COUNTRIES = frozenset({"NZ", "AE"})
+ARCHIVED_CAMPAIGN_PREFIX = "campaign_archive:"
+
+
+def archived_campaign_ids(session: Session) -> set[str]:
+    """Return archived campaign IDs for configuration and targeting lists."""
+    return {
+        item.key.removeprefix(ARCHIVED_CAMPAIGN_PREFIX)
+        for item in session.scalars(
+            select(WorkspaceSetting).where(
+                WorkspaceSetting.key.startswith(ARCHIVED_CAMPAIGN_PREFIX)
+            )
+        )
+        if item.value.get("archived") is True
+    }
+
+
+def campaign_services(value: str) -> list[str]:
+    """Parse the service picker and count each selected service once."""
+    return list(dict.fromkeys(service.strip() for service in value.split(",") if service.strip()))
+
+
+def validate_targeting(
+    name: str, industry: str, area: str, country: str, services: list[str]
+) -> None:
+    """Tell the owner which campaign field needs attention."""
+    for label, value in (("campaign name", name), ("industry", industry), ("city or region", area)):
+        if not 1 <= len(value.strip()) <= 120:
+            raise ValueError(f"Enter the {label} (up to 120 characters).")
+    if country not in CAMPAIGN_COUNTRIES:
+        raise ValueError("Choose a supported campaign country.")
+    if not 1 <= len(services) <= 12:
+        raise ValueError("Select between 1 and 12 services for this campaign.")
+    if any(not 1 <= len(service.strip()) <= 120 for service in services):
+        raise ValueError("Keep each service name between 1 and 120 characters.")
+
+
+def archive_campaign(
+    db: Database, campaign_id: str, actor_id: str, *, restore: bool = False
+) -> None:
+    """Remove a paused campaign from setup lists while retaining its history."""
+    from app.linkedin.campaigns import PREFIX as LINKEDIN_CAMPAIGN_PREFIX
+
+    with db.sessions.begin() as session:
+        actor = session.get(User, actor_id)
+        campaign = session.get(Campaign, campaign_id, with_for_update=True)
+        if not actor or not actor.active or actor.role != "owner" or not campaign:
+            raise ValueError("Choose an existing campaign as the workspace owner.")
+        if campaign.active:
+            raise ValueError("Pause the campaign before archiving it.")
+        linkedin = session.get(WorkspaceSetting, LINKEDIN_CAMPAIGN_PREFIX + campaign.id)
+        if not restore and linkedin and linkedin.value.get("active"):
+            raise ValueError("Pause this campaign on LinkedIn before archiving it.")
+        key = ARCHIVED_CAMPAIGN_PREFIX + campaign.id
+        current = session.get(WorkspaceSetting, key)
+        if restore:
+            if current:
+                current.value = {"archived": False}
+            else:
+                session.add(WorkspaceSetting(key=key, value={"archived": False}))
+            session.add(
+                AuditEvent(actor_id=actor_id, action="campaign.restored", entity_id=campaign_id)
+            )
+        elif not current or not current.value.get("archived"):
+            if current:
+                current.value = {"archived": True}
+            else:
+                session.add(WorkspaceSetting(key=key, value={"archived": True}))
+            session.add(
+                AuditEvent(actor_id=actor_id, action="campaign.archived", entity_id=campaign_id)
+            )
 
 
 def edit_campaign(
@@ -36,13 +107,7 @@ def edit_campaign(
     followup_days: list[int] | None = None,
 ) -> None:
     """Apply a version-checked targeting edit without changing existing conversation routing."""
-    if (
-        not all(1 <= len(v.strip()) <= 120 for v in [name, industry, area])
-        or country not in CAMPAIGN_COUNTRIES
-        or not 1 <= len(services) <= 12
-        or any(not 1 <= len(v.strip()) <= 120 for v in services)
-    ):
-        raise ValueError("Complete the campaign name, sector, area, country and services")
+    validate_targeting(name, industry, area, country, services)
     if active and country in DRAFT_ONLY_COUNTRIES:
         raise ValueError(
             f"{CAMPAIGN_COUNTRIES[country]} campaigns must stay paused "
@@ -53,6 +118,8 @@ def edit_campaign(
         campaign = session.get(Campaign, campaign_id, with_for_update=True)
         if not actor or not actor.active or actor.role != "owner" or not campaign:
             raise ValueError("An active owner must edit an existing campaign")
+        if campaign_id in archived_campaign_ids(session):
+            raise ValueError("This campaign is archived.")
         sender = session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id)
         if active and sender:
             custom_name = bool(sender.value.get("from_name"))

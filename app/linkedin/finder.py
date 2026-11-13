@@ -130,12 +130,14 @@ def find_owners(
         <= 0
     ):
         raise BudgetBlocked("Configure verified AI funding and web-search rates first")
+    from app.linkedin.campaigns import active_campaign
+
     with db.sessions() as session:
         company, campaign = session.get(Company, company_id), session.get(Campaign, campaign_id)
         if (
             not company
             or not campaign
-            or not campaign.active
+            or (not campaign.active and not active_campaign(session, campaign_id))
             or not session.scalar(
                 select(CampaignLead.id).where(
                     CampaignLead.company_id == company_id, CampaignLead.campaign_id == campaign_id

@@ -40,7 +40,7 @@ def selectable_sender(
             or requirement.get("shared") is True
             or (for_assignment and partner_business and mailbox.lane == "client")
         )
-        and (not expected_brand or brand == expected_brand)
+        and (for_assignment or not expected_brand or brand == expected_brand)
         and (
             for_assignment
             or bool(requirement.get("from_name"))

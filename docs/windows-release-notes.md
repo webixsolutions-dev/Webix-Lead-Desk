@@ -1,4 +1,6 @@
-# Webix Lead Desk v0.32.0
+# Webix Lead Desk v0.33.0
+
+This worker supports campaign-specific email From names and checks the sender name against each reviewed draft. Update the dashboard and worker together before activating a campaign that uses a custom name.
 
 A redesigned Windows companion with an outreach overview, clearer navigation and separate connection settings.
 

@@ -53,13 +53,19 @@ def edit_campaign(
         campaign = session.get(Campaign, campaign_id, with_for_update=True)
         if not actor or not actor.active or actor.role != "owner" or not campaign:
             raise ValueError("An active owner must edit an existing campaign")
-        if active and session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id) is not None:
+        sender = session.get(WorkspaceSetting, SENDER_KEY_PREFIX + campaign_id)
+        if active and sender:
+            custom_name = bool(sender.value.get("from_name"))
+            supported_policies = (
+                {WORKER_POLICY_VERSION} if custom_name else {3, WORKER_POLICY_VERSION}
+            )
             worker = session.get(WorkerInstance, "primary")
             if (
                 not worker
-                or (worker.runtime_config or {}).get(WORKER_CAPABILITY) != WORKER_POLICY_VERSION
+                or (worker.runtime_config or {}).get(WORKER_CAPABILITY) not in supported_policies
             ):
-                raise ValueError("Start worker v0.30.8 or newer before activating this campaign")
+                version = "v0.33" if custom_name else "v0.30.8"
+                raise ValueError(f"Start worker {version} or newer before activating this campaign")
         if active:
             signature = session.get(WorkspaceSetting, CAMPAIGN_SIGNATURE_PREFIX + campaign_id)
             if signature and signature.value.get("html"):

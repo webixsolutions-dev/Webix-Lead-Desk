@@ -8,10 +8,10 @@ from typing import Any
 from app.db.outreach_models import Mailbox
 
 
-def footer(mailbox: Mailbox) -> str:
+def footer(mailbox: Mailbox, *, from_name: str | None = None) -> str:
     """Produce the mandatory identity and reply-based unsubscribe footer."""
     return (
-        f"{mailbox.sender_name} | {mailbox.brand}\n{mailbox.mailing_address}\n"
+        f"{from_name or mailbox.sender_name} | {mailbox.brand}\n{mailbox.mailing_address}\n"
         f"{mailbox.contact_details}\nTo stop these emails, reply unsubscribe."
     )
 

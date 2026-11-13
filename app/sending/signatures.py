@@ -12,7 +12,7 @@ from app.db.lead_models import Campaign
 from app.db.models import AuditEvent, User, WorkerInstance, WorkspaceSetting
 from app.db.outreach_models import Mailbox
 from app.db.session import Database
-from app.sending.campaign_sender import SENDER_KEY_PREFIX
+from app.sending.campaign_sender import SENDER_KEY_PREFIX, campaign_from_name
 from app.sending.signature_html import clean_signature, plain_signature
 
 CAMPAIGN_SIGNATURE_PREFIX = "campaign_signature:"
@@ -37,11 +37,19 @@ def get_signature(
 ) -> dict[str, Any]:
     """Prefer a campaign's saved signature for its exact assigned sender."""
     if campaign_id:
+        mailbox = session.get(Mailbox, mailbox_id)
+        from_name = campaign_from_name(session, campaign_id, mailbox) if mailbox else ""
         override = session.get(WorkspaceSetting, CAMPAIGN_SIGNATURE_PREFIX + campaign_id)
-        if override and override.value.get("html"):
-            mailbox = session.get(Mailbox, mailbox_id)
-            if mailbox and mailbox.email.casefold() == override.value.get("email"):
-                return _snapshot(override)
+        if (
+            override
+            and override.value.get("html")
+            and mailbox
+            and mailbox.email.casefold() == override.value.get("email")
+            and override.value.get("from_name", mailbox.sender_name) == from_name
+        ):
+            return _snapshot(override)
+        if mailbox and from_name != mailbox.sender_name:
+            return _snapshot(None)
     return _snapshot(session.get(WorkspaceSetting, signature_key(mailbox_id)))
 
 
@@ -64,6 +72,7 @@ def save_signature(
     actor_id: str,
     *,
     campaign_override: bool = False,
+    sender_version: int | None = None,
 ) -> None:
     """Save sanitized owner content with optimistic concurrency and a payload-free audit."""
     cleaned = clean_signature(html)
@@ -82,9 +91,13 @@ def save_signature(
                 email = str(sender.value.get("email", "")).strip().casefold() if sender else ""
                 if not campaign or not email:
                     raise ValueError("Choose a campaign with an assigned sender address")
+                if sender_version is not None and sender and sender.version != sender_version:
+                    raise SettingsConflict("Campaign sender changed. Review the signature again.")
                 if campaign.active:
                     require_campaign_signature_worker(session)
                 value["email"] = email
+                if sender and sender.value.get("from_name"):
+                    value["from_name"] = str(sender.value["from_name"])
                 key = CAMPAIGN_SIGNATURE_PREFIX + target_id
             else:
                 if not session.get(Mailbox, target_id):

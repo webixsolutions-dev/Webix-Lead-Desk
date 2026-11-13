@@ -12,6 +12,11 @@ Register each real member against their existing active staff user under Setting
 → LinkedIn team profiles. Do not register multiple people under one user. No
 LinkedIn password, cookie, OAuth credential or paid account is needed for L1.
 The member limit is ten. The actual team identities are supplied by the owner.
+The registration list contains only active staff without a registered profile.
+If the member is missing, create their own Lead Desk reviewer account with
+`lead-desk create-user --email <staff-email> --name "<staff-name>" --role reviewer`.
+Once a task is approved, its assigned member opens **LinkedIn → Tasks** and uses
+**Start my action** during the task's release window.
 
 On a business, open People & LinkedIn. Find possible owner uses the existing
 configured OpenAI audit model and web-search budgets, with a separate 90-day

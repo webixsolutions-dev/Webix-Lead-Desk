@@ -1,9 +1,10 @@
 {% extends 'base.html' %}{% from 'macros.html' import icon, badge %}
 {% block heading %}Settings{% endblock %}{% block description %}Set up once. Open a section whenever you need to make a change.{% endblock %}
 {% block content %}{% if saved %}<div class="notice success" role="status">{{ icon('check', 18) }} Workspace preferences saved.</div>{% endif %}{% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+{% include 'form_error_dialog.html' %}
 {% if setup_checks is defined %}{% set missing=setup_checks|rejectattr('ready')|list %}
 <details class="setup-banner"><summary><span class="action-symbol">{{ icon('shield', 20) }}</span><span><strong>{{ 'Finish your workspace setup' if missing else 'Workspace checks recorded' }}</strong><small>{{ missing|length }} checks remaining before launch</small></span><span class="setup-banner-action">View checklist {{ icon('chevron', 16) }}</span></summary><div class="setup-banner-body">{% for check in missing %}<p><strong>{{ check.label }}</strong><span>{{ check.detail }}</span></p>{% endfor %}<a class="button secondary" href="/pilot">Review launch checklist</a></div></details>{% endif %}
-<div class="settings-layout" data-settings-workspace data-default-section="{{ 'system' if error or saved else 'sending' }}">
+<div class="settings-layout" data-settings-workspace data-default-section="{{ form_section or ('system' if error or saved else 'sending') }}">
 <nav class="settings-index" aria-label="Settings sections">
 <a href="#sending">{{ icon('send', 18) }} Email &amp; approvals</a><a href="#linkedin">{{ icon('people', 18) }} LinkedIn</a><a href="#content">{{ icon('folder', 18) }} Playbook &amp; learning</a><a href="#system">{{ icon('sliders', 18) }} AI &amp; system</a></nav>
 <div class="settings-sections">

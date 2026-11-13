@@ -24,9 +24,16 @@ router = APIRouter()
 def settings_data(request: Request) -> dict[str, Any]:
     """Read member profiles and limits for the unified owner settings page."""
     with services(request).db.sessions() as session:
+        profiles = list(session.scalars(select(LinkedInProfile)))
         return {
-            "profiles": list(session.scalars(select(LinkedInProfile))),
-            "staff": list(session.scalars(select(User).where(User.active.is_(True)))),
+            "profiles": profiles,
+            "staff": list(
+                session.scalars(
+                    select(User)
+                    .where(User.active.is_(True), User.id.not_in(p.user_id for p in profiles))
+                    .order_by(User.name)
+                )
+            ),
             "quota_values": {
                 p.profile_id: Quotas.model_validate(p.limits).model_dump()
                 for p in session.scalars(select(LinkedInPolicy))
@@ -43,14 +50,14 @@ def profiles(request: Request, principal: Owner) -> HTMLResponse:
     return settings(request, principal)
 
 
-@router.post("/settings/linkedin/profile")
-async def create_profile(request: Request, principal: Owner) -> RedirectResponse:
+@router.post("/settings/linkedin/profile", response_model=None)
+async def create_profile(request: Request, principal: Owner) -> HTMLResponse | RedirectResponse:
     """Owner registers one profile belonging to one existing staff account."""
     fields = await read_form(request)
     check_csrf(principal, fields.get("csrf_token", ""))
-    if fields.get("confirmed") != "true":
-        raise HTTPException(422, "Confirm this is the member's own real profile")
     try:
+        if fields.get("confirmed") != "true":
+            raise ValueError("Confirm this is the member's own real profile")
         add_profile(
             services(request).db,
             fields.get("user_id", ""),
@@ -58,7 +65,19 @@ async def create_profile(request: Request, principal: Owner) -> RedirectResponse
             principal.user.id,
         )
     except ValueError as error:
-        raise HTTPException(422, str(error)) from error
+        from app.api.dashboard import render_settings
+
+        return render_settings(
+            request,
+            principal,
+            form_context={
+                "form_error": str(error),
+                "form_error_title": "LinkedIn profile could not be registered",
+                "form_section": "linkedin",
+                "linkedin_form": fields,
+            },
+            status=422,
+        )
     return RedirectResponse("/settings/linkedin", 303)
 
 

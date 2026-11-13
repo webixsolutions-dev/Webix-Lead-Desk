@@ -239,3 +239,13 @@ body.text-large .sidebar .nav-link, body.text-large .section-tabs a, body.text-l
 .settings-category { scroll-margin-top: 90px; }
 @media(max-width:720px) { .settings-category { scroll-margin-top: 130px; } }
 @media(max-width:720px) { .topbar-right .workspace-chip { max-width: calc(100% - 154px); } }
+.form-error-dialog {
+  width: min(28rem, calc(100% - 2rem));
+  padding: 1.5rem;
+  border: 1px solid #d5dfed;
+  border-radius: 0.75rem;
+  color: #17243a;
+}
+.form-error-dialog::backdrop { background: rgb(23 36 58 / 45%); }
+.form-error-dialog h2 { margin-top: 0; }
+.form-error-dialog form { margin-top: 1rem; }

@@ -146,7 +146,14 @@ jobs:
           version: "0.13.5"
           enable-cache: true
       - run: uv sync --frozen --group dev --group packaging
-      - run: uv run pytest tests/test_desktop.py -q
+      - name: Test the Windows desktop
+        shell: pwsh
+        run: |
+          uv run pytest tests/test_desktop.py -q -k 'not test_overview_refresh_stale_data_and_connection_generation'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Use a fresh interpreter for the second Tk root on Windows.
+          uv run pytest tests/test_desktop.py::test_overview_refresh_stale_data_and_connection_generation -q
+          exit $LASTEXITCODE
       - run: uv run python scripts/build_windows.py
       - name: Build offline installer
         shell: pwsh

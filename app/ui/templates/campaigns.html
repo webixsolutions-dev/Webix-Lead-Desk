@@ -32,6 +32,7 @@
 
 {% if user.role == 'owner' %}
 <section class="campaign-directory" aria-label="Campaign directory">
+{% include 'form_error_dialog.html' %}
 <div class="directory-heading"><div><h2>Your campaigns <span class="count-pill">{{ results|length }}</span></h2><p>Choose a campaign to review targeting, sender and signature.</p></div><a href="/leads" class="text-link">View all leads {{ icon('arrow', 16) }}</a></div>
 <div class="campaign-filters" data-campaign-filters><label class="search-input">{{ icon('search',18) }}<input id="campaign-search" type="search" placeholder="Search campaigns or industries…" aria-label="Search campaigns"></label><label><span class="sr-only">Market</span><select id="campaign-market"><option value="">All markets</option>{% for code, name in campaign_countries.items() %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></label><label><span class="sr-only">Campaign status</span><select id="campaign-status"><option value="">All statuses</option><option value="active">Active</option><option value="paused">Paused</option></select></label><span id="campaign-filter-count" class="small muted" role="status">{{ results|length }} campaigns</span></div>
 <div class="campaign-column-head" aria-hidden="true"><span>CAMPAIGN / AUDIENCE</span><span>MARKET</span><span>LEADS</span><span>STATUS</span><span></span></div>
@@ -40,7 +41,9 @@
     {% set campaign = row.campaign %}
     {% set draft_only = campaign.country in draft_only_countries %}
     {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
-    <details class="campaign-row" id="campaign-{{ campaign.id }}" data-campaign-row data-market="{{ campaign.country }}" data-status="{{ 'active' if campaign.active else 'paused' }}" data-campaign-search="{{ campaign.name }} {{ campaign.industry }} {{ campaign.area }} {{ sender.get('email', '') }}">
+    {% set editing_sender = sender_form_campaign == campaign.id %}
+    {% set sender_fields = sender_form if editing_sender else {} %}
+    <details class="campaign-row" id="campaign-{{ campaign.id }}" {% if editing_sender %}open{% endif %} data-campaign-row data-market="{{ campaign.country }}" data-status="{{ 'active' if campaign.active else 'paused' }}" data-campaign-search="{{ campaign.name }} {{ campaign.industry }} {{ campaign.area }} {{ sender.get('email', '') }}">
       <summary><span class="campaign-name-cell"><span class="market-mark">{{ campaign.country }}</span><span><strong>{{ campaign.name }}</strong><small>{{ 'Agency partnerships' if campaign.lane == 'partner' else 'Client outreach' }} · {{ sender.get('brand', 'Webix Solutions' if campaign.lane == 'partner' else 'Camzio Tech') }}</small></span></span><span class="campaign-market-cell"><strong>{{ campaign.area }}</strong><small>{{ campaign_countries.get(campaign.country, campaign.country) }}</small></span><span class="campaign-leads-cell"><strong>{{ row.leads }}</strong><small>{{ row.replied }} replies</small></span><span class="state-pill {{ 'positive' if campaign.active else 'pending' }}">{{ 'Active' if campaign.active else 'Paused draft' if draft_only or row.leads == 0 else 'Paused' }}</span><span class="row-chevron">{{ icon('chevron', 18) }}</span></summary>
       <div class="campaign-row-body"><div class="campaign-detail-heading"><div><h3>{{ campaign.industry }}</h3><p>{{ campaign.services|length }} services selected · Daily cap {{ campaign.daily_limit }}</p></div><a class="button secondary" href="/leads?campaign={{ campaign.id }}">View leads {{ icon('arrow', 16) }}</a></div>
       {% if draft_only %}
@@ -50,12 +53,12 @@
       {% endif %}
       {% if campaign.id in campaign_sender_requirements %}
         {% set sender = campaign_sender_requirements[campaign.id] %}
-        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · {{ sender.email or ('@' ~ sender.domain) }}</p>
-        {% if not draft_only %}<p class="small muted">Start worker v0.30.8 or newer before activating this campaign.</p>{% endif %}
+        <p class="small"><strong>Required email sender</strong> · {{ sender.brand }} · {{ sender.email or ('@' ~ sender.domain) }}{% if sender.from_name %} · {{ sender.from_name }}{% endif %}</p>
+        {% if not draft_only %}<p class="small muted">Start worker {{ 'v0.33' if sender.from_name else 'v0.30.8' }} or newer before activating this campaign.</p>{% endif %}
       {% endif %}
       {% set sender = campaign_sender_requirements.get(campaign.id, {}) %}
       {% set choices = campaign_sender_choices.get(campaign.id, []) %}
-      <details id="campaign-sender-{{ campaign.id }}">
+      <details id="campaign-sender-{{ campaign.id }}" {% if editing_sender %}open{% endif %}>
         <summary>Sending mailbox</summary>
         <form method="post" action="/campaigns/{{ campaign.id }}/sender" class="work-form">
           <input type="hidden" name="csrf_token" value="{{ csrf }}">
@@ -63,12 +66,15 @@
           <label>Email account<select name="mailbox_id" required>
             <option value="">Choose a sender profile</option>
             {% for mailbox in choices %}
-              <option value="{{ mailbox.id }}"{% if mailbox.email == sender.get('email') %} selected{% endif %}>{{ mailbox.email }} · {{ 'Gmail / Google Workspace' if mailbox.provider == 'gmail' else mailbox.provider|capitalize }} · {{ mailbox.sender_name }}</option>
+              <option value="{{ mailbox.id }}"{% if (editing_sender and sender_fields.get('mailbox_id') == mailbox.id) or (not editing_sender and mailbox.email == sender.get('email')) %} selected{% endif %}>{{ mailbox.email }} · {{ 'Gmail / Google Workspace' if mailbox.provider == 'gmail' else mailbox.provider|capitalize }} · {{ mailbox.sender_name }}</option>
             {% endfor %}
           </select></label>
+          <label>From name for this campaign<input name="from_name" maxlength="120" value="{{ sender_fields.get('from_name', sender.get('from_name', '')) }}" placeholder="Use the mailbox name">
+            <small>Enter the real person representing this campaign. Leave blank to use the mailbox name.</small>
+          </label>
           <button class="button secondary"{% if not choices or campaign.active %} disabled{% endif %}>Save sending mailbox</button>
           <p class="small muted">Choose a mailbox while the campaign is paused, before any message is reserved. <a href="/settings#sending">Add a Hostinger or Gmail profile in Settings</a>.</p>
-          {% if campaign.lane == 'partner' %}<p class="small muted">Partner campaigns use a Webix Solutions business address.</p>{% endif %}
+          {% if campaign.lane == 'partner' %}<p class="small muted">You can choose a saved Webix Solutions business mailbox here even if its profile is for client outreach.</p>{% endif %}
         </form>
       </details>
       <details class="campaign-edit" open><summary>Audience &amp; targeting</summary><form method="post" action="/campaigns/{{ campaign.id }}/edit" class="work-form form-grid">
@@ -94,15 +100,18 @@
       </form></details>
       {% if campaign.id in campaign_sender_requirements and campaign_sender_requirements[campaign.id].email %}
         {% set signature = campaign_signatures.get(campaign.id) %}
+        {% set mailbox_name = mailbox_names.get(sender.email, '') %}
+        {% set signature_matches = signature and signature.value.email == sender.email and signature.value.get('from_name', mailbox_name) == (sender.from_name or mailbox_name) %}
         <details id="campaign-signature-{{ campaign.id }}">
-          <summary>Campaign email signature{% if signature and signature.value.html and signature.value.email == sender.get("email") %} · saved{% endif %}</summary>
-          <p class="small muted">Used for this campaign and its assigned email. Leave blank to use the mailbox signature.</p>
-          {% if signature and signature.value.html and signature.value.email != sender.get('email') %}
-            <p class="small muted">The saved HTML is linked to {{ signature.value.email }}. Review the name and address before saving it for the selected mailbox.</p>
+          <summary>Campaign email signature{% if signature_matches and signature.value.html %} · saved{% endif %}</summary>
+          <p class="small muted">{% if sender.from_name and sender.from_name != mailbox_name %}Save a signature for {{ sender.from_name }}. A custom From name uses its own signature.{% else %}Used for this campaign and its assigned email. Leave blank to use the mailbox signature.{% endif %}</p>
+          {% if signature and signature.value.html and not signature_matches %}
+            <p class="small muted">Review the saved HTML and update it for the current sender before saving again.</p>
           {% endif %}
           <form method="post" action="/campaigns/{{ campaign.id }}/signature" class="work-form">
             <input type="hidden" name="csrf_token" value="{{ csrf }}">
             <input type="hidden" name="version" value="{{ signature.version if signature else 0 }}">
+            <input type="hidden" name="sender_version" value="{{ campaign_sender_versions[campaign.id] }}">
             <label>Signature HTML<textarea name="html" rows="6" maxlength="10000" spellcheck="false">{{ signature.value.html if signature else '' }}</textarea></label>
             <button class="button secondary">Save campaign signature</button>
           </form>

@@ -1,1 +1,27 @@
-{% if user.role == 'owner' %}<details class="add-account settings-group" id="add-sender" {% if not mailboxes %}open{% endif %}><summary>{{ icon("plus", 18) }} <strong>Add sender profile</strong><small>Titan, Hostinger or Gmail / Google Workspace</small></summary><div class="account-form-body"><p class="muted">Enter the real person and brand that recipients will see. The new profile starts paused.</p><form method="post" action="/settings/mailboxes" class="work-form form-grid"><input type="hidden" name="csrf_token" value="{{ csrf }}"><label>Provider<select name="provider"><option value="titan">Titan</option><option value="hostinger">Hostinger Email</option><option value="gmail">Gmail / Google Workspace</option></select></label><label>Email<input type="email" name="email" maxlength="254" placeholder="sales@yourcompany.com" required></label><label>Lane<select name="lane"><option value="client">Client outreach</option><option value="partner">Partner outreach</option></select></label><label>Brand<input name="brand" maxlength="120" placeholder="Your company" required></label><label>Real sender name<input name="sender_name" maxlength="120" required></label><label>Complete mailing address<input name="mailing_address" maxlength="500" required></label><label>Contact email, phone or website<input name="contact_details" maxlength="500" required></label><button class="button secondary">Save sender profile</button></form></div></details>{% endif %}
+{% if user.role == 'owner' %}
+{% set fields = sender_form or {} %}
+<details class="add-account settings-group" id="add-sender" {% if not mailboxes or sender_form is defined %}open{% endif %}>
+  <summary>{{ icon('plus', 18) }} <strong>Add sender profile</strong><small>Titan, Hostinger or Gmail / Google Workspace</small></summary>
+  <div class="account-form-body">
+    <p class="muted">Enter the real person and brand that recipients will see. The new profile starts paused.</p>
+    <form method="post" action="/settings/mailboxes" class="work-form form-grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <label>Provider<select name="provider">
+        {% for value, label in [('titan', 'Titan'), ('hostinger', 'Hostinger Email'), ('gmail', 'Gmail / Google Workspace')] %}
+        <option value="{{ value }}" {% if fields.get('provider') == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></label>
+      <label>Email<input type="email" name="email" maxlength="254" value="{{ fields.get('email', '') }}" placeholder="sales@yourcompany.com" required></label>
+      <label>Lane<select name="lane">
+        <option value="client">Client outreach</option>
+        <option value="partner" {% if fields.get('lane') == 'partner' %}selected{% endif %}>Partner outreach</option>
+      </select></label>
+      <label>Brand<input name="brand" maxlength="120" value="{{ fields.get('brand', '') }}" placeholder="Your company" required></label>
+      <label>Real sender name<input name="sender_name" maxlength="120" value="{{ fields.get('sender_name', '') }}" required></label>
+      <label>Complete mailing address<input name="mailing_address" maxlength="500" value="{{ fields.get('mailing_address', '') }}" required></label>
+      <label>Contact email, phone or website<input name="contact_details" maxlength="500" value="{{ fields.get('contact_details', '') }}" required></label>
+      <button class="button secondary">Save sender profile</button>
+    </form>
+  </div>
+</details>
+{% endif %}

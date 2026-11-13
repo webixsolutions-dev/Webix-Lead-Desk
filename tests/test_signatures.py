@@ -18,6 +18,7 @@ from app.drafting.service import approval_blocks, approve
 from app.integrations.smtp import SMTPResult
 from app.jobs.queue import acquire_worker, claim_next
 from app.main import create_app
+from app.partners.service import review_partner
 from app.sending import diagnostic_worker
 from app.sending.campaign_sender import SENDER_KEY_PREFIX, sender_matches
 from app.sending.diagnostics import request_test
@@ -251,6 +252,88 @@ def test_campaign_gmail_choice_keeps_market_signature_and_protects_threads(
         )
     with pytest.raises(ValueError, match="existing email threads"):
         save_campaign_sender(db, campaign_id, box, 2, actor)
+
+
+def test_partner_campaign_reuses_client_mailbox_with_its_own_from_name(
+    db: Database, client: TestClient, owner: Account, drafting_setup: dict[str, str]
+) -> None:
+    """One Webix mailbox supplies separate client and partner identities."""
+    campaign_id = drafting_setup["campaign_id"]
+    mailbox_id = drafting_setup["mailbox_id"]
+    actor = drafting_setup["actor_id"]
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        mailbox = session.get(Mailbox, mailbox_id)
+        assert campaign and mailbox
+        campaign.lane = "partner"
+        campaign.active = False
+        mailbox.brand = "Webix Solutions"
+        mailbox.provider = "hostinger"
+        email = mailbox.email
+        assert not sender_matches(session, campaign, mailbox)
+    save_signature(db, mailbox_id, "<p>Mailbox default signature</p>", 0, actor)
+    sign_in(client, owner)
+    page = client.get("/leads/campaigns")
+    assert f'value="{mailbox_id}"' in page.text
+    data = {
+        "csrf_token": csrf_from(page.text),
+        "mailbox_id": mailbox_id,
+        "version": "0",
+        "from_name": "Partner Representative",
+    }
+    endpoint = f"/campaigns/{campaign_id}/sender"
+    assert client.post(endpoint, data=data).status_code == 303
+    conflict = client.post(endpoint, data=data)
+    assert conflict.status_code == 409 and "data-form-error" in conflict.text
+    with db.sessions() as session:
+        campaign = session.get(Campaign, campaign_id)
+        mailbox = session.get(Mailbox, mailbox_id)
+        assert campaign and mailbox and sender_matches(session, campaign, mailbox)
+        assert mailbox.lane == "client" and campaign.lane == "partner"
+        assert mailbox.sender_name != data["from_name"]
+        assert not get_signature(session, mailbox_id, campaign_id=campaign_id)["html"]
+        assert "Mailbox default" in get_signature(session, mailbox_id)["html"]
+    save_signature(
+        db, campaign_id, "<p>Partner Representative</p>", 0, actor, campaign_override=True
+    )
+    review_partner(
+        db,
+        drafting_setup["company_id"],
+        "CA",
+        "https://example.org/",
+        "Reviewed public evidence and the contact basis.",
+        actor,
+    )
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        assert campaign
+        campaign.active = True
+    draft = make_draft(db, drafting_setup)
+    assert draft.snapshot["from_name"] == data["from_name"]
+    assert draft.snapshot["from_email"] == email
+    assert draft.snapshot["footer"].startswith("Partner Representative | Webix Solutions")
+    assert "Partner Representative" in draft.snapshot["signature"]["html"]
+    assert not approval_blocks(db, draft)
+    with db.sessions.begin() as session:
+        campaign = session.get(Campaign, campaign_id)
+        assert campaign
+        campaign.active = False
+    save_campaign_sender(db, campaign_id, mailbox_id, 1, actor, from_name="Other Representative")
+    with pytest.raises(SettingsConflict, match="Campaign sender changed"):
+        save_signature(
+            db,
+            campaign_id,
+            "<p>Partner Representative</p>",
+            1,
+            actor,
+            campaign_override=True,
+            sender_version=1,
+        )
+    assert "Sender identity changed or is not an eligible sender profile" in approval_blocks(
+        db, draft
+    )
+    with db.sessions() as session:
+        assert not get_signature(session, mailbox_id, campaign_id=campaign_id)["html"]
 
 
 def test_signed_test_requires_updated_worker_and_exact_signature(

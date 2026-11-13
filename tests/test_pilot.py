@@ -261,7 +261,7 @@ def test_readiness_reports_worker_switch_without_claiming_provider_acceptance(
             "email_signatures": 1,
             "campaign_signatures": 1,
             "whatsapp_agent": 1,
-            "campaign_sender_policy": 3,
+            "campaign_sender_policy": 4,
         }
 
 

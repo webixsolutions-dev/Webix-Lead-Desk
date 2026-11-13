@@ -56,9 +56,10 @@ def main() -> None:
             "DESIGN PREVIEW · Synthetic demo figures · No connected workspace"
         )
         capture(root, destination)
-        root.geometry("980x680")
+        root.geometry("980x680+0+0")
         capture(root, destination.with_stem(destination.stem + "-compact"))
-        root.geometry("1180x820")
+        window.canvas.yview_moveto(1)
+        capture(root, destination.with_stem(destination.stem + "-activity"))
         window.show_page("settings")
         capture(root, destination.with_stem(destination.stem + "-settings"))
         root.destroy()

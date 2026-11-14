@@ -199,6 +199,44 @@ def test_only_tool_returned_sources_are_accepted(settings: Settings) -> None:
         parse_openai(value, settings, 10000)
 
 
+@pytest.mark.parametrize(
+    ("action", "status", "expected_cost"),
+    [
+        ("search", "completed", 20_030),
+        ("open_page", "completed", 10_030),
+        ("search", "failed", 20_030),
+    ],
+)
+def test_completed_web_actions_use_real_sources_and_cost(
+    db: Database, owner: Account, settings: Settings, action: str, status: str, expected_cost: int
+) -> None:
+    """A second completed tool item no longer stops the batch or undercounts billed searches."""
+    company, campaign = business(db, owner)
+    settings = funded(db, owner, settings)
+    value = response()
+    value["output"][0]["action"]["type"] = "search"
+    second: dict[str, Any] = {"type": action, "url": "https://example.com/"}
+    if action == "search" and status == "completed":
+        value["output"][0]["action"]["sources"] = []
+        second = {"type": "search", "sources": [{"url": "https://example.com/"}]}
+    value["output"].insert(1, {"type": "web_search_call", "status": status, "action": second})
+    record, results = search(
+        db,
+        settings,
+        campaign.id,
+        "fixture",
+        "multi-action",
+        company.id,
+        provider=lambda key, payload: value,
+    )
+    assert len(results.businesses) == 1
+    with db.sessions() as session:
+        saved = session.get(SearchRecord, record.id)
+        account = session.get(BudgetAccount, "primary")
+        assert saved and saved.state == "complete"
+        assert account and account.committed == expected_cost
+
+
 def test_any_city_discovery_deduplicates_identity(
     db: Database, owner: Account, settings: Settings
 ) -> None:

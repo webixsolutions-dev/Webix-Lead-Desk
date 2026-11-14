@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Accept completed OpenAI search results that include additional web actions and account for billed search actions.
+- Notify the paired WhatsApp owner once per email accepted by the sending mail server.
+
 ## 0.33.2 — OpenAI discovery on Windows
 
 - Use the encrypted workspace OpenAI key for budgeted discovery and decision-maker search.

@@ -1,6 +1,5 @@
 """Budgeted open-web owner suggestions; no direct LinkedIn fetching or scraping."""
 
-import math
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -19,7 +18,7 @@ from app.integrations.openai import ModelUnavailable, create_response
 from app.journey.events import emit
 from app.linkedin.identity import linkedin_url
 from app.sources.enrichment.config import get_config
-from app.sources.enrichment.providers import Provider, reserve_cost, search_payload
+from app.sources.enrichment.providers import Provider, reserve_cost, search_payload, search_usage
 from app.sources.enrichment.quota import reserve_search, settle_search
 from app.sources.validation import website_url
 
@@ -59,17 +58,7 @@ def parse_result(
     response: dict[str, Any], settings: Settings, price: int
 ) -> tuple[OwnerResults, int | None]:
     """Reject incomplete calls and source links absent from the actual search output."""
-    calls = [item for item in response.get("output", []) if item.get("type") == "web_search_call"]
-    if (
-        response.get("status") != "completed"
-        or len(calls) != 1
-        or calls[0].get("status") != "completed"
-    ):
-        raise ModelUnavailable("Owner search incomplete")
-    urls = {
-        website_url(source.get("url", ""))
-        for source in calls[0].get("action", {}).get("sources", [])
-    }
+    urls, actual = search_usage(response, settings, price)
     texts = [
         part["text"]
         for item in response.get("output", [])
@@ -91,17 +80,6 @@ def parse_result(
                 continue
         if person.linkedin_url not in profile_sources:
             raise ModelUnavailable("Proposed profile has no actual search source")
-    usage = response.get("usage", {})
-    inputs, outputs = usage.get("input_tokens"), usage.get("output_tokens")
-    actual = None
-    if type(inputs) is int and type(outputs) is int and min(inputs, outputs) >= 0:
-        actual = price + math.ceil(
-            (
-                inputs * settings.openai_input_usd_micro_per_million
-                + outputs * settings.openai_output_usd_micro_per_million
-            )
-            / 1_000_000
-        )
     return parsed, actual
 
 

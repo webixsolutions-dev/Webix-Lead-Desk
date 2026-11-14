@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
 from app.core.config import Settings
-from app.db.delivery_models import InboxMessage
+from app.db.delivery_models import InboxMessage, SendIntent
 from app.db.lead_models import Company
 from app.db.outreach_models import Draft
 from app.db.research_models import Evidence
@@ -97,11 +97,12 @@ def draft_message(
 
 
 def collect(db: Database, settings: Settings, generation: str) -> None:
-    """Queue a bounded set of new replies and pending revisions, deduplicated by generation."""
+    """Queue replies, accepted deliveries and pending revisions once per pairing."""
     with db.sessions.begin() as session:
         connection = session.get(WhatsAppConnection, "primary")
         if not connection or connection.generation != generation or not connection.recipient:
             return
+        collect_accepted(session, connection, settings.public_base_url)
         # Correlated NOT EXISTS avoids an ever-growing list of handled IDs.
         replies = session.scalars(
             select(InboxMessage)
@@ -143,3 +144,35 @@ def collect(db: Database, settings: Settings, generation: str) -> None:
             )
             if f"APPROVE {code}" not in body:
                 item.action = "dashboard_only"
+
+
+def collect_accepted(session: Session, connection: WhatsAppConnection, origin: str) -> None:
+    """Queue one informational update per real SMTP acceptance after this pairing."""
+    if not connection.connected_at:
+        return
+    cutoff = max(connection.connected_at, utc_now() - timedelta(days=1))
+    deliveries = session.execute(
+        select(SendIntent, Draft)
+        .join(Draft, Draft.id == SendIntent.draft_id)
+        .where(
+            SendIntent.state == "accepted",
+            SendIntent.accepted_at >= cutoff,
+            ~exists().where(
+                WhatsAppNotice.generation == connection.generation,
+                WhatsAppNotice.source_key == "email-accepted:" + SendIntent.id,
+            ),
+        )
+        .order_by(SendIntent.accepted_at, SendIntent.id)
+        .limit(10)
+    )
+    for intent, draft in deliveries:
+        body = "Webix Lead Desk: email sent; accepted by the sending mail server."
+        link = origin + "/conversations"
+        if connection.share_details:
+            data = draft.snapshot
+            company = session.get(Company, data["company_id"])
+            if company:
+                body += f"\nBusiness: {company.name}"
+                link = f"{origin}/leads/{company.id}"
+            body += f"\nSubject: {data['subject']}"
+        add_notice(session, connection, "email-accepted:" + intent.id, "status", f"{body}\n{link}")

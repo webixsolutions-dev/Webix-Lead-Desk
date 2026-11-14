@@ -166,6 +166,44 @@ def test_reaction_approval_schedules_exact_revision_once(
         assert item and item.action == "approved"
 
 
+def test_accepted_email_generates_one_private_status_notice(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+) -> None:
+    """Only SMTP acceptance creates a sent notice; private pairing hides prospect details."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner, details=False)
+    key = "email-accepted:synthetic-send"
+    with db.sessions.begin() as session:
+        session.add(
+            SendIntent(
+                id="synthetic-send",
+                conversation_id=draft.conversation_id,
+                draft_id=draft.id,
+                mailbox_id=draft.snapshot["mailbox_id"],
+                step=draft.step,
+                due_at=utc_now(),
+                message_id="<synthetic@example.org>",
+                approval_digest=draft.digest,
+            )
+        )
+    collect(db, factor_settings, generation)
+    with db.sessions.begin() as session:
+        assert not session.scalar(select(WhatsAppNotice).where(WhatsAppNotice.source_key == key))
+        intent = session.get(SendIntent, "synthetic-send")
+        assert intent
+        intent.state, intent.accepted_at = "accepted", utc_now()
+    collect(db, factor_settings, generation)
+    collect(db, factor_settings, generation)
+    with db.sessions() as session:
+        item = session.scalars(select(WhatsAppNotice).where(WhatsAppNotice.source_key == key)).one()
+        assert item.kind == "status" and not item.draft_id
+        assert "accepted by the sending mail server" in item.body
+        assert draft.snapshot["recipient"] not in item.body and "Subject:" not in item.body
+
+
 @pytest.mark.parametrize("case", ["wrong_sender", "wrong_message", "unsupported", "summary"])
 def test_reaction_shortcuts_cannot_escape_review_binding(
     db: Database,

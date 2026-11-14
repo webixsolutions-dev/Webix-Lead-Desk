@@ -17,6 +17,7 @@ from app.db.session import Database
 from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
 from app.drafting.service import approve
 from app.sending.schedule import schedule
+from app.whatsapp import batch
 from app.whatsapp.notices import add_notice
 
 REACTION_ACTIONS = {"👍": "APPROVE", "👎": "REJECT", "✏️": "EDIT"}
@@ -46,6 +47,9 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
     if when > now + timedelta(minutes=1) or when < now - timedelta(hours=24):
         return
     command_id = token_hash(generation + ":" + mid)
+    if text.strip().upper() == "APPROVE":
+        approve_batch(db, generation, sender, command_id, when)
+        return
     try:
         with db.sessions.begin() as session:
             # This write serializes duplicate consumers before any approval side effect.
@@ -90,7 +94,7 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
                 or not isinstance(parent_id, str)
                 or not 1 <= len(parent_id) <= 300
             ):
-                # No LLM interpretations, quoted text, arbitrary emoji or bulk commands.
+                # No LLM interpretations, quoted text or arbitrary emoji.
                 return
             if match:
                 action, code = match.groups()
@@ -155,8 +159,10 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
         return
     try:
         if action == "APPROVE":
+            with db.sessions() as session:
+                due = batch.schedule_time(session, draft_id)
             approve(db, draft_id, digest, actor_id)
-            schedule(db, draft_id, actor_id)
+            schedule(db, draft_id, actor_id, now=due)
             outcome = "approved"
             reply = (
                 "Approved and scheduled. Existing sending checks, limits and worker controls apply."
@@ -198,3 +204,42 @@ def handle(db: Database, settings: Settings, generation: str, message: dict[str,
         session.add(AuditEvent(actor_id=actor_id, action="whatsapp." + outcome, entity_id=draft_id))
         if connection and connection.generation == generation and connection.enabled:
             add_notice(session, connection, "command:" + command_id, "status", reply)
+
+
+def approve_batch(
+    db: Database, generation: str, sender: str, command_id: str, when: datetime
+) -> None:
+    """Use one explicit command to approve the campaign drafts already shown in chat."""
+    try:
+        with db.sessions.begin() as session:
+            connection = session.get(WhatsAppConnection, "primary")
+            active = batch.policy(session)
+            if (
+                not connection
+                or not connection.enabled
+                or connection.generation != generation
+                or connection.recipient != sender
+                or not active
+            ):
+                return
+            actor = session.get(User, connection.owner_id)
+            if not actor or not actor.active or actor.role != "owner":
+                return
+            session.add(WhatsAppCommand(id=command_id))
+            session.flush()
+            candidates = batch.claim(session, connection, when)
+            actor_id = actor.id
+    except IntegrityError:
+        return
+    scheduled, blocked = batch.finish(db, candidates, actor_id, active[2])
+    with db.sessions.begin() as session:
+        connection = session.get(WhatsAppConnection, "primary")
+        if connection and connection.enabled and connection.generation == generation:
+            add_notice(
+                session,
+                connection,
+                "command:" + command_id,
+                "status",
+                f"Campaign review: {scheduled} scheduled, {blocked} need review. "
+                "Only current drafts already shown before your approval were included.",
+            )

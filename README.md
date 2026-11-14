@@ -61,7 +61,7 @@ Stop each with Ctrl+C. On macOS/Linux, use the same `uv` setup commands and `sh 
 
 Sign in, turn off fictional previews when ready, create a campaign and import a small reviewed list. Open Calgary imports require the running worker but no provider key. Confirm the business website, record contact publication/relevance evidence and audit the site. Write Playbook guidance and factual offers/proofs before drafting.
 
-Every outgoing revision requires its own owner approval. Delivery also requires actual sender/provider setup, a fresh inbox, the pilot gate, suppression clearance and current contact evidence. Approval alone never overrides those conditions. Live delivery defaults off. The first pilot is smaller than the eventual 50-first-touch target; no sales or inbox-placement result is guaranteed.
+Every outgoing revision requires owner approval. For a configured campaign review, one WhatsApp approval can cover the exact first-contact drafts already shown to the owner. Delivery also requires sender/provider setup, a fresh inbox, the pilot gate, suppression clearance and current contact evidence. Live delivery defaults off. The first pilot is smaller than the eventual 50-first-touch target.
 
 To verify the worker without external calls, select **Run health check** in Outbox. Repeated clicks within a minute reuse one job. Real activity reports do not count synthetic preview examples.
 

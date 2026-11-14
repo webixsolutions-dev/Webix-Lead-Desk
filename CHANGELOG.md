@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Allow one WhatsApp approval for current first-contact drafts already shown in a configured campaign review, with an earliest sending time.
+
 - Accept completed OpenAI search results that include additional web actions and account for billed search actions.
 - Notify the paired WhatsApp owner once per email accepted by the sending mail server.
 

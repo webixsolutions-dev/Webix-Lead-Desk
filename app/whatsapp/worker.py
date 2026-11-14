@@ -7,7 +7,7 @@ from sqlalchemy import delete, select, update
 from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import read_secret
-from app.db.models import Job, User
+from app.db.models import AuditEvent, Job, User
 from app.db.outreach_models import Draft
 from app.db.session import Database
 from app.db.whatsapp_models import WhatsAppCommand, WhatsAppConnection, WhatsAppNotice
@@ -156,3 +156,5 @@ def deliver_one(db: Database, key: str, generation: str) -> None:
             .where(WhatsAppNotice.id == item_id)
             .values(state="sent", message_id=mid)
         )
+        if item.kind == "draft":
+            session.add(AuditEvent(action="whatsapp.notice_sent", entity_id=item_id))

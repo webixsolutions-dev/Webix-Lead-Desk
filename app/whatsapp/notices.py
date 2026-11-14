@@ -14,6 +14,7 @@ from app.db.outreach_models import Draft
 from app.db.research_models import Evidence
 from app.db.session import Database
 from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
+from app.whatsapp.batch import policy
 
 
 def add_notice(
@@ -54,6 +55,7 @@ def draft_message(
     link = f"{origin}/leads/{data['company_id']}/draft?step={draft.step}&kind={draft.kind}"
     if not connection.share_details:
         return f"Webix Lead Desk: an email draft needs your review.\n{link}"
+    review = policy(session)
     fact = session.scalar(
         select(Evidence)
         .where(
@@ -89,8 +91,13 @@ def draft_message(
         "👎 Reject and hold it\n"
         "✏️ Open the editor/rewrite page\n"
         f"Typed fallback: APPROVE {code}, REJECT {code}, or EDIT {code}.\n"
-        "Code expires in 24 hours. Sending limits and current checks still apply."
+        "Sending limits and current checks still apply."
     )
+    if review and draft.kind == "first_touch" and data["campaign_id"] == review[0]:
+        text += (
+            "\n\nYou can wait while more drafts arrive. When ready, send APPROVE by itself "
+            "to review all current drafts already shown in this campaign batch."
+        )
     if len(text) > 4096:
         return f"Email draft needs review. It exceeds WhatsApp's preview limit.\n{link}"
     return text
@@ -144,6 +151,12 @@ def collect(db: Database, settings: Settings, generation: str) -> None:
             )
             if f"APPROVE {code}" not in body:
                 item.action = "dashboard_only"
+            if (
+                (review := policy(session))
+                and draft.kind == "first_touch"
+                and draft.snapshot.get("campaign_id") == review[0]
+            ):
+                item.expires_at = max(item.expires_at, review[3])
 
 
 def collect_accepted(session: Session, connection: WhatsAppConnection, origin: str) -> None:

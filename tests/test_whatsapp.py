@@ -12,12 +12,13 @@ from app.core.clock import utc_now
 from app.core.config import Settings
 from app.core.vault import read_secret
 from app.db.delivery_models import InboxMessage, IntegrationSecret, SendIntent
-from app.db.models import Job
+from app.db.models import AuditEvent, Job, WorkspaceSetting
 from app.db.outreach_models import Conversation, Draft, DraftApproval
 from app.db.session import Database
 from app.db.whatsapp_models import WhatsAppConnection, WhatsAppNotice
 from app.operations.portable import table_rows
 from app.whatsapp import transport
+from app.whatsapp.batch import KEY as BATCH_KEY
 from app.whatsapp.commands import handle
 from app.whatsapp.notices import collect
 from app.whatsapp.settings import KEY, configure, disconnect
@@ -137,6 +138,65 @@ def test_exact_approval_schedules_once(
         assert session.scalar(select(func.count()).select_from(SendIntent)) == 1
         item = session.get(WhatsAppNotice, ticket.id)
         assert item and item.action == "approved"
+
+
+@pytest.mark.parametrize("case", ["shown", "pending", "late", "wrong_sender", "wrong_scope"])
+def test_campaign_batch_approval_is_bound_to_prior_exact_preview(
+    db: Database,
+    factor_settings: Settings,
+    owner: Account,
+    drafting_setup: dict[str, str],
+    case: str,
+) -> None:
+    """A plain approval can schedule only a prior accepted preview from the active campaign."""
+    draft = make_draft(db, drafting_setup)
+    generation = paired(db, factor_settings, owner)
+    now = utc_now()
+    due = now + timedelta(days=2)
+    with db.sessions.begin() as session:
+        session.add(
+            WorkspaceSetting(
+                key=BATCH_KEY,
+                value={
+                    "campaign_id": (
+                        "other-campaign" if case == "wrong_scope" else draft.snapshot["campaign_id"]
+                    ),
+                    "starts_at": (now - timedelta(minutes=5)).isoformat(),
+                    "expires_at": (now + timedelta(days=5)).isoformat(),
+                    "send_not_before": due.isoformat(),
+                },
+            )
+        )
+    ticket = review_ticket(db, factor_settings, generation)
+    with db.sessions.begin() as session:
+        saved = session.get(WhatsAppNotice, ticket.id)
+        assert saved
+        saved.message_id = "wamid.batch-preview"
+        if case == "pending":
+            saved.state = "pending"
+        else:
+            session.add(
+                AuditEvent(
+                    action="whatsapp.notice_sent",
+                    entity_id=saved.id,
+                    created_at=now + timedelta(seconds=30)
+                    if case == "late"
+                    else now - timedelta(seconds=5),
+                )
+            )
+    command = incoming("approve", sender="user:999" if case == "wrong_sender" else "user:12345")
+    handle(db, factor_settings, generation, command)
+    handle(db, factor_settings, generation, command)
+    with db.sessions() as session:
+        intents = list(session.scalars(select(SendIntent)))
+        if case == "shown":
+            from app.sending.window import next_window
+
+            assert len(intents) == 1 and intents[0].due_at == next_window(due)
+            approval = session.get(DraftApproval, draft.id)
+            assert approval and approval.digest == draft.digest
+        else:
+            assert not intents and not session.get(DraftApproval, draft.id)
 
 
 def test_reaction_approval_schedules_exact_revision_once(
